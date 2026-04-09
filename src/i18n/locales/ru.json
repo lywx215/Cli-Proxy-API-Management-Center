@@ -1175,7 +1175,11 @@
         "input_placeholder": "Вставьте API-ключ",
         "input_hint": "Меняет только содержимое локального файла конфигурации, не синхронизируется с интерфейсом управления API-ключами",
         "error_empty": "Введите API-ключ",
-        "error_invalid": "API-ключ содержит недопустимые символы"
+        "error_invalid": "API-ключ содержит недопустимые символы",
+        "rate_limit_default_rpm_placeholder": "Глобальный лимит RPM (пусто или 0 — без лимита)",
+        "rate_limit_overrides": "Индивидуальные лимиты для ключей",
+        "rate_limit_overrides_empty": "Индивидуальные лимиты для ключей не настроены.",
+        "rate_limit_rpm": "Лимит (RPM)"
       },
       "payload_rules": {
         "rule": "Правило",
