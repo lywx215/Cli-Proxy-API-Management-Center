@@ -39,6 +39,7 @@ import type {
 } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
+  ApiKeyRateLimitEditor,
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
 } from './VisualConfigEditorBlocks';
@@ -185,6 +186,7 @@ export function VisualConfigEditor({
   const shouldRenderFloatingSidebar = !isMobile && isFloatingSidebar && isCurrentLayer;
   const routingStrategyLabelId = useId();
   const routingStrategyHintId = `${routingStrategyLabelId}-hint`;
+  const apiKeyRateLimitInputId = useId();
   const keepaliveInputId = useId();
   const keepaliveHintId = `${keepaliveInputId}-hint`;
   const keepaliveErrorId = `${keepaliveInputId}-error`;
@@ -224,6 +226,10 @@ export function VisualConfigEditor({
 
   const handleApiKeysTextChange = useCallback(
     (apiKeysText: string) => onChange({ apiKeysText }),
+    [onChange]
+  );
+  const handleApiKeyRateLimitChange = useCallback(
+    (apiKeyRateLimit: import('@/types/visualConfig').ApiKeyRateLimitConfig) => onChange({ apiKeyRateLimit }),
     [onChange]
   );
   const handlePayloadDefaultRulesChange = useCallback(
@@ -752,6 +758,19 @@ export function VisualConfigEditor({
                   disabled={disabled}
                   onChange={handleApiKeysTextChange}
                 />
+              </div>
+              <div className={styles.subsection}>
+                <ApiKeyRateLimitEditor
+                  value={values.apiKeyRateLimit}
+                  disabled={disabled}
+                  onChange={handleApiKeyRateLimitChange}
+                  errorId={getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm']) ? `${apiKeyRateLimitInputId}-rate-limit-error` : undefined}
+                />
+                {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm']) ? (
+                  <div id={`${apiKeyRateLimitInputId}-rate-limit-error`} className="error-box" style={{ marginTop: 8 }}>
+                    {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])}
+                  </div>
+                ) : null}
               </div>
             </SectionStack>
           </ConfigSection>

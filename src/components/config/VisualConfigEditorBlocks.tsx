@@ -934,3 +934,100 @@ export const PayloadFilterRulesEditor = memo(function PayloadFilterRulesEditor({
     </div>
   );
 });
+
+export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
+  value,
+  disabled,
+  onChange,
+  errorId,
+}: {
+  value: import('@/types/visualConfig').ApiKeyRateLimitConfig;
+  disabled?: boolean;
+  onChange: (next: import('@/types/visualConfig').ApiKeyRateLimitConfig) => void;
+  errorId?: string;
+}) {
+  const { t } = useTranslation();
+
+  const handleDefaultRpmChange = (defaultRpm: string) => {
+    onChange({ ...value, defaultRpm });
+  };
+
+  const overrideItems = value.overrides || [];
+
+  const addOverride = () => {
+    onChange({
+      ...value,
+      overrides: [...overrideItems, { id: makeClientId(), apiKey: '', rpm: '' }],
+    });
+  };
+
+  const removeOverride = (index: number) => {
+    onChange({
+      ...value,
+      overrides: overrideItems.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateOverride = (index: number, patch: Partial<import('@/types/visualConfig').ApiKeyRateLimitOverride>) => {
+    onChange({
+      ...value,
+      overrides: overrideItems.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+    });
+  };
+
+  return (
+    <div className="form-group" style={{ marginBottom: 0 }}>
+      <div className={styles.stringListRow} style={{ marginBottom: 16 }}>
+        <input
+          className="input"
+          placeholder={t('config_management.visual.api_keys.rate_limit_default_rpm_placeholder')}
+          value={value.defaultRpm}
+          type="number"
+          onChange={(e) => handleDefaultRpmChange(e.target.value)}
+          disabled={disabled}
+          aria-describedby={errorId}
+        />
+      </div>
+
+      <div className={styles.blockHeaderRow} style={{ marginBottom: 8 }}>
+        <label style={{ margin: 0 }}>{t('config_management.visual.api_keys.rate_limit_overrides')}</label>
+        <Button size="sm" onClick={addOverride} disabled={disabled}>
+          {t('config_management.visual.common.add')}
+        </Button>
+      </div>
+
+      {overrideItems.length === 0 ? (
+        <div className={styles.emptyState}>
+          {t('config_management.visual.api_keys.rate_limit_overrides_empty')}
+        </div>
+      ) : (
+        <div className="item-list">
+          {overrideItems.map((item, index) => (
+            <div key={item.id} className={styles.stringListRow} style={{ marginBottom: 8, alignItems: 'center' }}>
+              <input
+                className="input"
+                style={{ flex: 2 }}
+                placeholder={t('config_management.visual.api_keys.input_placeholder')}
+                value={item.apiKey}
+                onChange={(e) => updateOverride(index, { apiKey: e.target.value })}
+                disabled={disabled}
+              />
+              <input
+                className="input"
+                style={{ flex: 1 }}
+                type="number"
+                placeholder={t('config_management.visual.api_keys.rate_limit_rpm')}
+                value={item.rpm}
+                onChange={(e) => updateOverride(index, { rpm: e.target.value })}
+                disabled={disabled}
+              />
+              <Button variant="ghost" size="sm" onClick={() => removeOverride(index)} disabled={disabled}>
+                {t('config_management.visual.common.delete')}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
