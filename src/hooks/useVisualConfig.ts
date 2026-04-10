@@ -1154,6 +1154,7 @@ export function useVisualConfig() {
         },
 
         apiKeyRateLimit: {
+          enabled: Boolean(rateLimit?.enabled),
           defaultRpm: String(rateLimit?.['default-rpm'] ?? ''),
           overrides: parsedOverrides,
         },
@@ -1234,10 +1235,12 @@ export function useVisualConfig() {
         }
         deleteLegacyApiKeysProvider(doc);
 
+        const rateLimitEnabled = values.apiKeyRateLimit.enabled;
         const defaultRpm = values.apiKeyRateLimit.defaultRpm.trim();
         const validOverrides = values.apiKeyRateLimit.overrides.filter((o) => o.apiKey.trim() || o.rpm.trim());
-        if (defaultRpm || validOverrides.length > 0) {
+        if (rateLimitEnabled || defaultRpm || validOverrides.length > 0) {
           ensureMapInDoc(doc, ['api-key-rate-limit']);
+          setBooleanInDoc(doc, ['api-key-rate-limit', 'enabled'], rateLimitEnabled);
           setIntFromStringInDoc(doc, ['api-key-rate-limit', 'default-rpm'], defaultRpm);
           if (validOverrides.length > 0) {
             doc.setIn(
