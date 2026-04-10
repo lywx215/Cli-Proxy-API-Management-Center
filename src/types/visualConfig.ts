@@ -75,6 +75,7 @@ export interface ApiKeyRateLimitOverride {
 }
 
 export interface ApiKeyRateLimitConfig {
+  enabled: boolean;
   defaultRpm: string;
   overrides: ApiKeyRateLimitOverride[];
 }
@@ -206,6 +207,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
     nonstreamKeepaliveInterval: '',
   },
   apiKeyRateLimit: {
+    enabled: false,
     defaultRpm: '',
     overrides: [],
   },
