@@ -978,20 +978,32 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
   return (
     <div className="form-group" style={{ marginBottom: 0 }}>
       <div className={styles.stringListRow} style={{ marginBottom: 16 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+          <input
+            type="checkbox"
+            checked={value.enabled}
+            onChange={(e) => onChange({ ...value, enabled: e.target.checked })}
+            disabled={disabled}
+          />
+          {t('config_management.visual.api_keys.rate_limit_enabled')}
+        </label>
+      </div>
+
+      <div className={styles.stringListRow} style={{ marginBottom: 16 }}>
         <input
           className="input"
           placeholder={t('config_management.visual.api_keys.rate_limit_default_rpm_placeholder')}
           value={value.defaultRpm}
           type="number"
           onChange={(e) => handleDefaultRpmChange(e.target.value)}
-          disabled={disabled}
+          disabled={disabled || !value.enabled}
           aria-describedby={errorId}
         />
       </div>
 
       <div className={styles.blockHeaderRow} style={{ marginBottom: 8 }}>
         <label style={{ margin: 0 }}>{t('config_management.visual.api_keys.rate_limit_overrides')}</label>
-        <Button size="sm" onClick={addOverride} disabled={disabled}>
+        <Button size="sm" onClick={addOverride} disabled={disabled || !value.enabled}>
           {t('config_management.visual.common.add')}
         </Button>
       </div>
@@ -1010,7 +1022,7 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
                 placeholder={t('config_management.visual.api_keys.input_placeholder')}
                 value={item.apiKey}
                 onChange={(e) => updateOverride(index, { apiKey: e.target.value })}
-                disabled={disabled}
+                disabled={disabled || !value.enabled}
               />
               <input
                 className="input"
@@ -1019,9 +1031,9 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
                 placeholder={t('config_management.visual.api_keys.rate_limit_rpm')}
                 value={item.rpm}
                 onChange={(e) => updateOverride(index, { rpm: e.target.value })}
-                disabled={disabled}
+                disabled={disabled || !value.enabled}
               />
-              <Button variant="ghost" size="sm" onClick={() => removeOverride(index)} disabled={disabled}>
+              <Button variant="ghost" size="sm" onClick={() => removeOverride(index)} disabled={disabled || !value.enabled}>
                 {t('config_management.visual.common.delete')}
               </Button>
             </div>
