@@ -16,8 +16,7 @@ export type VisualConfigFieldPath =
   | 'authAutoRefreshWorkers'
   | 'streaming.keepaliveSeconds'
   | 'streaming.bootstrapRetries'
-  | 'streaming.nonstreamKeepaliveInterval'
-  | 'apiKeyRateLimit.defaultRpm';
+  | 'streaming.nonstreamKeepaliveInterval';
 
 export type VisualConfigValidationErrorCode = 'port_range' | 'non_negative_integer';
 
@@ -66,18 +65,6 @@ export interface StreamingConfig {
   keepaliveSeconds: string;
   bootstrapRetries: string;
   nonstreamKeepaliveInterval: string;
-}
-
-export interface ApiKeyRateLimitOverride {
-  id: string; // Internal id for React mapping
-  apiKey: string;
-  rpm: string;
-}
-
-export interface ApiKeyRateLimitConfig {
-  enabled: boolean;
-  defaultRpm: string;
-  overrides: ApiKeyRateLimitOverride[];
 }
 
 export type VisualConfigValues = {
@@ -137,7 +124,6 @@ export type VisualConfigValues = {
   payloadOverrideRawRules: PayloadRule[];
   payloadFilterRules: PayloadFilterRule[];
   streaming: StreamingConfig;
-  apiKeyRateLimit: ApiKeyRateLimitConfig;
 };
 
 export const makeClientId = () => {
@@ -205,10 +191,5 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
     keepaliveSeconds: '',
     bootstrapRetries: '',
     nonstreamKeepaliveInterval: '',
-  },
-  apiKeyRateLimit: {
-    enabled: false,
-    defaultRpm: '',
-    overrides: [],
   },
 };

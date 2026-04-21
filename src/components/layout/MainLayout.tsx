@@ -557,6 +557,18 @@ export function MainLayout() {
           icon: sidebarIcons.quota,
         },
         {
+          path: '/usage',
+          labelKey: 'nav.usage_stats',
+          metaKey: 'nav_meta.usage_stats',
+          icon: sidebarIcons.quota,
+        },
+        {
+          path: '/antigravity-stats',
+          labelKey: 'nav.antigravity_stats',
+          metaKey: 'nav_meta.antigravity_stats',
+          icon: sidebarIcons.quota,
+        },
+        {
           path: '/logs',
           labelKey: 'nav.logs',
           metaKey: 'nav_meta.logs',
