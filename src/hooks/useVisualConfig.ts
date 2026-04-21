@@ -191,7 +191,6 @@ export function getVisualConfigValidationErrors(
     'streaming.nonstreamKeepaliveInterval': getNonNegativeIntegerError(
       values.streaming.nonstreamKeepaliveInterval
     ),
-    'apiKeyRateLimit.defaultRpm': getNonNegativeIntegerError(values.apiKeyRateLimit.defaultRpm),
   };
 }
 
@@ -345,18 +344,6 @@ function arePayloadFilterRulesEqual(
     for (let j = 0; j < a.params.length; j += 1) {
       if (a.params[j] !== b.params[j]) return false;
     }
-  }
-  return true;
-}
-
-function areApiKeyRateLimitOverridesEqual(
-  left: { apiKey: string; rpm: string }[],
-  right: { apiKey: string; rpm: string }[]
-): boolean {
-  if (left === right) return true;
-  if (left.length !== right.length) return false;
-  for (let i = 0; i < left.length; i += 1) {
-    if (left[i].apiKey !== right[i].apiKey || left[i].rpm !== right[i].rpm) return false;
   }
   return true;
 }
@@ -713,9 +700,6 @@ function mergeVisualConfigValues(
   if (patch.streaming) {
     nextValues.streaming = { ...currentValues.streaming, ...patch.streaming };
   }
-  if (patch.apiKeyRateLimit) {
-    nextValues.apiKeyRateLimit = { ...currentValues.apiKeyRateLimit, ...patch.apiKeyRateLimit };
-  }
   return nextValues;
 }
 
@@ -930,24 +914,6 @@ function getNextDirtyFields(
       );
     }
   }
-  if (patch.apiKeyRateLimit) {
-    const ratePatch = patch.apiKeyRateLimit;
-    if (Object.prototype.hasOwnProperty.call(ratePatch, 'defaultRpm')) {
-      updateDirty(
-        'apiKeyRateLimit.defaultRpm',
-        nextValues.apiKeyRateLimit.defaultRpm === baselineValues.apiKeyRateLimit.defaultRpm
-      );
-    }
-    if (Object.prototype.hasOwnProperty.call(ratePatch, 'overrides')) {
-      updateDirty(
-        'apiKeyRateLimit.overrides',
-        areApiKeyRateLimitOverridesEqual(
-          nextValues.apiKeyRateLimit.overrides,
-          baselineValues.apiKeyRateLimit.overrides
-        )
-      );
-    }
-  }
 
   return nextDirtyFields;
 }
@@ -1152,12 +1118,6 @@ export function useVisualConfig() {
           bootstrapRetries: String(streaming?.['bootstrap-retries'] ?? ''),
           nonstreamKeepaliveInterval: String(parsed['nonstream-keepalive-interval'] ?? ''),
         },
-
-        apiKeyRateLimit: {
-          enabled: Boolean(rateLimit?.enabled),
-          defaultRpm: String(rateLimit?.['default-rpm'] ?? ''),
-          overrides: parsedOverrides,
-        },
       };
 
       dispatch({ type: 'load_success', values: newValues });
@@ -1234,32 +1194,6 @@ export function useVisualConfig() {
           doc.deleteIn(['api-keys']);
         }
         deleteLegacyApiKeysProvider(doc);
-
-        const rateLimitEnabled = values.apiKeyRateLimit.enabled;
-        const defaultRpm = values.apiKeyRateLimit.defaultRpm.trim();
-        const validOverrides = values.apiKeyRateLimit.overrides.filter((o) => o.apiKey.trim() || o.rpm.trim());
-        if (rateLimitEnabled || defaultRpm || validOverrides.length > 0) {
-          ensureMapInDoc(doc, ['api-key-rate-limit']);
-          setBooleanInDoc(doc, ['api-key-rate-limit', 'enabled'], rateLimitEnabled);
-          setIntFromStringInDoc(doc, ['api-key-rate-limit', 'default-rpm'], defaultRpm);
-          if (validOverrides.length > 0) {
-            doc.setIn(
-              ['api-key-rate-limit', 'overrides'],
-              validOverrides.map((o) => {
-                const rpmNum = Number(o.rpm);
-                return {
-                  'api-key': o.apiKey.trim(),
-                  rpm: Number.isFinite(rpmNum) && o.rpm.trim() !== '' ? rpmNum : o.rpm,
-                };
-              })
-            );
-          } else if (docHas(doc, ['api-key-rate-limit', 'overrides'])) {
-            doc.deleteIn(['api-key-rate-limit', 'overrides']);
-          }
-          deleteIfMapEmpty(doc, ['api-key-rate-limit']);
-        } else if (docHas(doc, ['api-key-rate-limit'])) {
-          doc.deleteIn(['api-key-rate-limit']);
-        }
 
         setBooleanInDoc(doc, ['debug'], values.debug);
 
