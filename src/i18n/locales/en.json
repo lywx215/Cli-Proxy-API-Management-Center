@@ -189,24 +189,7 @@
     "add_modal_key_placeholder": "Please enter API key",
     "edit_modal_title": "Edit API Key",
     "edit_modal_key_label": "API Key:",
-    "delete_confirm": "Are you sure you want to delete this API key?",
-    "input_label": "API Key",
-    "input_placeholder": "Please enter API key",
-    "input_hint": "One API key per line. Generated credentials must match client auth formats.",
-    "label": "API Keys List (api-keys)",
-    "add": "Add API Key",
-    "empty": "No API keys. Click the button to add one.",
-    "edit_title": "Edit API Key",
-    "add_title": "Add API Key",
-    "error_empty": "API key cannot be empty",
-    "error_invalid": "API key contains invalid characters",
-    "generate": "Generate",
-    "hint": "Each entry represents an API key (matches 'API Keys Management' UI)",
-    "rate_limit_enabled": "Enable API key rate limiting",
-    "rate_limit_default_rpm_placeholder": "Global default RPM limit (empty or 0 for no limit)",
-    "rate_limit_overrides": "Per-Key Rate Limit Overrides",
-    "rate_limit_overrides_empty": "No per-key rate limits configured.",
-    "rate_limit_rpm": "Limit (RPM)"
+    "delete_confirm": "Are you sure you want to delete this API key?"
   },
   "ai_providers": {
     "title": "AI Providers Configuration",
@@ -1179,12 +1162,7 @@
         "input_placeholder": "Paste your API key",
         "input_hint": "This only modifies the local config file content, it will not sync to the API Key Management interface",
         "error_empty": "Please enter an API key",
-        "error_invalid": "API key contains invalid characters",
-        "rate_limit_enabled": "Enable API key rate limiting",
-        "rate_limit_default_rpm_placeholder": "Global default RPM limit (empty or 0 for no limit)",
-        "rate_limit_overrides": "Per-Key Rate Limit Overrides",
-        "rate_limit_overrides_empty": "No per-key rate limits configured.",
-        "rate_limit_rpm": "Limit (RPM)"
+        "error_invalid": "API key contains invalid characters"
       },
       "payload_rules": {
         "rule": "Rule",
