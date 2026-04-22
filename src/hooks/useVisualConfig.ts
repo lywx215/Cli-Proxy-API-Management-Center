@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { isMap, parse as parseYaml, parseDocument } from 'yaml';
 import type {
+  ApiKeyRateLimitConfig,
+  ApiKeyRateLimitOverride,
   PayloadFilterRule,
   PayloadParamEntry,
   PayloadParamValueType,
@@ -9,7 +11,7 @@ import type {
   VisualConfigValidationErrors,
   PayloadParamValidationErrorCode,
 } from '@/types/visualConfig';
-import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
+import { DEFAULT_VISUAL_VALUES, makeClientId } from '@/types/visualConfig';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -45,6 +47,28 @@ function parseApiKeysText(raw: unknown): string {
     if (key) keys.push(key);
   }
   return keys.join('\n');
+}
+
+function parseApiKeyRateLimit(parsed: Record<string, unknown>): ApiKeyRateLimitConfig {
+  const raw = asRecord(parsed['api-key-rate-limit']);
+  if (!raw) return { enabled: false, defaultRpm: '', overrides: [] };
+
+  const enabled = Boolean(raw.enabled);
+  const defaultRpm = raw['default-rpm'] !== undefined && raw['default-rpm'] !== null
+    ? String(raw['default-rpm'])
+    : '';
+
+  const overridesRaw = Array.isArray(raw.overrides) ? raw.overrides : [];
+  const overrides: ApiKeyRateLimitOverride[] = overridesRaw.map((item: unknown) => {
+    const rec = asRecord(item) ?? {};
+    return {
+      id: makeClientId(),
+      apiKey: typeof rec['api-key'] === 'string' ? rec['api-key'] : String(rec['api-key'] ?? ''),
+      rpm: rec.rpm !== undefined && rec.rpm !== null ? String(rec.rpm) : '',
+    };
+  });
+
+  return { enabled, defaultRpm, overrides };
 }
 
 function resolveApiKeysText(parsed: Record<string, unknown>): string {
@@ -599,6 +623,18 @@ function getNextDirtyFields(
   if (Object.prototype.hasOwnProperty.call(patch, 'apiKeysText')) {
     updateDirty('apiKeysText', nextValues.apiKeysText === baselineValues.apiKeysText);
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'apiKeyRateLimit')) {
+    const a = nextValues.apiKeyRateLimit;
+    const b = baselineValues.apiKeyRateLimit;
+    const isEqual =
+      a.enabled === b.enabled &&
+      a.defaultRpm === b.defaultRpm &&
+      a.overrides.length === b.overrides.length &&
+      a.overrides.every(
+        (o, i) => o.apiKey === b.overrides[i]?.apiKey && o.rpm === b.overrides[i]?.rpm
+      );
+    updateDirty('apiKeyRateLimit', isEqual);
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'debug')) {
     updateDirty('debug', nextValues.debug === baselineValues.debug);
   }
@@ -835,11 +871,7 @@ export function useVisualConfig() {
 
         authDir: typeof parsed['auth-dir'] === 'string' ? parsed['auth-dir'] : '',
         apiKeysText: resolveApiKeysText(parsed),
-        apiKeyRateLimit: {
-          enabled: false,
-          defaultRpm: '',
-          overrides: [],
-        },
+        apiKeyRateLimit: parseApiKeyRateLimit(parsed),
 
         debug: Boolean(parsed.debug),
         commercialMode: Boolean(parsed['commercial-mode']),
@@ -953,6 +985,43 @@ export function useVisualConfig() {
           doc.deleteIn(['api-keys']);
         }
         deleteLegacyApiKeysProvider(doc);
+
+        // API Key Rate Limiting
+        const rl = values.apiKeyRateLimit;
+        if (
+          docHas(doc, ['api-key-rate-limit']) ||
+          rl.enabled ||
+          rl.defaultRpm.trim() ||
+          rl.overrides.length > 0
+        ) {
+          ensureMapInDoc(doc, ['api-key-rate-limit']);
+          doc.setIn(['api-key-rate-limit', 'enabled'], rl.enabled);
+          if (rl.defaultRpm.trim()) {
+            const rpm = Number(rl.defaultRpm.trim());
+            doc.setIn(['api-key-rate-limit', 'default-rpm'], Number.isFinite(rpm) ? rpm : 0);
+          } else if (docHas(doc, ['api-key-rate-limit', 'default-rpm'])) {
+            doc.deleteIn(['api-key-rate-limit', 'default-rpm']);
+          }
+          if (rl.overrides.length > 0) {
+            const serializedOverrides = rl.overrides
+              .filter((o) => o.apiKey.trim())
+              .map((o) => {
+                const rpmVal = Number(o.rpm.trim());
+                return {
+                  'api-key': o.apiKey.trim(),
+                  rpm: Number.isFinite(rpmVal) ? rpmVal : 0,
+                };
+              });
+            if (serializedOverrides.length > 0) {
+              doc.setIn(['api-key-rate-limit', 'overrides'], serializedOverrides);
+            } else if (docHas(doc, ['api-key-rate-limit', 'overrides'])) {
+              doc.deleteIn(['api-key-rate-limit', 'overrides']);
+            }
+          } else if (docHas(doc, ['api-key-rate-limit', 'overrides'])) {
+            doc.deleteIn(['api-key-rate-limit', 'overrides']);
+          }
+          deleteIfMapEmpty(doc, ['api-key-rate-limit']);
+        }
 
         setBooleanInDoc(doc, ['debug'], values.debug);
 
