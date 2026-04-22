@@ -1218,7 +1218,14 @@
         "input_placeholder": "貼上你的 API 金鑰",
         "input_hint": "此處僅修改本地設定檔內容，不會自動同步到 API 金鑰管理介面",
         "error_empty": "請輸入 API 金鑰",
-        "error_invalid": "API 金鑰包含無效字元"
+        "error_invalid": "API 金鑰包含無效字元",
+        "rate_limit_title": "API Key 限流",
+        "rate_limit_description": "為每個 API Key 設定獨立的請求頻率限制（RPM）",
+        "rate_limit_enabled": "啟用限流",
+        "rate_limit_default_rpm_placeholder": "預設 RPM（如 60）",
+        "rate_limit_overrides": "單獨限流規則",
+        "rate_limit_overrides_empty": "暫無單獨限流規則",
+        "rate_limit_rpm": "RPM"
       },
       "payload_rules": {
         "rule": "規則",

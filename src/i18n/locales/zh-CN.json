@@ -1192,7 +1192,14 @@
         "input_placeholder": "粘贴你的 API 密钥",
         "input_hint": "此处仅修改本地配置文件内容，不会自动同步到 API 密钥管理接口",
         "error_empty": "请输入 API 密钥",
-        "error_invalid": "API 密钥包含无效字符"
+        "error_invalid": "API 密钥包含无效字符",
+        "rate_limit_title": "API Key 限流",
+        "rate_limit_description": "为每个 API Key 设置独立的请求频率限制（RPM）",
+        "rate_limit_enabled": "启用限流",
+        "rate_limit_default_rpm_placeholder": "默认 RPM（如 60）",
+        "rate_limit_overrides": "单独限流规则",
+        "rate_limit_overrides_empty": "暂无单独限流规则",
+        "rate_limit_rpm": "RPM"
       },
       "payload_rules": {
         "rule": "规则",

@@ -1192,7 +1192,14 @@
         "input_placeholder": "Paste your API key",
         "input_hint": "This only modifies the local config file content, it will not sync to the API Key Management interface",
         "error_empty": "Please enter an API key",
-        "error_invalid": "API key contains invalid characters"
+        "error_invalid": "API key contains invalid characters",
+        "rate_limit_title": "API Key Rate Limiting",
+        "rate_limit_description": "Set independent request rate limits (RPM) for each API Key",
+        "rate_limit_enabled": "Enable Rate Limiting",
+        "rate_limit_default_rpm_placeholder": "Default RPM (e.g. 60)",
+        "rate_limit_overrides": "Per-Key Overrides",
+        "rate_limit_overrides_empty": "No per-key overrides configured",
+        "rate_limit_rpm": "RPM"
       },
       "payload_rules": {
         "rule": "Rule",
