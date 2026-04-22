@@ -51,6 +51,18 @@ export interface StreamingConfig {
   nonstreamKeepaliveInterval: string;
 }
 
+export type ApiKeyRateLimitOverride = {
+  id: string;
+  apiKey: string;
+  rpm: string;
+};
+
+export interface ApiKeyRateLimitConfig {
+  enabled: boolean;
+  defaultRpm: string;
+  overrides: ApiKeyRateLimitOverride[];
+}
+
 export type VisualConfigValues = {
   host: string;
   port: string;
@@ -63,6 +75,7 @@ export type VisualConfigValues = {
   rmPanelRepo: string;
   authDir: string;
   apiKeysText: string;
+  apiKeyRateLimit: ApiKeyRateLimitConfig;
   debug: boolean;
   commercialMode: boolean;
   loggingToFile: boolean;
@@ -104,6 +117,11 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   rmPanelRepo: '',
   authDir: '',
   apiKeysText: '',
+  apiKeyRateLimit: {
+    enabled: false,
+    defaultRpm: '',
+    overrides: [],
+  },
   debug: false,
   commercialMode: false,
   loggingToFile: false,

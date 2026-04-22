@@ -835,6 +835,11 @@ export function useVisualConfig() {
 
         authDir: typeof parsed['auth-dir'] === 'string' ? parsed['auth-dir'] : '',
         apiKeysText: resolveApiKeysText(parsed),
+        apiKeyRateLimit: {
+          enabled: false,
+          defaultRpm: '',
+          overrides: [],
+        },
 
         debug: Boolean(parsed.debug),
         commercialMode: Boolean(parsed['commercial-mode']),
