@@ -35,6 +35,7 @@ import type {
 } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
+  ApiKeyRateLimitEditor,
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
 } from './VisualConfigEditorBlocks';
@@ -217,6 +218,11 @@ export function VisualConfigEditor({
 
   const handleApiKeysTextChange = useCallback(
     (apiKeysText: string) => onChange({ apiKeysText }),
+    [onChange]
+  );
+  const handleApiKeyRateLimitChange = useCallback(
+    (apiKeyRateLimit: import('@/types/visualConfig').ApiKeyRateLimitConfig) =>
+      onChange({ apiKeyRateLimit }),
     [onChange]
   );
   const handlePayloadDefaultRulesChange = useCallback(
@@ -623,6 +629,17 @@ export function VisualConfigEditor({
                   onChange={handleApiKeysTextChange}
                 />
               </div>
+              <Divider />
+              <SectionSubsection
+                title={t('config_management.visual.api_keys.rate_limit_title', { defaultValue: 'API Key 限流' })}
+                description={t('config_management.visual.api_keys.rate_limit_description', { defaultValue: '为每个 API Key 设置独立的请求频率限制（RPM）' })}
+              >
+                <ApiKeyRateLimitEditor
+                  value={values.apiKeyRateLimit}
+                  disabled={disabled}
+                  onChange={handleApiKeyRateLimitChange}
+                />
+              </SectionSubsection>
             </SectionStack>
           </ConfigSection>
 
