@@ -191,6 +191,7 @@ const fetchAntigravityCodeAssist = async (
           platform: 'PLATFORM_UNSPECIFIED',
           pluginType: 'GEMINI',
         },
+        mode: 'FULL_ELIGIBILITY_CHECK',
       }),
     });
 
