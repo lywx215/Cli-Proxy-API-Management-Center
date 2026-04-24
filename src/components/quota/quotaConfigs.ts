@@ -271,8 +271,6 @@ const resolveAntigravityCreditBalance = (
   let total = 0;
   let found = false;
   for (const credit of allCredits) {
-    const creditType = normalizeStringValue(credit.creditType ?? credit.credit_type);
-    if (creditType !== 'GOOGLE_ONE_AI') continue;
     const amount = normalizeNumberValue(credit.creditAmount ?? credit.credit_amount);
     if (amount !== null) {
       total += amount;
@@ -692,7 +690,6 @@ const resetCodexQuota = async (
   return fetchCodexQuota(file, t);
 };
 
-const GEMINI_CLI_G1_CREDIT_TYPE = 'GOOGLE_ONE_AI';
 
 const GEMINI_CLI_TIER_LABELS: Record<string, string> = {
   'free-tier': 'tier_free',
@@ -739,8 +736,6 @@ const resolveGeminiCliCreditBalance = (
   let total = 0;
   let found = false;
   for (const credit of credits) {
-    const creditType = normalizeStringValue(credit.creditType ?? credit.credit_type);
-    if (creditType !== GEMINI_CLI_G1_CREDIT_TYPE) continue;
     const amount = normalizeNumberValue(credit.creditAmount ?? credit.credit_amount);
     if (amount !== null) {
       total += amount;
