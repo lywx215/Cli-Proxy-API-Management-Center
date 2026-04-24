@@ -205,6 +205,9 @@ export interface AntigravityQuotaGroup {
 export interface AntigravityQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   groups: AntigravityQuotaGroup[];
+  tierLabel?: string | null;
+  tierId?: string | null;
+  creditBalance?: number | null;
   error?: string;
   errorStatus?: number;
 }

@@ -627,7 +627,15 @@
     "missing_auth_index": "驗證檔案缺少 auth_index",
     "empty_models": "暫無配額資料",
     "refresh_button": "重新整理配額",
-    "fetch_all": "取得全部"
+    "fetch_all": "取得全部",
+    "tier_label": "層級",
+    "tier_free": "免費版",
+    "tier_legacy": "舊版",
+    "tier_standard": "標準版",
+    "tier_pro": "Pro",
+    "tier_ultra": "Ultra",
+    "credit_label": "Google One AI 點數",
+    "credit_amount": "{{count}} 點數"
   },
   "antigravity_stats": {
     "title": "Antigravity 請求統計",
