@@ -158,6 +158,7 @@ const resolveAntigravityProjectId = async (file: AuthFileItem): Promise<string> 
 
 const fetchAntigravityCodeAssist = async (
   authIndex: string,
+  projectId: string,
   t: TFunction
 ): Promise<{ tierLabel: string | null; tierId: string | null; creditBalance: number | null }> => {
   try {
@@ -171,8 +172,10 @@ const fetchAntigravityCodeAssist = async (
           ideType: 'ANTIGRAVITY',
           platform: 'PLATFORM_UNSPECIFIED',
           pluginType: 'GEMINI',
+          duetProject: projectId,
         },
         mode: 'FULL_ELIGIBILITY_CHECK',
+        cloudaicompanionProject: projectId,
       }),
     });
 
@@ -274,7 +277,7 @@ const fetchAntigravityQuota = async (
   const requestBody = JSON.stringify({ project: projectId });
 
   // Fetch credit info in parallel (best-effort, won't block quota display)
-  const creditPromise = fetchAntigravityCodeAssist(authIndex, t);
+  const creditPromise = fetchAntigravityCodeAssist(authIndex, projectId, t);
 
   let lastError = '';
   let lastStatus: number | undefined;
