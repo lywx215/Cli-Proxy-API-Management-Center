@@ -158,7 +158,6 @@ const resolveAntigravityProjectId = async (file: AuthFileItem): Promise<string> 
 
 const fetchAntigravityCodeAssist = async (
   authIndex: string,
-  projectId: string,
   t: TFunction
 ): Promise<{ tierLabel: string | null; tierId: string | null; creditBalance: number | null }> => {
   try {
@@ -168,12 +167,10 @@ const fetchAntigravityCodeAssist = async (
       url: GEMINI_CLI_CODE_ASSIST_URL,
       header: { ...ANTIGRAVITY_REQUEST_HEADERS },
       data: JSON.stringify({
-        cloudaicompanionProject: projectId,
         metadata: {
-          ideType: 'IDE_UNSPECIFIED',
+          ideType: 'ANTIGRAVITY',
           platform: 'PLATFORM_UNSPECIFIED',
           pluginType: 'GEMINI',
-          duetProject: projectId,
         },
       }),
     });
@@ -237,13 +234,20 @@ const resolveAntigravityCreditBalance = (
     payload.paidTier ?? payload.paid_tier;
   const currentTier: GeminiCliUserTier | null | undefined =
     payload.currentTier ?? payload.current_tier;
-  const tier = paidTier ?? currentTier;
-  if (!tier) return null;
-  const credits: GeminiCliCredits[] =
-    tier.availableCredits ?? tier.available_credits ?? [];
+
+  const allCredits: GeminiCliCredits[] = [];
+  if (paidTier?.availableCredits) allCredits.push(...paidTier.availableCredits);
+  if (paidTier?.available_credits) allCredits.push(...paidTier.available_credits);
+  if (currentTier?.availableCredits) allCredits.push(...currentTier.availableCredits);
+  if (currentTier?.available_credits) allCredits.push(...currentTier.available_credits);
+  
+  const payloadAny = payload as any;
+  if (payloadAny.availableCredits) allCredits.push(...payloadAny.availableCredits);
+  if (payloadAny.available_credits) allCredits.push(...payloadAny.available_credits);
+
   let total = 0;
   let found = false;
-  for (const credit of credits) {
+  for (const credit of allCredits) {
     const creditType = normalizeStringValue(credit.creditType ?? credit.credit_type);
     if (creditType !== 'GOOGLE_ONE_AI') continue;
     const amount = normalizeNumberValue(credit.creditAmount ?? credit.credit_amount);
@@ -269,7 +273,7 @@ const fetchAntigravityQuota = async (
   const requestBody = JSON.stringify({ project: projectId });
 
   // Fetch credit info in parallel (best-effort, won't block quota display)
-  const creditPromise = fetchAntigravityCodeAssist(authIndex, projectId, t);
+  const creditPromise = fetchAntigravityCodeAssist(authIndex, t);
 
   let lastError = '';
   let lastStatus: number | undefined;
