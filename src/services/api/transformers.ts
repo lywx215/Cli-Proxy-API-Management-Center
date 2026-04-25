@@ -297,7 +297,8 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
     config.quotaExceeded = {
       switchProject: normalizeBoolean(quota['switch-project']),
       switchPreviewModel: normalizeBoolean(quota['switch-preview-model']),
-      antigravityCredits: normalizeBoolean(quota['antigravity-credits'])
+      antigravityCredits: normalizeBoolean(quota['antigravity-credits']),
+      antigravityCreditsForce: normalizeBoolean(quota['antigravity-credits-force'])
     };
   }
 
