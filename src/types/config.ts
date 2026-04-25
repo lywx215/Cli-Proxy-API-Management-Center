@@ -10,6 +10,8 @@ export interface QuotaExceededConfig {
   switchProject?: boolean;
   switchPreviewModel?: boolean;
   antigravityCredits?: boolean;
+  'antigravity-credits-force'?: boolean;
+  antigravityCreditsForce?: boolean;
 }
 
 export interface Config {

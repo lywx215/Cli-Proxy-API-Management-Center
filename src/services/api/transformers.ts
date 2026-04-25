@@ -396,6 +396,9 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
       ),
       antigravityCredits: normalizeBoolean(
         quota['antigravity-credits'] ?? quota.antigravityCredits
+      ),
+      antigravityCreditsForce: normalizeBoolean(
+        quota['antigravity-credits-force'] ?? quota.antigravityCreditsForce
       )
     };
   }
