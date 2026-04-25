@@ -695,6 +695,12 @@ function getNextDirtyFields(
       nextValues.quotaAntigravityCredits === baselineValues.quotaAntigravityCredits
     );
   }
+  if (Object.prototype.hasOwnProperty.call(patch, 'quotaAntigravityCreditsForce')) {
+    updateDirty(
+      'quotaAntigravityCreditsForce',
+      nextValues.quotaAntigravityCreditsForce === baselineValues.quotaAntigravityCreditsForce
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(patch, 'routingStrategy')) {
     updateDirty('routingStrategy', nextValues.routingStrategy === baselineValues.routingStrategy);
   }
@@ -888,6 +894,7 @@ export function useVisualConfig() {
         quotaSwitchProject: Boolean(quotaExceeded?.['switch-project'] ?? true),
         quotaSwitchPreviewModel: Boolean(quotaExceeded?.['switch-preview-model'] ?? true),
         quotaAntigravityCredits: Boolean(quotaExceeded?.['antigravity-credits'] ?? false),
+        quotaAntigravityCreditsForce: Boolean(quotaExceeded?.['antigravity-credits-force'] ?? false),
 
         routingStrategy: routing?.strategy === 'fill-first' ? 'fill-first' : 'round-robin',
         routingSessionAffinity: Boolean(
@@ -1045,6 +1052,12 @@ export function useVisualConfig() {
             ['quota-exceeded', 'antigravity-credits'],
             dirtyFields,
             'quotaAntigravityCredits'
+          ) ||
+          shouldWriteManagedField(
+            doc,
+            ['quota-exceeded', 'antigravity-credits-force'],
+            dirtyFields,
+            'quotaAntigravityCreditsForce'
           )
         ) {
           ensureMapInDoc(doc, ['quota-exceeded']);
@@ -1054,12 +1067,24 @@ export function useVisualConfig() {
             dirtyFields,
             'quotaAntigravityCredits'
           );
+          const writeQuotaAntigravityCreditsForce = shouldWriteManagedField(
+            doc,
+            ['quota-exceeded', 'antigravity-credits-force'],
+            dirtyFields,
+            'quotaAntigravityCreditsForce'
+          );
           doc.setIn(['quota-exceeded', 'switch-project'], values.quotaSwitchProject);
           doc.setIn(['quota-exceeded', 'switch-preview-model'], values.quotaSwitchPreviewModel);
           if (writeQuotaAntigravityCredits) {
             doc.setIn(
               ['quota-exceeded', 'antigravity-credits'],
               values.quotaAntigravityCredits
+            );
+          }
+          if (writeQuotaAntigravityCreditsForce) {
+            doc.setIn(
+              ['quota-exceeded', 'antigravity-credits-force'],
+              values.quotaAntigravityCreditsForce
             );
           }
           deleteIfMapEmpty(doc, ['quota-exceeded']);

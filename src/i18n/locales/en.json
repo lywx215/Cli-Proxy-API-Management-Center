@@ -1160,7 +1160,9 @@
           "switch_preview_model": "Switch to Preview Model",
           "switch_preview_model_desc": "Switch to preview model version when quota is exceeded",
           "antigravity_credits": "Antigravity Credits Retry",
-          "antigravity_credits_desc": "Retry once with enabledCreditTypes=[\"GOOGLE_ONE_AI\"] when Antigravity returns quota_exhausted 429"
+          "antigravity_credits_desc": "Retry once with enabledCreditTypes=[\"GOOGLE_ONE_AI\"] when Antigravity returns quota_exhausted 429",
+          "antigravity_credits_force": "Force Antigravity Credits",
+          "antigravity_credits_force_desc": "When enabled, every request will forcibly consume Google One AI credits, bypassing free-tier quotas."
         },
         "streaming": {
           "title": "Streaming Configuration",

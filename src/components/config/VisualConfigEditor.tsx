@@ -968,6 +968,16 @@ export function VisualConfigEditor({
                 disabled={disabled}
                 onChange={(quotaAntigravityCredits) => onChange({ quotaAntigravityCredits })}
               />
+              <ToggleRow
+                title={t('config_management.visual.sections.quota.antigravity_credits_force', { defaultValue: 'Force Antigravity Credits' })}
+                description={t(
+                  'config_management.visual.sections.quota.antigravity_credits_force_desc',
+                  { defaultValue: 'When enabled, every request will consume Google One AI credits, bypassing free-tier quotas.' }
+                )}
+                checked={values.quotaAntigravityCreditsForce}
+                disabled={disabled}
+                onChange={(quotaAntigravityCreditsForce) => onChange({ quotaAntigravityCreditsForce })}
+              />
             </SectionGrid>
           </ConfigSection>
 

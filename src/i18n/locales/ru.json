@@ -1157,7 +1157,9 @@
           "switch_preview_model": "Переключить на preview-модель",
           "switch_preview_model_desc": "Переключаться на preview-версию модели при превышении квоты",
           "antigravity_credits": "Повтор Antigravity Credits",
-          "antigravity_credits_desc": "При ответе Antigravity quota_exhausted 429 повторять запрос один раз с enabledCreditTypes=[\"GOOGLE_ONE_AI\"]"
+          "antigravity_credits_desc": "При ответе Antigravity quota_exhausted 429 повторять запрос один раз с enabledCreditTypes=[\"GOOGLE_ONE_AI\"]",
+          "antigravity_credits_force": "Принудительно Antigravity Credits",
+          "antigravity_credits_force_desc": "При включении каждый запрос будет принудительно использовать кредиты Google One AI, минуя бесплатные квоты."
         },
         "streaming": {
           "title": "Настройки стриминга",
