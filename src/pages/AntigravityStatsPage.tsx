@@ -27,6 +27,7 @@ const EMPTY_SUMMARY: AntigravityStatsSummary = {
   total_requests: 0,
   total_success: 0,
   total_failure: 0,
+  total_credits: 0,
   error_rate: '0.0%',
 };
 
@@ -221,6 +222,12 @@ export function AntigravityStatsPage() {
           <span className={styles.summaryLabel}>{t('antigravity_stats.total_models')}</span>
           <span className={styles.summaryValue}>{summary.total_models}</span>
         </div>
+        <div className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>{t('antigravity_stats.total_credits', { defaultValue: '💎 积分消化' })}</span>
+          <span className={`${styles.summaryValue} ${styles.summaryCredits}`}>
+            {(summary.total_credits ?? 0).toLocaleString()}
+          </span>
+        </div>
       </div>
 
       {/* Data table */}
@@ -278,6 +285,7 @@ function AuthTable({ stats }: { stats: AntigravityAuthSummary[] }) {
           <th className={styles.cellNumber}>{t('antigravity_stats.col_total')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_success')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_failure')}</th>
+          <th className={styles.cellNumber}>{t('antigravity_stats.col_credits', { defaultValue: '💎积分' })}</th>
           <th>{t('antigravity_stats.col_error_rate')}</th>
           <th>{t('antigravity_stats.col_status_codes')}</th>
           <th>{t('antigravity_stats.col_models')}</th>
@@ -291,6 +299,7 @@ function AuthTable({ stats }: { stats: AntigravityAuthSummary[] }) {
             <td className={styles.cellNumber}>{row.total.toLocaleString()}</td>
             <td className={`${styles.cellNumber} ${styles.cellSuccess}`}>{row.success.toLocaleString()}</td>
             <td className={`${styles.cellNumber} ${styles.cellFailure}`}>{row.failure.toLocaleString()}</td>
+            <td className={`${styles.cellNumber} ${styles.cellCredits}`}>{(row.credits_count ?? 0).toLocaleString()}</td>
             <td className={`${styles.cellErrorRate} ${getErrorRateClass(row.error_rate)}`}>{row.error_rate}</td>
             <td><StatusCodeBadges codes={row.status_codes} /></td>
             <td><ModelTags models={row.models} /></td>
@@ -312,6 +321,7 @@ function ModelTable({ stats }: { stats: AntigravityModelSummary[] }) {
           <th className={styles.cellNumber}>{t('antigravity_stats.col_total')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_success')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_failure')}</th>
+          <th className={styles.cellNumber}>{t('antigravity_stats.col_credits', { defaultValue: '💎积分' })}</th>
           <th>{t('antigravity_stats.col_error_rate')}</th>
           <th>{t('antigravity_stats.col_status_codes')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_auth_count')}</th>
@@ -325,6 +335,7 @@ function ModelTable({ stats }: { stats: AntigravityModelSummary[] }) {
             <td className={styles.cellNumber}>{row.total.toLocaleString()}</td>
             <td className={`${styles.cellNumber} ${styles.cellSuccess}`}>{row.success.toLocaleString()}</td>
             <td className={`${styles.cellNumber} ${styles.cellFailure}`}>{row.failure.toLocaleString()}</td>
+            <td className={`${styles.cellNumber} ${styles.cellCredits}`}>{(row.credits_count ?? 0).toLocaleString()}</td>
             <td className={`${styles.cellErrorRate} ${getErrorRateClass(row.error_rate)}`}>{row.error_rate}</td>
             <td><StatusCodeBadges codes={row.status_codes} /></td>
             <td className={styles.cellNumber}>{row.auth_count}</td>
@@ -347,6 +358,7 @@ function DetailTable({ stats }: { stats: AntigravityStatEntry[] }) {
           <th className={styles.cellNumber}>{t('antigravity_stats.col_total')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_success')}</th>
           <th className={styles.cellNumber}>{t('antigravity_stats.col_failure')}</th>
+          <th className={styles.cellNumber}>{t('antigravity_stats.col_credits', { defaultValue: '💎积分' })}</th>
           <th>{t('antigravity_stats.col_status_codes')}</th>
           <th>{t('antigravity_stats.col_last_seen')}</th>
         </tr>
@@ -359,6 +371,7 @@ function DetailTable({ stats }: { stats: AntigravityStatEntry[] }) {
             <td className={styles.cellNumber}>{row.total.toLocaleString()}</td>
             <td className={`${styles.cellNumber} ${styles.cellSuccess}`}>{row.success.toLocaleString()}</td>
             <td className={`${styles.cellNumber} ${styles.cellFailure}`}>{row.failure.toLocaleString()}</td>
+            <td className={`${styles.cellNumber} ${styles.cellCredits}`}>{(row.credits_count ?? 0).toLocaleString()}</td>
             <td><StatusCodeBadges codes={row.status_codes} /></td>
             <td className={styles.timeCell}>{formatTime(row.last_seen)}</td>
           </tr>
