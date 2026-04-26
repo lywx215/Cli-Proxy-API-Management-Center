@@ -10,6 +10,7 @@ export interface AntigravityStatEntry {
   total: number;
   success: number;
   failure: number;
+  credits_count: number;
   status_codes?: Record<string, number>;
   first_seen: string;
   last_seen: string;
@@ -20,6 +21,7 @@ export interface AntigravityAuthSummary {
   total: number;
   success: number;
   failure: number;
+  credits_count: number;
   error_rate: string;
   status_codes?: Record<string, number>;
   models: string[];
@@ -32,6 +34,7 @@ export interface AntigravityModelSummary {
   total: number;
   success: number;
   failure: number;
+  credits_count: number;
   error_rate: string;
   status_codes?: Record<string, number>;
   auth_count: number;
@@ -45,6 +48,7 @@ export interface AntigravityStatsSummary {
   total_requests: number;
   total_success: number;
   total_failure: number;
+  total_credits: number;
   error_rate: string;
 }
 
