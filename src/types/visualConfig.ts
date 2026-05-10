@@ -79,6 +79,14 @@ export interface ApiKeyRateLimitConfig {
   overrides: ApiKeyRateLimitOverride[];
 }
 
+export interface SpeedThrottleConfig {
+  enabled: boolean;
+  minTokensPerSecond: string;
+  maxTokensPerSecond: string;
+  minFirstTokenDelayMs: string;
+  maxFirstTokenDelayMs: string;
+}
+
 export type VisualConfigValues = {
   host: string;
   port: string;
@@ -135,6 +143,7 @@ export type VisualConfigValues = {
   payloadOverrideRawRules: PayloadRule[];
   payloadFilterRules: PayloadFilterRule[];
   streaming: StreamingConfig;
+  speedThrottle: SpeedThrottleConfig;
 };
 
 export const makeClientId = () => {
@@ -205,5 +214,12 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
     keepaliveSeconds: '',
     bootstrapRetries: '',
     nonstreamKeepaliveInterval: '',
+  },
+  speedThrottle: {
+    enabled: false,
+    minTokensPerSecond: '',
+    maxTokensPerSecond: '',
+    minFirstTokenDelayMs: '',
+    maxFirstTokenDelayMs: '',
   },
 };
