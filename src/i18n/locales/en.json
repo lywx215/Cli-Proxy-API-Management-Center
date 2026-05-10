@@ -1414,6 +1414,8 @@
   "footer": {
     "api_version": "CLI Proxy API Version",
     "build_date": "Build Time",
+    "panel_build_date": "UI Build Time",
+    "api_build_date": "API Build Time",
     "version": "Management UI Version",
     "author": "Author"
   },

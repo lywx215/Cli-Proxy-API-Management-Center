@@ -1414,6 +1414,8 @@
   "footer": {
     "api_version": "CLI Proxy API 版本",
     "build_date": "构建时间",
+    "panel_build_date": "管理中心构建时间",
+    "api_build_date": "API 构建时间",
     "version": "管理中心版本",
     "author": "作者"
   },

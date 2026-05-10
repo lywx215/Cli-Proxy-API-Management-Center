@@ -14,7 +14,7 @@ function getVersion(): string {
 
   // 2. Try git tag
   try {
-    const gitTag = execSync('git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null || echo ""', { encoding: 'utf8' }).trim();
+    const gitTag = execSync('git describe --tags --exact-match || git describe --tags', { encoding: 'utf8', stdio: 'pipe' }).trim();
     if (gitTag) {
       return gitTag;
     }
@@ -44,7 +44,8 @@ export default defineConfig({
     })
   ],
   define: {
-    __APP_VERSION__: JSON.stringify(getVersion())
+    __APP_VERSION__: JSON.stringify(getVersion()),
+    __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString())
   },
   resolve: {
     alias: {
