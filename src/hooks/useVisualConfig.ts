@@ -3,6 +3,7 @@ import { isMap, parse as parseYaml, parseDocument } from 'yaml';
 import type {
   ApiKeyRateLimitConfig,
   ApiKeyRateLimitOverride,
+  SpeedThrottleConfig,
   PayloadFilterRule,
   PayloadParamEntry,
   PayloadParamValueType,
@@ -69,6 +70,27 @@ function parseApiKeyRateLimit(parsed: Record<string, unknown>): ApiKeyRateLimitC
   });
 
   return { enabled, defaultRpm, overrides };
+}
+
+function parseSpeedThrottleConfig(parsed: Record<string, unknown>): SpeedThrottleConfig {
+  const raw = asRecord(parsed['speed-throttle']);
+  if (!raw) {
+    return {
+      enabled: false,
+      minTokensPerSecond: '',
+      maxTokensPerSecond: '',
+      minFirstTokenDelayMs: '',
+      maxFirstTokenDelayMs: '',
+    };
+  }
+
+  return {
+    enabled: Boolean(raw.enabled),
+    minTokensPerSecond: raw['min-tokens-per-second'] !== undefined && raw['min-tokens-per-second'] !== null ? String(raw['min-tokens-per-second']) : '',
+    maxTokensPerSecond: raw['max-tokens-per-second'] !== undefined && raw['max-tokens-per-second'] !== null ? String(raw['max-tokens-per-second']) : '',
+    minFirstTokenDelayMs: raw['min-first-token-delay-ms'] !== undefined && raw['min-first-token-delay-ms'] !== null ? String(raw['min-first-token-delay-ms']) : '',
+    maxFirstTokenDelayMs: raw['max-first-token-delay-ms'] !== undefined && raw['max-first-token-delay-ms'] !== null ? String(raw['max-first-token-delay-ms']) : '',
+  };
 }
 
 function resolveApiKeysText(parsed: Record<string, unknown>): string {
@@ -569,6 +591,9 @@ function mergeVisualConfigValues(
   if (patch.streaming) {
     nextValues.streaming = { ...currentValues.streaming, ...patch.streaming };
   }
+  if (patch.speedThrottle) {
+    nextValues.speedThrottle = { ...currentValues.speedThrottle, ...patch.speedThrottle };
+  }
   return nextValues;
 }
 
@@ -771,6 +796,24 @@ function getNextDirtyFields(
       );
     }
   }
+  if (patch.speedThrottle) {
+    const stPatch = patch.speedThrottle;
+    if (Object.prototype.hasOwnProperty.call(stPatch, 'enabled')) {
+      updateDirty('speedThrottle.enabled', nextValues.speedThrottle.enabled === baselineValues.speedThrottle.enabled);
+    }
+    if (Object.prototype.hasOwnProperty.call(stPatch, 'minTokensPerSecond')) {
+      updateDirty('speedThrottle.minTokensPerSecond', nextValues.speedThrottle.minTokensPerSecond === baselineValues.speedThrottle.minTokensPerSecond);
+    }
+    if (Object.prototype.hasOwnProperty.call(stPatch, 'maxTokensPerSecond')) {
+      updateDirty('speedThrottle.maxTokensPerSecond', nextValues.speedThrottle.maxTokensPerSecond === baselineValues.speedThrottle.maxTokensPerSecond);
+    }
+    if (Object.prototype.hasOwnProperty.call(stPatch, 'minFirstTokenDelayMs')) {
+      updateDirty('speedThrottle.minFirstTokenDelayMs', nextValues.speedThrottle.minFirstTokenDelayMs === baselineValues.speedThrottle.minFirstTokenDelayMs);
+    }
+    if (Object.prototype.hasOwnProperty.call(stPatch, 'maxFirstTokenDelayMs')) {
+      updateDirty('speedThrottle.maxFirstTokenDelayMs', nextValues.speedThrottle.maxFirstTokenDelayMs === baselineValues.speedThrottle.maxFirstTokenDelayMs);
+    }
+  }
 
   return nextDirtyFields;
 }
@@ -922,6 +965,7 @@ export function useVisualConfig() {
           bootstrapRetries: String(streaming?.['bootstrap-retries'] ?? ''),
           nonstreamKeepaliveInterval: String(parsed['nonstream-keepalive-interval'] ?? ''),
         },
+        speedThrottle: parseSpeedThrottleConfig(parsed),
       };
 
       dispatch({ type: 'load_success', values: newValues });
@@ -1183,7 +1227,25 @@ export function useVisualConfig() {
           deleteIfMapEmpty(doc, ['payload']);
         }
 
-        return doc.toString({ indent: 2, lineWidth: 120, minContentWidth: 0 });
+        const st = state.visualValues.speedThrottle;
+      if (
+        st.enabled ||
+        st.minTokensPerSecond ||
+        st.maxTokensPerSecond ||
+        st.minFirstTokenDelayMs ||
+        st.maxFirstTokenDelayMs ||
+        docHas(doc, ['speed-throttle'])
+      ) {
+        ensureMapInDoc(doc, ['speed-throttle']);
+        setBooleanInDoc(doc, ['speed-throttle', 'enabled'], st.enabled);
+        setIntFromStringInDoc(doc, ['speed-throttle', 'min-tokens-per-second'], st.minTokensPerSecond);
+        setIntFromStringInDoc(doc, ['speed-throttle', 'max-tokens-per-second'], st.maxTokensPerSecond);
+        setIntFromStringInDoc(doc, ['speed-throttle', 'min-first-token-delay-ms'], st.minFirstTokenDelayMs);
+        setIntFromStringInDoc(doc, ['speed-throttle', 'max-first-token-delay-ms'], st.maxFirstTokenDelayMs);
+        deleteIfMapEmpty(doc, ['speed-throttle']);
+      }
+
+      return doc.toString({ indent: 2, lineWidth: 120, minContentWidth: 0 });
       } catch {
         return currentYaml;
       }

@@ -1176,6 +1176,16 @@
           "nonstream_keepalive_hint": "Send blank lines every N seconds for non-streaming responses to prevent idle timeout, set to 0 or leave empty to disable",
           "disabled": "Disabled"
         },
+        "speed_throttle": {
+          "title": "Model Speed Throttle",
+          "description": "Throttle the generation speed and add TTFT delays to fast models to disguise them as standard speed to lower risk.",
+          "enable_title": "Enable Speed Throttle",
+          "enable_desc": "Disguise fast models as standard speed",
+          "min_tokens": "Min Tokens/s",
+          "max_tokens": "Max Tokens/s",
+          "min_ttft": "Min TTFT Delay (ms)",
+          "max_ttft": "Max TTFT Delay (ms)"
+        },
         "payload": {
           "title": "Payload Configuration",
           "description": "Default values, raw JSON rules, override rules, and filter rules",

@@ -1176,6 +1176,16 @@
           "nonstream_keepalive_hint": "非流式响应时每隔 N 秒发送空行以防止空闲超时，设置为 0 或留空表示禁用",
           "disabled": "已禁用"
         },
+        "speed_throttle": {
+          "title": "模型速度伪装",
+          "description": "将高速模型生成速度限流并增加首字延迟，使其伪装为标准速度，降低风控风险。",
+          "enable_title": "启用速度伪装",
+          "enable_desc": "将高速模型伪装为标准速度",
+          "min_tokens": "最低速率 (Tokens/s)",
+          "max_tokens": "最高速率 (Tokens/s)",
+          "min_ttft": "最小首字延迟 (ms)",
+          "max_ttft": "最大首字延迟 (ms)"
+        },
         "payload": {
           "title": "Payload 配置",
           "description": "默认值、原始 JSON 规则、覆盖规则与过滤规则",

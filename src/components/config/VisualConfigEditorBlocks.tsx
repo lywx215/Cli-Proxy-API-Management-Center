@@ -13,7 +13,9 @@ import type {
   PayloadParamValidationErrorCode,
   PayloadParamValueType,
   PayloadRule,
+  SpeedThrottleConfig,
 } from '@/types/visualConfig';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { makeClientId } from '@/types/visualConfig';
 import {
   getPayloadParamValidationError,
@@ -384,6 +386,88 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
           )}
         </div>
       </Modal>
+    </div>
+  );
+});
+
+export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: SpeedThrottleConfig;
+  disabled?: boolean;
+  onChange: (nextValue: SpeedThrottleConfig) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className={styles.blockStack}>
+      <div className={styles.toggleRow}>
+        <div className={styles.toggleCopy}>
+          <div className={styles.toggleTitle}>{t('config_management.visual.speed_throttle.enable_title', { defaultValue: '启用速度伪装' })}</div>
+          <div className={styles.toggleDescription}>{t('config_management.visual.speed_throttle.enable_desc', { defaultValue: '将高速模型伪装为标准速度' })}</div>
+        </div>
+        <ToggleSwitch
+          checked={value.enabled}
+          disabled={disabled}
+          onChange={(checked) => onChange({ ...value, enabled: checked })}
+          ariaLabel={t('config_management.visual.speed_throttle.enable_title', { defaultValue: '启用速度伪装' })}
+        />
+      </div>
+
+      {value.enabled && (
+        <>
+          <div className={styles.sectionGrid}>
+            <div className="form-group">
+              <label>{t('config_management.visual.speed_throttle.min_tokens', { defaultValue: '最低速率 (Tokens/s)' })}</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="70"
+                value={value.minTokensPerSecond}
+                disabled={disabled}
+                onChange={(e) => onChange({ ...value, minTokensPerSecond: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>{t('config_management.visual.speed_throttle.max_tokens', { defaultValue: '最高速率 (Tokens/s)' })}</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="100"
+                value={value.maxTokensPerSecond}
+                disabled={disabled}
+                onChange={(e) => onChange({ ...value, maxTokensPerSecond: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className={styles.sectionGrid}>
+            <div className="form-group">
+              <label>{t('config_management.visual.speed_throttle.min_ttft', { defaultValue: '最小首字延迟 (ms)' })}</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="2500"
+                value={value.minFirstTokenDelayMs}
+                disabled={disabled}
+                onChange={(e) => onChange({ ...value, minFirstTokenDelayMs: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>{t('config_management.visual.speed_throttle.max_ttft', { defaultValue: '最大首字延迟 (ms)' })}</label>
+              <input
+                type="number"
+                className="input"
+                placeholder="3000"
+                value={value.maxFirstTokenDelayMs}
+                disabled={disabled}
+                onChange={(e) => onChange({ ...value, maxFirstTokenDelayMs: e.target.value })}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 });

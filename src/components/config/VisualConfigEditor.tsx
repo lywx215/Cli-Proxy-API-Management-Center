@@ -42,6 +42,7 @@ import {
   ApiKeyRateLimitEditor,
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
+  SpeedThrottleEditor,
 } from './VisualConfigEditorBlocks';
 import styles from './VisualConfigEditor.module.scss';
 
@@ -250,6 +251,10 @@ export function VisualConfigEditor({
   );
   const handlePayloadFilterRulesChange = useCallback(
     (payloadFilterRules: PayloadFilterRule[]) => onChange({ payloadFilterRules }),
+    [onChange]
+  );
+  const handleSpeedThrottleChange = useCallback(
+    (speedThrottle: import('@/types/visualConfig').SpeedThrottleConfig) => onChange({ speedThrottle }),
     [onChange]
   );
 
@@ -1079,6 +1084,17 @@ export function VisualConfigEditor({
                   </div>
                 </FieldShell>
               </SectionGrid>
+              <Divider />
+              <SectionSubsection
+                title={t('config_management.visual.sections.speed_throttle.title', { defaultValue: '模型速度伪装 (Speed Throttle)' })}
+                description={t('config_management.visual.sections.speed_throttle.description', { defaultValue: '将高速模型生成速度限流并增加首字延迟，使其伪装为标准速度，降低风控风险。' })}
+              >
+                <SpeedThrottleEditor
+                  value={values.speedThrottle}
+                  disabled={disabled}
+                  onChange={handleSpeedThrottleChange}
+                />
+              </SectionSubsection>
             </SectionStack>
           </ConfigSection>
 
