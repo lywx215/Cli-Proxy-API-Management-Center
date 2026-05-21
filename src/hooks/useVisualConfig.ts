@@ -931,17 +931,6 @@ export function useVisualConfig() {
       const codex = asRecord(parsed.codex);
       const claudeHeaderDefaults = asRecord(parsed['claude-header-defaults']);
       const codexHeaderDefaults = asRecord(parsed['codex-header-defaults']);
-      const rateLimit = asRecord(parsed['api-key-rate-limit']);
-
-      const overridesRaw = Array.isArray(rateLimit?.overrides) ? rateLimit.overrides : [];
-      const parsedOverrides = overridesRaw.map((o, index) => {
-        const oRec = asRecord(o);
-        return {
-          id: `ratelimit-override-${index}`,
-          apiKey: typeof oRec?.['api-key'] === 'string' ? oRec['api-key'] : '',
-          rpm: String(oRec?.rpm ?? ''),
-        };
-      });
 
       const newValues: VisualConfigValues = {
         host: typeof parsed.host === 'string' ? parsed.host : '',

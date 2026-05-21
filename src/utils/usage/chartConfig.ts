@@ -79,7 +79,7 @@ export function buildChartOptions({
           minRotation: 0,
           autoSkip: true,
           maxTicksLimit: maxTickLabelCount,
-          callback: (value) => {
+          callback: (value: string | number) => {
             const index = typeof value === 'number' ? value : Number(value);
             const raw =
               Number.isFinite(index) && labels[index] ? labels[index] : typeof value === 'string' ? value : '';
