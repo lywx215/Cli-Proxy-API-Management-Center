@@ -549,13 +549,13 @@
     "pay_as_you_go_disabled": "Disabled"
   },
   "vertex_import": {
-    "title": "Vertex JSON Login",
-    "description": "Upload a Google service account JSON to store it as auth-dir/vertex-<project>.json using the same rules as the CLI vertex-import helper.",
+    "title": "Vertex Credential Import",
+    "description": "Upload a Google Cloud credential JSON (Service Account key or ADC authorized_user).",
     "location_label": "Region (optional)",
     "location_placeholder": "us-central1",
     "location_hint": "Leave empty to use the default region us-central1.",
-    "file_label": "Service account key JSON",
-    "file_hint": "Only Google Cloud service account key JSON files are accepted.",
+    "file_label": "Google Cloud Credential JSON",
+    "file_hint": "Supports Service Account Key (with private_key) or ADC (authorized_user from gcloud auth application-default login).",
     "file_placeholder": "No file selected",
     "choose_file": "Choose File",
     "import_button": "Import Vertex Credential",
@@ -565,7 +565,9 @@
     "result_project": "Project ID",
     "result_email": "Service account",
     "result_location": "Region",
-    "result_file": "Persisted file"
+    "result_file": "Persisted file",
+    "type_sa": "Detected: Service Account Key",
+    "type_adc": "Detected: Application Default Credentials (ADC)"
   },
   "oauth_excluded": {
     "title": "OAuth Model Disablement",

@@ -548,13 +548,13 @@
     "pay_as_you_go_disabled": "未啟用"
   },
   "vertex_import": {
-    "title": "Vertex JSON 登入",
-    "description": "上傳 Google 服務帳號 JSON，使用 CLI vertex-import 同步規則寫入 auth-dir/vertex-<project>.json。",
+    "title": "Vertex 憑證匯入",
+    "description": "上傳 Google Cloud 憑證 JSON（支援 Service Account 金鑰或 ADC 應用程式預設憑據）。",
     "location_label": "目標區域（選填）",
     "location_placeholder": "us-central1",
     "location_hint": "留空表示使用預設區域 us-central1。",
-    "file_label": "服務帳號金鑰 JSON",
-    "file_hint": "僅支援 Google Cloud service account key JSON 檔案，私鑰會自動規範化。",
+    "file_label": "Google Cloud 憑證 JSON",
+    "file_hint": "支援 Service Account Key（含 private_key）或 ADC（gcloud auth application-default login 產生的 authorized_user 類型）。",
     "file_placeholder": "尚未選擇檔案",
     "choose_file": "選擇檔案",
     "import_button": "匯入 Vertex 憑證",
@@ -564,7 +564,9 @@
     "result_project": "專案 ID",
     "result_email": "服務帳號",
     "result_location": "區域",
-    "result_file": "儲存檔案"
+    "result_file": "儲存檔案",
+    "type_sa": "偵測到: Service Account 金鑰",
+    "type_adc": "偵測到: 應用程式預設憑據 (ADC)"
   },
   "oauth_excluded": {
     "title": "OAuth 模型停用",

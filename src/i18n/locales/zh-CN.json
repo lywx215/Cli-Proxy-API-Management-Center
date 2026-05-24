@@ -549,13 +549,13 @@
     "pay_as_you_go_disabled": "未启用"
   },
   "vertex_import": {
-    "title": "Vertex JSON 登录",
-    "description": "上传 Google 服务账号 JSON，使用 CLI vertex-import 同步规则写入 auth-dir/vertex-<project>.json。",
+    "title": "Vertex 凭证导入",
+    "description": "上传 Google Cloud 凭证 JSON（支持 Service Account 密钥或 ADC 应用默认凭据）。",
     "location_label": "目标区域 (可选)",
     "location_placeholder": "us-central1",
     "location_hint": "留空表示使用默认区域 us-central1。",
-    "file_label": "服务账号密钥 JSON",
-    "file_hint": "仅支持 Google Cloud service account key JSON 文件，私钥会自动规范化。",
+    "file_label": "Google Cloud 凭证 JSON",
+    "file_hint": "支持 Service Account Key（含 private_key）或 ADC（gcloud auth application-default login 生成的 authorized_user 类型）。",
     "file_placeholder": "尚未选择文件",
     "choose_file": "选择文件",
     "import_button": "导入 Vertex 凭证",
@@ -565,7 +565,9 @@
     "result_project": "项目 ID",
     "result_email": "服务账号",
     "result_location": "区域",
-    "result_file": "存储文件"
+    "result_file": "存储文件",
+    "type_sa": "检测到: Service Account 密钥",
+    "type_adc": "检测到: 应用默认凭据 (ADC)"
   },
   "oauth_excluded": {
     "title": "OAuth 模型禁用",

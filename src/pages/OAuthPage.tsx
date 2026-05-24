@@ -48,6 +48,7 @@ interface VertexImportState {
   loading: boolean;
   error?: string;
   result?: VertexImportResult;
+  credentialType?: 'service_account' | 'adc';
 }
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -389,13 +390,26 @@ export function OAuthPage() {
       event.target.value = '';
       return;
     }
-    setVertexState((prev) => ({
-      ...prev,
-      file,
-      fileName: file.name,
-      error: undefined,
-      result: undefined
-    }));
+    // Read file content to detect credential type
+    const reader = new FileReader();
+    reader.onload = () => {
+      let credentialType: 'service_account' | 'adc' | undefined;
+      try {
+        const json = JSON.parse(reader.result as string);
+        credentialType = json.type === 'authorized_user' ? 'adc' : 'service_account';
+      } catch {
+        credentialType = undefined;
+      }
+      setVertexState((prev) => ({
+        ...prev,
+        file,
+        fileName: file.name,
+        credentialType,
+        error: undefined,
+        result: undefined,
+      }));
+    };
+    reader.readAsText(file);
     event.target.value = '';
   };
 
@@ -625,6 +639,13 @@ export function OAuthPage() {
                 </div>
               </div>
               <div className={styles.cardHintSecondary}>{t('vertex_import.file_hint')}</div>
+              {vertexState.credentialType && (
+                <div className={`status-badge ${vertexState.credentialType === 'adc' ? 'warning' : 'success'}`} style={{ marginTop: 8 }}>
+                  {vertexState.credentialType === 'adc'
+                    ? t('vertex_import.type_adc')
+                    : t('vertex_import.type_sa')}
+                </div>
+              )}
               <input
                 ref={vertexFileInputRef}
                 type="file"
