@@ -56,6 +56,7 @@ ChartJS.register(
 
 const CHART_LINES_STORAGE_KEY = 'cli-proxy-usage-chart-lines-v1';
 const TIME_RANGE_STORAGE_KEY = 'cli-proxy-usage-time-range-v1';
+const TAB_STORAGE_KEY = 'cli-proxy-usage-tab-v1';
 const DEFAULT_CHART_LINES = ['all'];
 const DEFAULT_TIME_RANGE: UsageTimeRange = '24h';
 const MAX_CHART_LINES = 9;
@@ -71,8 +72,28 @@ const HOUR_WINDOW_BY_TIME_RANGE: Record<Exclude<UsageTimeRange, 'all'>, number> 
   '7d': 7 * 24
 };
 
+type UsageTab = 'overview' | 'charts' | 'details' | 'credentials';
+
+const TAB_KEYS: readonly UsageTab[] = ['overview', 'charts', 'details', 'credentials'] as const;
+const TAB_LABEL_KEYS: Record<UsageTab, string> = {
+  overview: 'usage_stats.tab_overview',
+  charts: 'usage_stats.tab_charts',
+  details: 'usage_stats.tab_details',
+  credentials: 'usage_stats.tab_credentials',
+};
+// Fallback labels (when i18n key is missing, show these instead of the key string)
+const TAB_FALLBACK_LABELS: Record<UsageTab, string> = {
+  overview: '📊 Overview',
+  charts: '📈 Charts',
+  details: '📋 Details',
+  credentials: '🔑 Credentials',
+};
+
 const isUsageTimeRange = (value: unknown): value is UsageTimeRange =>
   value === '7h' || value === '24h' || value === '7d' || value === 'all';
+
+const isUsageTab = (value: unknown): value is UsageTab =>
+  typeof value === 'string' && TAB_KEYS.includes(value as UsageTab);
 
 const normalizeChartLines = (value: unknown, maxLines = MAX_CHART_LINES): string[] => {
   if (!Array.isArray(value)) {
@@ -115,12 +136,37 @@ const loadTimeRange = (): UsageTimeRange => {
   }
 };
 
+const loadTab = (): UsageTab => {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return 'overview';
+    }
+    const raw = localStorage.getItem(TAB_STORAGE_KEY);
+    return isUsageTab(raw) ? raw : 'overview';
+  } catch {
+    return 'overview';
+  }
+};
+
 export function UsagePage() {
   const { t } = useTranslation();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const isDark = resolvedTheme === 'dark';
   const config = useConfigStore((state) => state.config);
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<UsageTab>(loadTab);
+
+  useEffect(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(TAB_STORAGE_KEY, activeTab);
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [activeTab]);
 
   // Data hook
   const {
@@ -222,6 +268,13 @@ export function UsagePage() {
   );
   const hasPrices = Object.keys(modelPrices).length > 0;
 
+  // Tab label helper — falls back to hardcoded label if i18n key is missing
+  const tabLabel = (tab: UsageTab) => {
+    const translated = t(TAB_LABEL_KEYS[tab]);
+    // react-i18next returns the key itself when missing
+    return translated === TAB_LABEL_KEYS[tab] ? TAB_FALLBACK_LABELS[tab] : translated;
+  };
+
   return (
     <div className={styles.container}>
       {loading && !usage && (
@@ -290,108 +343,143 @@ export function UsagePage() {
 
       {error && <div className={styles.errorBox}>{error}</div>}
 
-      {/* Stats Overview Cards */}
-      <StatCards
-        usage={filteredUsage}
-        loading={loading}
-        modelPrices={modelPrices}
-        nowMs={nowMs}
-        sparklines={{
-          requests: requestsSparkline,
-          tokens: tokensSparkline,
-          rpm: rpmSparkline,
-          tpm: tpmSparkline,
-          cost: costSparkline
-        }}
-      />
-
-      {/* Chart Line Selection */}
-      <ChartLineSelector
-        chartLines={chartLines}
-        modelNames={modelNames}
-        maxLines={MAX_CHART_LINES}
-        onChange={handleChartLinesChange}
-      />
-
-      {/* Service Health */}
-      <ServiceHealthCard usage={usage} loading={loading} />
-
-      {/* Charts Grid */}
-      <div className={styles.chartsGrid}>
-        <UsageChart
-          title={t('usage_stats.requests_trend')}
-          period={requestsPeriod}
-          onPeriodChange={setRequestsPeriod}
-          chartData={requestsChartData}
-          chartOptions={requestsChartOptions}
-          loading={loading}
-          isMobile={isMobile}
-          emptyText={t('usage_stats.no_data')}
-        />
-        <UsageChart
-          title={t('usage_stats.tokens_trend')}
-          period={tokensPeriod}
-          onPeriodChange={setTokensPeriod}
-          chartData={tokensChartData}
-          chartOptions={tokensChartOptions}
-          loading={loading}
-          isMobile={isMobile}
-          emptyText={t('usage_stats.no_data')}
-        />
+      {/* ── Tab Bar ── */}
+      <div className={styles.tabBar} role="tablist">
+        {TAB_KEYS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
+            className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tabLabel(tab)}
+          </button>
+        ))}
       </div>
 
-      {/* Token Breakdown Chart */}
-      <TokenBreakdownChart
-        usage={filteredUsage}
-        loading={loading}
-        isDark={isDark}
-        isMobile={isMobile}
-        hourWindowHours={hourWindowHours}
-      />
+      {/* ── Tab Content ── */}
+      <div className={styles.tabContent} role="tabpanel">
+        {activeTab === 'overview' && (
+          <>
+            {/* Stats Overview Cards */}
+            <StatCards
+              usage={filteredUsage}
+              loading={loading}
+              modelPrices={modelPrices}
+              nowMs={nowMs}
+              sparklines={{
+                requests: requestsSparkline,
+                tokens: tokensSparkline,
+                rpm: rpmSparkline,
+                tpm: tpmSparkline,
+                cost: costSparkline
+              }}
+            />
 
-      {/* Cost Trend Chart */}
-      <CostTrendChart
-        usage={filteredUsage}
-        loading={loading}
-        isDark={isDark}
-        isMobile={isMobile}
-        modelPrices={modelPrices}
-        hourWindowHours={hourWindowHours}
-      />
+            {/* Service Health */}
+            <ServiceHealthCard usage={usage} loading={loading} />
+          </>
+        )}
 
-      {/* Details Grid */}
-      <div className={styles.detailsGrid}>
-        <ApiDetailsCard apiStats={apiStats} loading={loading} hasPrices={hasPrices} />
-        <ModelStatsCard modelStats={modelStats} loading={loading} hasPrices={hasPrices} />
+        {activeTab === 'charts' && (
+          <>
+            {/* Chart Line Selection */}
+            <ChartLineSelector
+              chartLines={chartLines}
+              modelNames={modelNames}
+              maxLines={MAX_CHART_LINES}
+              onChange={handleChartLinesChange}
+            />
+
+            {/* Charts Grid */}
+            <div className={styles.chartsGrid}>
+              <UsageChart
+                title={t('usage_stats.requests_trend')}
+                period={requestsPeriod}
+                onPeriodChange={setRequestsPeriod}
+                chartData={requestsChartData}
+                chartOptions={requestsChartOptions}
+                loading={loading}
+                isMobile={isMobile}
+                emptyText={t('usage_stats.no_data')}
+              />
+              <UsageChart
+                title={t('usage_stats.tokens_trend')}
+                period={tokensPeriod}
+                onPeriodChange={setTokensPeriod}
+                chartData={tokensChartData}
+                chartOptions={tokensChartOptions}
+                loading={loading}
+                isMobile={isMobile}
+                emptyText={t('usage_stats.no_data')}
+              />
+            </div>
+
+            {/* Token Breakdown Chart */}
+            <TokenBreakdownChart
+              usage={filteredUsage}
+              loading={loading}
+              isDark={isDark}
+              isMobile={isMobile}
+              hourWindowHours={hourWindowHours}
+            />
+
+            {/* Cost Trend Chart */}
+            <CostTrendChart
+              usage={filteredUsage}
+              loading={loading}
+              isDark={isDark}
+              isMobile={isMobile}
+              modelPrices={modelPrices}
+              hourWindowHours={hourWindowHours}
+            />
+          </>
+        )}
+
+        {activeTab === 'details' && (
+          <>
+            {/* Details Grid */}
+            <div className={styles.detailsGrid}>
+              <ApiDetailsCard apiStats={apiStats} loading={loading} hasPrices={hasPrices} />
+              <ModelStatsCard modelStats={modelStats} loading={loading} hasPrices={hasPrices} />
+            </div>
+
+            <RequestEventsDetailsCard
+              usage={filteredUsage}
+              loading={loading}
+              geminiKeys={config?.geminiApiKeys || []}
+              claudeConfigs={config?.claudeApiKeys || []}
+              codexConfigs={config?.codexApiKeys || []}
+              vertexConfigs={config?.vertexApiKeys || []}
+              openaiProviders={config?.openaiCompatibility || []}
+            />
+          </>
+        )}
+
+        {activeTab === 'credentials' && (
+          <>
+            {/* Credential Stats */}
+            <CredentialStatsCard
+              usage={filteredUsage}
+              loading={loading}
+              geminiKeys={config?.geminiApiKeys || []}
+              claudeConfigs={config?.claudeApiKeys || []}
+              codexConfigs={config?.codexApiKeys || []}
+              vertexConfigs={config?.vertexApiKeys || []}
+              openaiProviders={config?.openaiCompatibility || []}
+            />
+
+            {/* Price Settings */}
+            <PriceSettingsCard
+              modelNames={modelNames}
+              modelPrices={modelPrices}
+              onPricesChange={setModelPrices}
+            />
+          </>
+        )}
       </div>
-
-      <RequestEventsDetailsCard
-        usage={filteredUsage}
-        loading={loading}
-        geminiKeys={config?.geminiApiKeys || []}
-        claudeConfigs={config?.claudeApiKeys || []}
-        codexConfigs={config?.codexApiKeys || []}
-        vertexConfigs={config?.vertexApiKeys || []}
-        openaiProviders={config?.openaiCompatibility || []}
-      />
-
-      {/* Credential Stats */}
-      <CredentialStatsCard
-        usage={filteredUsage}
-        loading={loading}
-        geminiKeys={config?.geminiApiKeys || []}
-        claudeConfigs={config?.claudeApiKeys || []}
-        codexConfigs={config?.codexApiKeys || []}
-        vertexConfigs={config?.vertexApiKeys || []}
-        openaiProviders={config?.openaiCompatibility || []}
-      />
-
-      {/* Price Settings */}
-      <PriceSettingsCard
-        modelNames={modelNames}
-        modelPrices={modelPrices}
-        onPricesChange={setModelPrices}
-      />
     </div>
   );
 }
