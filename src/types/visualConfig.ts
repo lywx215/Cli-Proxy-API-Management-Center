@@ -67,6 +67,28 @@ export interface StreamingConfig {
   nonstreamKeepaliveInterval: string;
 }
 
+export interface ApiKeyRateLimitOverride {
+  id: string;
+  apiKey: string;
+  rpm: string;
+}
+
+export interface ApiKeyRateLimitConfig {
+  enabled: boolean;
+  defaultRpm: string;
+  overrides: ApiKeyRateLimitOverride[];
+}
+
+export interface SpeedThrottleConfig {
+  enabled: boolean;
+  maxConcurrent: string;
+  queueSize: string;
+  minTokensPerSecond: string;
+  maxTokensPerSecond: string;
+  minFirstTokenDelayMs: string;
+  maxFirstTokenDelayMs: string;
+}
+
 export type VisualConfigValues = {
   host: string;
   port: string;
@@ -125,6 +147,8 @@ export type VisualConfigValues = {
   payloadOverrideRawRules: PayloadRule[];
   payloadFilterRules: PayloadFilterRule[];
   streaming: StreamingConfig;
+  apiKeyRateLimit: ApiKeyRateLimitConfig;
+  speedThrottle: SpeedThrottleConfig;
 };
 
 export const makeClientId = () => {
@@ -193,5 +217,19 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
     keepaliveSeconds: '',
     bootstrapRetries: '',
     nonstreamKeepaliveInterval: '',
+  },
+  apiKeyRateLimit: {
+    enabled: false,
+    defaultRpm: '',
+    overrides: [],
+  },
+  speedThrottle: {
+    enabled: false,
+    maxConcurrent: '',
+    queueSize: '',
+    minTokensPerSecond: '',
+    maxTokensPerSecond: '',
+    minFirstTokenDelayMs: '',
+    maxFirstTokenDelayMs: '',
   },
 };

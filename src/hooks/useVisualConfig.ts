@@ -931,6 +931,17 @@ export function useVisualConfig() {
       const codex = asRecord(parsed.codex);
       const claudeHeaderDefaults = asRecord(parsed['claude-header-defaults']);
       const codexHeaderDefaults = asRecord(parsed['codex-header-defaults']);
+      const rateLimit = asRecord(parsed['api-key-rate-limit']);
+
+      const overridesRaw = Array.isArray(rateLimit?.overrides) ? rateLimit.overrides : [];
+      const parsedOverrides = overridesRaw.map((o, index) => {
+        const oRec = asRecord(o);
+        return {
+          id: `ratelimit-override-${index}`,
+          apiKey: typeof oRec?.['api-key'] === 'string' ? oRec['api-key'] : '',
+          rpm: String(oRec?.rpm ?? ''),
+        };
+      });
 
       const newValues: VisualConfigValues = {
         host: typeof parsed.host === 'string' ? parsed.host : '',
@@ -1021,6 +1032,7 @@ export function useVisualConfig() {
         quotaSwitchProject: Boolean(quotaExceeded?.['switch-project'] ?? true),
         quotaSwitchPreviewModel: Boolean(quotaExceeded?.['switch-preview-model'] ?? true),
         quotaAntigravityCredits: Boolean(quotaExceeded?.['antigravity-credits'] ?? false),
+        quotaAntigravityCreditsForce: Boolean(quotaExceeded?.['antigravity-credits-force'] ?? false),
 
         routingStrategy: routing?.strategy === 'fill-first' ? 'fill-first' : 'round-robin',
         routingSessionAffinity: Boolean(
@@ -1045,6 +1057,22 @@ export function useVisualConfig() {
           keepaliveSeconds: String(streaming?.['keepalive-seconds'] ?? ''),
           bootstrapRetries: String(streaming?.['bootstrap-retries'] ?? ''),
           nonstreamKeepaliveInterval: String(parsed['nonstream-keepalive-interval'] ?? ''),
+        },
+
+        apiKeyRateLimit: {
+          enabled: Boolean(rateLimit?.enabled),
+          defaultRpm: String(rateLimit?.['default-rpm'] ?? ''),
+          overrides: parsedOverrides,
+        },
+
+        speedThrottle: {
+          enabled: Boolean(asRecord(parsed['speed-throttle'])?.enabled),
+          maxConcurrent: String(asRecord(parsed['speed-throttle'])?.['max-concurrent'] ?? ''),
+          queueSize: String(asRecord(parsed['speed-throttle'])?.['queue-size'] ?? ''),
+          minTokensPerSecond: String(asRecord(parsed['speed-throttle'])?.['min-tokens-per-second'] ?? ''),
+          maxTokensPerSecond: String(asRecord(parsed['speed-throttle'])?.['max-tokens-per-second'] ?? ''),
+          minFirstTokenDelayMs: String(asRecord(parsed['speed-throttle'])?.['min-first-token-delay-ms'] ?? ''),
+          maxFirstTokenDelayMs: String(asRecord(parsed['speed-throttle'])?.['max-first-token-delay-ms'] ?? ''),
         },
       };
 
