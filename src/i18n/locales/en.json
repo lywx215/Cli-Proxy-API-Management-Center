@@ -121,7 +121,8 @@
     "config_management": "Config Panel",
     "logs": "Logs Viewer",
     "system_info": "Management Center Info",
-    "usage_stats": "Usage Statistics"
+    "usage_stats": "Usage Statistics",
+    "antigravity_stats": "Antigravity Stats"
   },
   "nav_groups": {
     "operate": "Operate",
@@ -140,7 +141,9 @@
     "plugin_store": "Discover & install plugins",
     "logs": "Request tracing",
     "config_management": "Gateway configuration",
-    "system_info": "Runtime & diagnostics"
+    "system_info": "Runtime & diagnostics",
+    "usage_stats": "Redis Cache Statistics",
+    "antigravity_stats": "Antigravity Credits & Risk Statistics"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1440,7 +1443,6 @@
     "version": "Management UI Version",
     "author": "Author"
   },
-
   "providersPage": {
     "header": {
       "title": "AI Providers",

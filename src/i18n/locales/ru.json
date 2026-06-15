@@ -121,7 +121,8 @@
     "config_management": "Панель конфигурации",
     "logs": "Просмотр логов",
     "system_info": "Информация системы",
-    "usage_stats": "Статистика использования"
+    "usage_stats": "Статистика использования",
+    "antigravity_stats": "Статистика Antigravity"
   },
   "nav_groups": {
     "operate": "Работа",
@@ -139,7 +140,9 @@
     "plugin_store": "Поиск и установка плагинов",
     "logs": "Трассировка запросов",
     "config_management": "Базовая конфигурация шлюза",
-    "system_info": "Состояние и диагностика"
+    "system_info": "Состояние и диагностика",
+    "usage_stats": "Статистика кеша Redis",
+    "antigravity_stats": "Статистика баллов и рисков Antigravity"
   },
   "dashboard": {
     "title": "Панель управления",
@@ -1403,7 +1406,6 @@
     "version": "Версия интерфейса управления",
     "author": "Автор"
   },
-
   "providersPage": {
     "header": {
       "title": "AI Провайдеры",

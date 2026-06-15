@@ -121,7 +121,8 @@
     "config_management": "配置面板",
     "logs": "日志查看",
     "system_info": "中心信息",
-    "usage_stats": "使用统计"
+    "usage_stats": "使用统计",
+    "antigravity_stats": "Antigravity 统计"
   },
   "nav_groups": {
     "operate": "运行",
@@ -140,7 +141,9 @@
     "plugin_store": "发现并安装插件",
     "logs": "请求追踪与排查",
     "config_management": "网关基础配置",
-    "system_info": "运行与诊断信息"
+    "system_info": "运行与诊断信息",
+    "usage_stats": "Redis 缓存统计",
+    "antigravity_stats": "Antigravity 积分与风控统计"
   },
   "dashboard": {
     "title": "仪表盘",
@@ -1440,7 +1443,6 @@
     "version": "管理中心版本",
     "author": "作者"
   },
-
   "providersPage": {
     "header": {
       "title": "AI 提供商",

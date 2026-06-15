@@ -120,7 +120,8 @@
     "plugin_store": "插件商店",
     "config_management": "設定面板",
     "logs": "記錄檢視",
-    "system_info": "中心資訊"
+    "system_info": "中心資訊",
+    "antigravity_stats": "Antigravity 統計"
   },
   "nav_groups": {
     "operate": "運行",
@@ -139,7 +140,9 @@
     "plugin_store": "探索並安裝插件",
     "logs": "請求追蹤與排查",
     "config_management": "閘道基礎設定",
-    "system_info": "運行與診斷資訊"
+    "system_info": "運行與診斷資訊",
+    "usage_stats": "Redis 快取統計",
+    "antigravity_stats": "Antigravity 積分與風控統計"
   },
   "dashboard": {
     "title": "儀表板",
