@@ -40,6 +40,7 @@ import type {
 } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
+  ApiKeyRateLimitEditor,
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
   PluginStoreAuthEditor,
@@ -196,6 +197,7 @@ export function VisualConfigEditor({
   const routingStrategyHintId = `${routingStrategyLabelId}-hint`;
   const disableImageGenerationLabelId = useId();
   const disableImageGenerationHintId = `${disableImageGenerationLabelId}-hint`;
+  const apiKeyRateLimitInputId = useId();
   const keepaliveInputId = useId();
   const keepaliveHintId = `${keepaliveInputId}-hint`;
   const keepaliveErrorId = `${keepaliveInputId}-error`;
@@ -375,6 +377,11 @@ export function VisualConfigEditor({
   );
   const handlePluginStoreAuthChange = useCallback(
     (pluginStoreAuth: PluginStoreAuthRule[]) => onChange({ pluginStoreAuth }),
+    [onChange]
+  );
+  const handleApiKeyRateLimitChange = useCallback(
+    (apiKeyRateLimit: import('@/types/visualConfig').ApiKeyRateLimitConfig) =>
+      onChange({ apiKeyRateLimit }),
     [onChange]
   );
   const handlePayloadDefaultRulesChange = useCallback(
@@ -937,6 +944,37 @@ export function VisualConfigEditor({
                 </FieldAnchor>
 
                 {apiKeysField}
+
+                <div className={styles.subsection}>
+                  <ApiKeyRateLimitEditor
+                    value={values.apiKeyRateLimit}
+                    disabled={disabled}
+                    onChange={handleApiKeyRateLimitChange}
+                    errorId={
+                      getValidationMessage(
+                        t,
+                        validationErrors?.['apiKeyRateLimit.defaultRpm']
+                      )
+                        ? `${apiKeyRateLimitInputId}-rate-limit-error`
+                        : undefined
+                    }
+                  />
+                  {getValidationMessage(
+                    t,
+                    validationErrors?.['apiKeyRateLimit.defaultRpm']
+                  ) ? (
+                    <div
+                      id={`${apiKeyRateLimitInputId}-rate-limit-error`}
+                      className="error-box"
+                      style={{ marginTop: 8 }}
+                    >
+                      {getValidationMessage(
+                        t,
+                        validationErrors?.['apiKeyRateLimit.defaultRpm']
+                      )}
+                    </div>
+                  ) : null}
+                </div>
 
                 <Collapsible
                   label={t('config_management.visual.sections.tls.title')}
