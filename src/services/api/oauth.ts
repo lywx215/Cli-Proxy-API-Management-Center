@@ -26,13 +26,7 @@ export interface OAuthCallbackResponse {
   status: 'ok';
 }
 
-const WEBUI_SUPPORTED = new Set<string>([
-  'codex',
-  'anthropic',
-  'antigravity',
-  'gemini-cli',
-  'xai',
-]);
+const WEBUI_SUPPORTED = new Set<string>(['codex', 'anthropic', 'antigravity', 'gemini-cli', 'xai']);
 
 const CALLBACK_PROVIDER_MAP: Record<string, string> = {
   'gemini-cli': 'gemini',

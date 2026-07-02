@@ -817,7 +817,10 @@ export function OAuthPage() {
               </div>
               <div className={styles.cardHintSecondary}>{t('vertex_import.file_hint')}</div>
               {vertexState.credentialType && (
-                <div className={`status-badge ${vertexState.credentialType === 'adc' ? 'warning' : 'success'}`} style={{ marginTop: 8 }}>
+                <div
+                  className={`status-badge ${vertexState.credentialType === 'adc' ? 'warning' : 'success'}`}
+                  style={{ marginTop: 8 }}
+                >
                   {vertexState.credentialType === 'adc'
                     ? t('vertex_import.type_adc')
                     : t('vertex_import.type_sa')}

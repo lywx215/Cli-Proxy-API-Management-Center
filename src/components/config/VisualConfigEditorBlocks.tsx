@@ -409,8 +409,12 @@ export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
     <div className={styles.blockStack}>
       <div className={styles.toggleRow}>
         <div className={styles.toggleCopy}>
-          <div className={styles.toggleTitle}>{t('config_management.visual.speed_throttle.enable_title')}</div>
-          <div className={styles.toggleDescription}>{t('config_management.visual.speed_throttle.enable_desc')}</div>
+          <div className={styles.toggleTitle}>
+            {t('config_management.visual.speed_throttle.enable_title')}
+          </div>
+          <div className={styles.toggleDescription}>
+            {t('config_management.visual.speed_throttle.enable_desc')}
+          </div>
         </div>
         <ToggleSwitch
           checked={value.enabled}
@@ -1690,7 +1694,10 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
     });
   };
 
-  const updateOverride = (index: number, patch: Partial<import('@/types/visualConfig').ApiKeyRateLimitOverride>) => {
+  const updateOverride = (
+    index: number,
+    patch: Partial<import('@/types/visualConfig').ApiKeyRateLimitOverride>
+  ) => {
     onChange({
       ...value,
       overrides: overrideItems.map((item, i) => (i === index ? { ...item, ...patch } : item)),
@@ -1724,7 +1731,9 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
       </div>
 
       <div className={styles.blockHeaderRow} style={{ marginBottom: 8 }}>
-        <label style={{ margin: 0 }}>{t('config_management.visual.api_keys.rate_limit_overrides')}</label>
+        <label style={{ margin: 0 }}>
+          {t('config_management.visual.api_keys.rate_limit_overrides')}
+        </label>
         <Button size="sm" onClick={addOverride} disabled={disabled || !value.enabled}>
           {t('config_management.visual.common.add')}
         </Button>
@@ -1737,7 +1746,11 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
       ) : (
         <div className="item-list">
           {overrideItems.map((item, index) => (
-            <div key={item.id} className={styles.stringListRow} style={{ marginBottom: 8, alignItems: 'center' }}>
+            <div
+              key={item.id}
+              className={styles.stringListRow}
+              style={{ marginBottom: 8, alignItems: 'center' }}
+            >
               <input
                 className="input"
                 style={{ flex: 2 }}
@@ -1755,7 +1768,12 @@ export const ApiKeyRateLimitEditor = memo(function ApiKeyRateLimitEditor({
                 onChange={(e) => updateOverride(index, { rpm: e.target.value })}
                 disabled={disabled || !value.enabled}
               />
-              <Button variant="ghost" size="sm" onClick={() => removeOverride(index)} disabled={disabled || !value.enabled}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => removeOverride(index)}
+                disabled={disabled || !value.enabled}
+              >
                 {t('config_management.visual.common.delete')}
               </Button>
             </div>

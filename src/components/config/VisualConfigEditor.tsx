@@ -424,7 +424,8 @@ export function VisualConfigEditor({
   );
 
   const handleSpeedThrottleChange = useCallback(
-    (speedThrottle: import('@/types/visualConfig').SpeedThrottleConfig) => onChange({ speedThrottle }),
+    (speedThrottle: import('@/types/visualConfig').SpeedThrottleConfig) =>
+      onChange({ speedThrottle }),
     [onChange]
   );
 
@@ -957,27 +958,18 @@ export function VisualConfigEditor({
                     disabled={disabled}
                     onChange={handleApiKeyRateLimitChange}
                     errorId={
-                      getValidationMessage(
-                        t,
-                        validationErrors?.['apiKeyRateLimit.defaultRpm']
-                      )
+                      getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])
                         ? `${apiKeyRateLimitInputId}-rate-limit-error`
                         : undefined
                     }
                   />
-                  {getValidationMessage(
-                    t,
-                    validationErrors?.['apiKeyRateLimit.defaultRpm']
-                  ) ? (
+                  {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm']) ? (
                     <div
                       id={`${apiKeyRateLimitInputId}-rate-limit-error`}
                       className="error-box"
                       style={{ marginTop: 8 }}
                     >
-                      {getValidationMessage(
-                        t,
-                        validationErrors?.['apiKeyRateLimit.defaultRpm']
-                      )}
+                      {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])}
                     </div>
                   ) : null}
                 </div>
@@ -1424,9 +1416,7 @@ export function VisualConfigEditor({
                 </FieldAnchor>
                 <FieldAnchor fieldId="quotaAntigravityCreditsForce">
                   <ToggleRow
-                    title={t(
-                      'config_management.visual.sections.quota.antigravity_credits_force'
-                    )}
+                    title={t('config_management.visual.sections.quota.antigravity_credits_force')}
                     description={t(
                       'config_management.visual.sections.quota.antigravity_credits_force_desc'
                     )}

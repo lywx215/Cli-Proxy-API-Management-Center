@@ -45,6 +45,8 @@ export interface GeminiCliCodeAssistPayload {
   current_tier?: GeminiCliUserTier | null;
   paidTier?: GeminiCliUserTier | null;
   paid_tier?: GeminiCliUserTier | null;
+  availableCredits?: GeminiCliCredits[];
+  available_credits?: GeminiCliCredits[];
 }
 
 export interface AntigravityQuotaSummaryBucketPayload {

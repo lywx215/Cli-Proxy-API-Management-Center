@@ -299,8 +299,7 @@ const resolveAntigravityTierLabel = (
   if (!payload) return null;
   const currentTier: GeminiCliUserTier | null | undefined =
     payload.currentTier ?? payload.current_tier;
-  const paidTier: GeminiCliUserTier | null | undefined =
-    payload.paidTier ?? payload.paid_tier;
+  const paidTier: GeminiCliUserTier | null | undefined = payload.paidTier ?? payload.paid_tier;
   const rawId = normalizeStringValue(paidTier?.id) ?? normalizeStringValue(currentTier?.id);
   if (!rawId) return null;
   const tierId = rawId.toLowerCase();
@@ -308,14 +307,11 @@ const resolveAntigravityTierLabel = (
   return labelKey ? t(`antigravity_quota.${labelKey}`) : rawId;
 };
 
-const resolveAntigravityTierId = (
-  payload: GeminiCliCodeAssistPayload | null
-): string | null => {
+const resolveAntigravityTierId = (payload: GeminiCliCodeAssistPayload | null): string | null => {
   if (!payload) return null;
   const currentTier: GeminiCliUserTier | null | undefined =
     payload.currentTier ?? payload.current_tier;
-  const paidTier: GeminiCliUserTier | null | undefined =
-    payload.paidTier ?? payload.paid_tier;
+  const paidTier: GeminiCliUserTier | null | undefined = payload.paidTier ?? payload.paid_tier;
   const rawId = normalizeStringValue(paidTier?.id) ?? normalizeStringValue(currentTier?.id);
   return rawId ? rawId.toLowerCase() : null;
 };
@@ -324,8 +320,7 @@ const resolveAntigravityCreditBalance = (
   payload: GeminiCliCodeAssistPayload | null
 ): number | null => {
   if (!payload) return null;
-  const paidTier: GeminiCliUserTier | null | undefined =
-    payload.paidTier ?? payload.paid_tier;
+  const paidTier: GeminiCliUserTier | null | undefined = payload.paidTier ?? payload.paid_tier;
   const currentTier: GeminiCliUserTier | null | undefined =
     payload.currentTier ?? payload.current_tier;
 
@@ -334,10 +329,9 @@ const resolveAntigravityCreditBalance = (
   if (paidTier?.available_credits) allCredits.push(...paidTier.available_credits);
   if (currentTier?.availableCredits) allCredits.push(...currentTier.availableCredits);
   if (currentTier?.available_credits) allCredits.push(...currentTier.available_credits);
-  
-  const payloadAny = payload as any;
-  if (payloadAny.availableCredits) allCredits.push(...payloadAny.availableCredits);
-  if (payloadAny.available_credits) allCredits.push(...payloadAny.available_credits);
+
+  if (payload.availableCredits) allCredits.push(...payload.availableCredits);
+  if (payload.available_credits) allCredits.push(...payload.available_credits);
 
   let total = 0;
   let found = false;
