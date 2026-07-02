@@ -198,6 +198,7 @@ export function VisualConfigEditor({
   const routingStrategyHintId = `${routingStrategyLabelId}-hint`;
   const disableImageGenerationLabelId = useId();
   const disableImageGenerationHintId = `${disableImageGenerationLabelId}-hint`;
+  const apiKeyRateLimitInputId = useId();
   const keepaliveInputId = useId();
   const keepaliveHintId = `${keepaliveInputId}-hint`;
   const keepaliveErrorId = `${keepaliveInputId}-error`;
@@ -1297,6 +1298,19 @@ export function VisualConfigEditor({
                       checked={values.wsAuth}
                       disabled={disabled}
                       onChange={(wsAuth) => onChange({ wsAuth })}
+                    />
+                  </FieldAnchor>
+                  <FieldAnchor fieldId="enableGeminiCliEndpoint">
+                    <ToggleRow
+                      title={t(
+                        'config_management.visual.sections.network.enable_gemini_cli_endpoint'
+                      )}
+                      description={t(
+                        'config_management.visual.sections.network.enable_gemini_cli_endpoint_desc'
+                      )}
+                      checked={values.enableGeminiCliEndpoint}
+                      disabled={disabled}
+                      onChange={(enableGeminiCliEndpoint) => onChange({ enableGeminiCliEndpoint })}
                     />
                   </FieldAnchor>
                 </SectionGrid>

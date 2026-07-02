@@ -1,5 +1,6 @@
 const OAUTH_PROVIDER_ALIASES: Record<string, string> = {
   'anti-gravity': 'antigravity',
+  gemini: 'gemini-cli',
   grok: 'xai',
   'x-ai': 'xai',
   'x.ai': 'xai',

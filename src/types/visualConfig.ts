@@ -18,7 +18,8 @@ export type VisualConfigFieldPath =
   | 'authAutoRefreshWorkers'
   | 'streaming.keepaliveSeconds'
   | 'streaming.bootstrapRetries'
-  | 'streaming.nonstreamKeepaliveInterval';
+  | 'streaming.nonstreamKeepaliveInterval'
+  | 'apiKeyRateLimit.defaultRpm';
 
 export type VisualConfigValidationErrorCode = 'port_range' | 'non_negative_integer';
 
@@ -145,6 +146,7 @@ export type VisualConfigValues = {
   routingSessionAffinity: boolean;
   routingSessionAffinityTTL: string;
   wsAuth: boolean;
+  enableGeminiCliEndpoint: boolean;
   antigravitySignatureCacheEnabled: boolean;
   antigravitySignatureBypassStrict: boolean;
   claudeHeaderUserAgent: string;
@@ -213,6 +215,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
   wsAuth: false,
+  enableGeminiCliEndpoint: false,
   antigravitySignatureCacheEnabled: true,
   antigravitySignatureBypassStrict: false,
   claudeHeaderUserAgent: '',
