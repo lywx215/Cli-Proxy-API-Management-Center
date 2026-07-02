@@ -40,7 +40,6 @@ import type {
 } from '@/types/visualConfig';
 import {
   ApiKeysCardEditor,
-  ApiKeyRateLimitEditor,
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
   PluginStoreAuthEditor,

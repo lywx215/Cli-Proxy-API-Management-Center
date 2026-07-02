@@ -215,7 +215,6 @@ export function getVisualConfigValidationErrors(
     'streaming.nonstreamKeepaliveInterval': getNonNegativeIntegerError(
       values.streaming.nonstreamKeepaliveInterval
     ),
-    'apiKeyRateLimit.defaultRpm': getNonNegativeIntegerError(values.apiKeyRateLimit.defaultRpm),
   };
 }
 
@@ -398,18 +397,6 @@ function arePayloadFilterRulesEqual(
     for (let j = 0; j < a.params.length; j += 1) {
       if (a.params[j] !== b.params[j]) return false;
     }
-  }
-  return true;
-}
-
-function areApiKeyRateLimitOverridesEqual(
-  left: { apiKey: string; rpm: string }[],
-  right: { apiKey: string; rpm: string }[]
-): boolean {
-  if (left === right) return true;
-  if (left.length !== right.length) return false;
-  for (let i = 0; i < left.length; i += 1) {
-    if (left[i].apiKey !== right[i].apiKey || left[i].rpm !== right[i].rpm) return false;
   }
   return true;
 }
@@ -851,9 +838,6 @@ function mergeVisualConfigValues(
   if (patch.streaming) {
     nextValues.streaming = { ...currentValues.streaming, ...patch.streaming };
   }
-  if (patch.apiKeyRateLimit) {
-    nextValues.apiKeyRateLimit = { ...currentValues.apiKeyRateLimit, ...patch.apiKeyRateLimit };
-  }
   return nextValues;
 }
 
@@ -996,24 +980,6 @@ function getNextDirtyFields(
         'streaming.nonstreamKeepaliveInterval',
         nextValues.streaming.nonstreamKeepaliveInterval ===
           baselineValues.streaming.nonstreamKeepaliveInterval
-      );
-    }
-  }
-  if (patch.apiKeyRateLimit) {
-    const ratePatch = patch.apiKeyRateLimit;
-    if (Object.prototype.hasOwnProperty.call(ratePatch, 'defaultRpm')) {
-      updateDirty(
-        'apiKeyRateLimit.defaultRpm',
-        nextValues.apiKeyRateLimit.defaultRpm === baselineValues.apiKeyRateLimit.defaultRpm
-      );
-    }
-    if (Object.prototype.hasOwnProperty.call(ratePatch, 'overrides')) {
-      updateDirty(
-        'apiKeyRateLimit.overrides',
-        areApiKeyRateLimitOverridesEqual(
-          nextValues.apiKeyRateLimit.overrides,
-          baselineValues.apiKeyRateLimit.overrides
-        )
       );
     }
   }
@@ -1229,12 +1195,6 @@ export function useVisualConfig() {
           keepaliveSeconds: String(streaming?.['keepalive-seconds'] ?? ''),
           bootstrapRetries: String(streaming?.['bootstrap-retries'] ?? ''),
           nonstreamKeepaliveInterval: String(parsed['nonstream-keepalive-interval'] ?? ''),
-        },
-
-        apiKeyRateLimit: {
-          enabled: Boolean(rateLimit?.enabled),
-          defaultRpm: String(rateLimit?.['default-rpm'] ?? ''),
-          overrides: parsedOverrides,
         },
       };
 
