@@ -44,6 +44,7 @@ import {
   PayloadFilterRulesEditor,
   PayloadRulesEditor,
   PluginStoreAuthEditor,
+  SpeedThrottleEditor,
   StringListEditor,
 } from './VisualConfigEditorBlocks';
 import {
@@ -420,6 +421,11 @@ export function VisualConfigEditor({
       },
     ],
     [t]
+  );
+
+  const handleSpeedThrottleChange = useCallback(
+    (speedThrottle: import('@/types/visualConfig').SpeedThrottleConfig) => onChange({ speedThrottle }),
+    [onChange]
   );
 
   const countErrors = useCallback(
@@ -1527,6 +1533,18 @@ export function VisualConfigEditor({
                     </FieldShell>
                   </FieldAnchor>
                 </SectionGrid>
+
+                <Divider />
+                <SectionSubsection
+                  title={t('config_management.visual.sections.speed_throttle.title')}
+                  description={t('config_management.visual.sections.speed_throttle.description')}
+                >
+                  <SpeedThrottleEditor
+                    value={values.speedThrottle}
+                    disabled={disabled}
+                    onChange={handleSpeedThrottleChange}
+                  />
+                </SectionSubsection>
               </SectionStack>
             </ConfigSection>
 
