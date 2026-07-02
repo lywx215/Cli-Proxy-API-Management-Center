@@ -428,7 +428,15 @@
     "duration_minute": "{{minutes}} 分鐘",
     "duration_less_than_minute": "小於 1 分鐘",
     "refresh_button": "重新整理配額",
-    "fetch_all": "取得全部"
+    "fetch_all": "取得全部",
+    "tier_label": "層級",
+    "tier_free": "免費版",
+    "tier_legacy": "舊版",
+    "tier_standard": "標準版",
+    "tier_pro": "Pro",
+    "tier_ultra": "Ultra",
+    "credit_label": "Google One AI 點數",
+    "credit_amount": "{{count}} 點數"
   },
   "antigravity_stats": {
     "title": "Antigravity 請求統計",

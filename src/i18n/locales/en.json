@@ -428,7 +428,15 @@
     "duration_minute": "{{minutes}}m",
     "duration_less_than_minute": "<1m",
     "refresh_button": "Refresh Quota",
-    "fetch_all": "Fetch All"
+    "fetch_all": "Fetch All",
+    "tier_label": "Tier",
+    "tier_free": "Free",
+    "tier_legacy": "Legacy",
+    "tier_standard": "Standard",
+    "tier_pro": "Pro",
+    "tier_ultra": "Ultra",
+    "credit_label": "Google One AI Credits",
+    "credit_amount": "{{count}} credits"
   },
   "antigravity_stats": {
     "title": "Antigravity Stats",

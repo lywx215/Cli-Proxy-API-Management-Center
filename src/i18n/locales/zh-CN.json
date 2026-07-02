@@ -428,7 +428,15 @@
     "duration_minute": "{{minutes}} 分钟",
     "duration_less_than_minute": "小于 1 分钟",
     "refresh_button": "刷新额度",
-    "fetch_all": "获取全部"
+    "fetch_all": "获取全部",
+    "tier_label": "层级",
+    "tier_free": "免费版",
+    "tier_legacy": "旧版",
+    "tier_standard": "标准版",
+    "tier_pro": "Pro",
+    "tier_ultra": "Ultra",
+    "credit_label": "Google One AI 积分",
+    "credit_amount": "{{count}} 积分"
   },
   "antigravity_stats": {
     "title": "Antigravity 请求统计",

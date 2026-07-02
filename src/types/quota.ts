@@ -178,6 +178,9 @@ export interface AntigravityQuotaState {
   groups: AntigravityQuotaGroup[];
   subscription?: AntigravityQuotaSubscription | null;
   serverTimeOffsetMs?: number | null;
+  tierLabel?: string | null;
+  tierId?: string | null;
+  creditBalance?: number | null;
   error?: string;
   errorStatus?: number;
 }

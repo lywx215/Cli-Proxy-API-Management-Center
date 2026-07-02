@@ -90,6 +90,9 @@ type AntigravityQuotaData = {
   groups: AntigravityQuotaGroup[];
   subscription: AntigravityQuotaSubscription | null;
   serverTimeOffsetMs: number | null;
+  tierLabel: string | null;
+  tierId: string | null;
+  creditBalance: number | null;
 };
 
 type CodexResetCreditsData = {
@@ -212,6 +215,105 @@ const resolveResponseServerTimeOffsetMs = (
   return serverTime - Date.now();
 };
 
+const fetchAntigravityCodeAssist = async (
+  authIndex: string,
+  projectId: string,
+  t: TFunction
+): Promise<{ tierLabel: string | null; tierId: string | null; creditBalance: number | null }> => {
+  try {
+    const result = await apiCallApi.request({
+      authIndex,
+      method: 'POST',
+      url: GEMINI_CLI_CODE_ASSIST_URL,
+      header: { ...ANTIGRAVITY_REQUEST_HEADERS },
+      data: JSON.stringify({
+        cloudaicompanionProject: projectId,
+        metadata: {
+          ideType: 'IDE_UNSPECIFIED',
+          platform: 'PLATFORM_UNSPECIFIED',
+          pluginType: 'GEMINI',
+          duetProject: projectId,
+        },
+      }),
+    });
+
+    if (result.statusCode < 200 || result.statusCode >= 300) {
+      return { tierLabel: null, tierId: null, creditBalance: null };
+    }
+
+    const payload = parseGeminiCliCodeAssistPayload(result.body ?? result.bodyText);
+    return {
+      tierLabel: resolveAntigravityTierLabel(payload, t),
+      tierId: resolveAntigravityTierId(payload),
+      creditBalance: resolveAntigravityCreditBalance(payload),
+    };
+  } catch {
+    return { tierLabel: null, tierId: null, creditBalance: null };
+  }
+};
+
+const ANTIGRAVITY_TIER_LABELS: Record<string, string> = {
+  'free-tier': 'tier_free',
+  'legacy-tier': 'tier_legacy',
+  'standard-tier': 'tier_standard',
+  'g1-pro-tier': 'tier_pro',
+  'g1-ultra-tier': 'tier_ultra',
+};
+
+const resolveAntigravityTierLabel = (
+  payload: GeminiCliCodeAssistPayload | null,
+  t: TFunction
+): string | null => {
+  if (!payload) return null;
+  const currentTier: GeminiCliUserTier | null | undefined =
+    payload.currentTier ?? payload.current_tier;
+  const paidTier: GeminiCliUserTier | null | undefined =
+    payload.paidTier ?? payload.paid_tier;
+  const rawId = normalizeStringValue(paidTier?.id) ?? normalizeStringValue(currentTier?.id);
+  if (!rawId) return null;
+  const tierId = rawId.toLowerCase();
+  const labelKey = ANTIGRAVITY_TIER_LABELS[tierId];
+  return labelKey ? t(`antigravity_quota.${labelKey}`) : rawId;
+};
+
+const resolveAntigravityTierId = (
+  payload: GeminiCliCodeAssistPayload | null
+): string | null => {
+  if (!payload) return null;
+  const currentTier: GeminiCliUserTier | null | undefined =
+    payload.currentTier ?? payload.current_tier;
+  const paidTier: GeminiCliUserTier | null | undefined =
+    payload.paidTier ?? payload.paid_tier;
+  const rawId = normalizeStringValue(paidTier?.id) ?? normalizeStringValue(currentTier?.id);
+  return rawId ? rawId.toLowerCase() : null;
+};
+
+const resolveAntigravityCreditBalance = (
+  payload: GeminiCliCodeAssistPayload | null
+): number | null => {
+  if (!payload) return null;
+  const paidTier: GeminiCliUserTier | null | undefined =
+    payload.paidTier ?? payload.paid_tier;
+  const currentTier: GeminiCliUserTier | null | undefined =
+    payload.currentTier ?? payload.current_tier;
+  const tier = paidTier ?? currentTier;
+  if (!tier) return null;
+  const credits: GeminiCliCredits[] =
+    tier.availableCredits ?? tier.available_credits ?? [];
+  let total = 0;
+  let found = false;
+  for (const credit of credits) {
+    const creditType = normalizeStringValue(credit.creditType ?? credit.credit_type);
+    if (creditType !== 'GOOGLE_ONE_AI') continue;
+    const amount = normalizeNumberValue(credit.creditAmount ?? credit.credit_amount);
+    if (amount !== null) {
+      total += amount;
+      found = true;
+    }
+  }
+  return found ? total : null;
+};
+
 const fetchAntigravityQuota = async (
   file: AuthFileItem,
   t: TFunction
@@ -231,6 +333,9 @@ const fetchAntigravityQuota = async (
     .get(authIndex)
     .then(toAntigravityQuotaSubscription)
     .catch(() => null);
+
+  // Fetch credit info in parallel (best-effort, won't block quota display)
+  const creditPromise = fetchAntigravityCodeAssist(authIndex, projectId, t);
 
   let lastError = '';
   let lastStatus: number | undefined;
@@ -271,10 +376,12 @@ const fetchAntigravityQuota = async (
         continue;
       }
 
+      const creditInfo = await creditPromise;
       return {
         groups,
         subscription: await subscriptionPromise,
         serverTimeOffsetMs: resolveResponseServerTimeOffsetMs(result.header),
+        ...creditInfo,
       };
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : t('common.unknown_error');
@@ -289,7 +396,13 @@ const fetchAntigravityQuota = async (
   }
 
   if (hadSuccess) {
-    return { groups: [], subscription: await subscriptionPromise, serverTimeOffsetMs: null };
+    const creditInfo = await creditPromise;
+    return {
+      groups: [],
+      subscription: await subscriptionPromise,
+      serverTimeOffsetMs: null,
+      ...creditInfo,
+    };
   }
 
   throw createStatusError(lastError || t('common.unknown_error'), priorityStatus ?? lastStatus);
@@ -777,6 +890,8 @@ const getAntigravityPlanLabel = (
   );
 };
 
+const PREMIUM_ANTIGRAVITY_TIER_IDS = new Set(['g1-ultra-tier']);
+
 const renderAntigravityItems = (
   quota: AntigravityQuotaState,
   t: TFunction,
@@ -786,9 +901,13 @@ const renderAntigravityItems = (
   const { createElement: h, Fragment } = React;
   const groups = quota.groups ?? [];
   const nodes: ReactNode[] = [];
-  const planLabel = getAntigravityPlanLabel(quota.subscription, t);
+  const planLabel = getAntigravityPlanLabel(quota.subscription, t) ?? quota.tierLabel ?? null;
+  const creditBalance = quota.creditBalance ?? null;
   const normalizedPlan = quota.subscription?.plan?.toLowerCase() ?? '';
-  const isPremiumPlan = normalizedPlan === 'ultra' || normalizedPlan === 'ultra-lite';
+  const isPremiumPlan =
+    normalizedPlan === 'ultra' ||
+    normalizedPlan === 'ultra-lite' ||
+    (quota.tierId != null && PREMIUM_ANTIGRAVITY_TIER_IDS.has(quota.tierId));
 
   if (planLabel) {
     nodes.push(
@@ -803,6 +922,25 @@ const renderAntigravityItems = (
             'span',
             { className: isPremiumPlan ? styleMap.premiumPlanValue : styleMap.codexPlanValue },
             planLabel
+          )
+        )
+      )
+    );
+  }
+
+  if (creditBalance !== null) {
+    nodes.push(
+      h(
+        'div',
+        { key: 'credits', className: styleMap.codexPlan },
+        h(
+          'span',
+          { className: styleMap.codexPlanItem },
+          h('span', { className: styleMap.codexPlanLabel }, t('antigravity_quota.credit_label')),
+          h(
+            'span',
+            { className: styleMap.codexPlanValue },
+            t('antigravity_quota.credit_amount', { count: creditBalance })
           )
         )
       )
@@ -1301,18 +1439,27 @@ export const ANTIGRAVITY_CONFIG: QuotaConfig<AntigravityQuotaState, AntigravityQ
     groups: [],
     subscription: null,
     serverTimeOffsetMs: null,
+    tierLabel: null,
+    tierId: null,
+    creditBalance: null,
   }),
   buildSuccessState: (data) => ({
     status: 'success',
     groups: data.groups,
     subscription: data.subscription,
     serverTimeOffsetMs: data.serverTimeOffsetMs,
+    tierLabel: data.tierLabel,
+    tierId: data.tierId,
+    creditBalance: data.creditBalance,
   }),
   buildErrorState: (message, status) => ({
     status: 'error',
     groups: [],
     subscription: null,
     serverTimeOffsetMs: null,
+    tierLabel: null,
+    tierId: null,
+    creditBalance: null,
     error: message,
     errorStatus: status,
   }),

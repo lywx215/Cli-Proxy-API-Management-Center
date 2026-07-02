@@ -422,7 +422,15 @@
     "duration_minute": "{{minutes}} мин",
     "duration_less_than_minute": "<1 мин",
     "refresh_button": "Обновить квоту",
-    "fetch_all": "Получить все"
+    "fetch_all": "Получить все",
+    "tier_label": "Уровень",
+    "tier_free": "Бесплатный",
+    "tier_legacy": "Устаревший",
+    "tier_standard": "Стандартный",
+    "tier_pro": "Pro",
+    "tier_ultra": "Ultra",
+    "credit_label": "Google One AI кредиты",
+    "credit_amount": "{{count}} кредитов"
   },
   "antigravity_stats": {
     "title": "Статистика Antigravity",
