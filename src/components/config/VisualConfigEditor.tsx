@@ -1403,6 +1403,21 @@ export function VisualConfigEditor({
                     onChange={(quotaAntigravityCredits) => onChange({ quotaAntigravityCredits })}
                   />
                 </FieldAnchor>
+                <FieldAnchor fieldId="quotaAntigravityCreditsForce">
+                  <ToggleRow
+                    title={t(
+                      'config_management.visual.sections.quota.antigravity_credits_force'
+                    )}
+                    description={t(
+                      'config_management.visual.sections.quota.antigravity_credits_force_desc'
+                    )}
+                    checked={values.quotaAntigravityCreditsForce}
+                    disabled={disabled}
+                    onChange={(quotaAntigravityCreditsForce) =>
+                      onChange({ quotaAntigravityCreditsForce })
+                    }
+                  />
+                </FieldAnchor>
               </SectionGrid>
             </ConfigSection>
 

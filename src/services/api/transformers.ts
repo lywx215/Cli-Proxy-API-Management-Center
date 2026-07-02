@@ -306,6 +306,7 @@ export const normalizeConfigResponse = (raw: unknown): Config => {
       switchProject: normalizeBoolean(quota['switch-project']),
       switchPreviewModel: normalizeBoolean(quota['switch-preview-model']),
       antigravityCredits: normalizeBoolean(quota['antigravity-credits']),
+      antigravityCreditsForce: normalizeBoolean(quota['antigravity-credits-force']),
     };
   }
 
