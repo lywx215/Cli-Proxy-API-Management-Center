@@ -68,6 +68,14 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     keywords: ['api key', 'apikey', 'token'],
   },
   {
+    fieldId: 'apiKeyRateLimit',
+    sectionId: 'connectivity',
+    labelKey: L('api_keys.rate_limit_title'),
+    hintKey: L('api_keys.rate_limit_description'),
+    yamlKeys: ['api-key-rate-limit', 'enabled', 'default-rpm', 'overrides'],
+    keywords: ['api key rate limit', 'rpm'],
+  },
+  {
     fieldId: 'tlsEnable',
     sectionId: 'connectivity',
     labelKey: L('sections.tls.enable'),
@@ -292,6 +300,13 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     labelKey: L('sections.quota.antigravity_credits'),
     yamlKeys: ['quota-exceeded', 'antigravity-credits'],
   },
+  {
+    fieldId: 'quotaAntigravityCreditsForce',
+    sectionId: 'quota',
+    labelKey: L('sections.quota.antigravity_credits_force'),
+    hintKey: L('sections.quota.antigravity_credits_force_desc'),
+    yamlKeys: ['quota-exceeded', 'antigravity-credits-force'],
+  },
   // ── streaming ─────────────────────────────────────────────────────────────
   {
     fieldId: 'streamingKeepaliveSeconds',
@@ -313,6 +328,14 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     labelKey: L('sections.streaming.nonstream_keepalive'),
     hintKey: L('sections.streaming.nonstream_keepalive_hint'),
     yamlKeys: ['streaming', 'nonstream-keepalive-interval'],
+  },
+  {
+    fieldId: 'speedThrottle',
+    sectionId: 'streaming',
+    labelKey: L('sections.speed_throttle.title'),
+    hintKey: L('sections.speed_throttle.description'),
+    yamlKeys: ['speed-throttle', 'enabled', 'min-tokens-per-second', 'max-tokens-per-second'],
+    keywords: ['speed throttle', 'ttft'],
   },
   // ── advanced ──────────────────────────────────────────────────────────────
   {

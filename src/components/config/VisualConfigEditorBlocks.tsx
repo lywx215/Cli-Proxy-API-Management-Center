@@ -410,17 +410,17 @@ export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
       <div className={styles.toggleRow}>
         <div className={styles.toggleCopy}>
           <div className={styles.toggleTitle}>
-            {t('config_management.visual.speed_throttle.enable_title')}
+            {t('config_management.visual.sections.speed_throttle.enable_title')}
           </div>
           <div className={styles.toggleDescription}>
-            {t('config_management.visual.speed_throttle.enable_desc')}
+            {t('config_management.visual.sections.speed_throttle.enable_desc')}
           </div>
         </div>
         <ToggleSwitch
           checked={value.enabled}
           disabled={disabled}
           onChange={(checked) => onChange({ ...value, enabled: checked })}
-          ariaLabel={t('config_management.visual.speed_throttle.enable_title')}
+          ariaLabel={t('config_management.visual.sections.speed_throttle.enable_title')}
         />
       </div>
 
@@ -428,7 +428,7 @@ export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
         <>
           <div className={styles.sectionGrid}>
             <div className="form-group">
-              <label>{t('config_management.visual.speed_throttle.min_tokens')}</label>
+              <label>{t('config_management.visual.sections.speed_throttle.min_tokens')}</label>
               <input
                 type="number"
                 className="input"
@@ -439,7 +439,7 @@ export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
               />
             </div>
             <div className="form-group">
-              <label>{t('config_management.visual.speed_throttle.max_tokens')}</label>
+              <label>{t('config_management.visual.sections.speed_throttle.max_tokens')}</label>
               <input
                 type="number"
                 className="input"
@@ -452,7 +452,7 @@ export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
           </div>
           <div className={styles.sectionGrid}>
             <div className="form-group">
-              <label>{t('config_management.visual.speed_throttle.min_ttft')}</label>
+              <label>{t('config_management.visual.sections.speed_throttle.min_ttft')}</label>
               <input
                 type="number"
                 className="input"
@@ -463,7 +463,7 @@ export const SpeedThrottleEditor = memo(function SpeedThrottleEditor({
               />
             </div>
             <div className="form-group">
-              <label>{t('config_management.visual.speed_throttle.max_ttft')}</label>
+              <label>{t('config_management.visual.sections.speed_throttle.max_ttft')}</label>
               <input
                 type="number"
                 className="input"

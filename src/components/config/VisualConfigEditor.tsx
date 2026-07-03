@@ -952,27 +952,29 @@ export function VisualConfigEditor({
 
                 {apiKeysField}
 
-                <div className={styles.subsection}>
-                  <ApiKeyRateLimitEditor
-                    value={values.apiKeyRateLimit}
-                    disabled={disabled}
-                    onChange={handleApiKeyRateLimitChange}
-                    errorId={
-                      getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])
-                        ? `${apiKeyRateLimitInputId}-rate-limit-error`
-                        : undefined
-                    }
-                  />
-                  {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm']) ? (
-                    <div
-                      id={`${apiKeyRateLimitInputId}-rate-limit-error`}
-                      className="error-box"
-                      style={{ marginTop: 8 }}
-                    >
-                      {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])}
-                    </div>
-                  ) : null}
-                </div>
+                <FieldAnchor fieldId="apiKeyRateLimit">
+                  <div className={styles.subsection}>
+                    <ApiKeyRateLimitEditor
+                      value={values.apiKeyRateLimit}
+                      disabled={disabled}
+                      onChange={handleApiKeyRateLimitChange}
+                      errorId={
+                        getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])
+                          ? `${apiKeyRateLimitInputId}-rate-limit-error`
+                          : undefined
+                      }
+                    />
+                    {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm']) ? (
+                      <div
+                        id={`${apiKeyRateLimitInputId}-rate-limit-error`}
+                        className="error-box"
+                        style={{ marginTop: 8 }}
+                      >
+                        {getValidationMessage(t, validationErrors?.['apiKeyRateLimit.defaultRpm'])}
+                      </div>
+                    ) : null}
+                  </div>
+                </FieldAnchor>
 
                 <Collapsible
                   label={t('config_management.visual.sections.tls.title')}
@@ -1538,16 +1540,18 @@ export function VisualConfigEditor({
                 </SectionGrid>
 
                 <Divider />
-                <SectionSubsection
-                  title={t('config_management.visual.sections.speed_throttle.title')}
-                  description={t('config_management.visual.sections.speed_throttle.description')}
-                >
-                  <SpeedThrottleEditor
-                    value={values.speedThrottle}
-                    disabled={disabled}
-                    onChange={handleSpeedThrottleChange}
-                  />
-                </SectionSubsection>
+                <FieldAnchor fieldId="speedThrottle">
+                  <SectionSubsection
+                    title={t('config_management.visual.sections.speed_throttle.title')}
+                    description={t('config_management.visual.sections.speed_throttle.description')}
+                  >
+                    <SpeedThrottleEditor
+                      value={values.speedThrottle}
+                      disabled={disabled}
+                      onChange={handleSpeedThrottleChange}
+                    />
+                  </SectionSubsection>
+                </FieldAnchor>
               </SectionStack>
             </ConfigSection>
 
