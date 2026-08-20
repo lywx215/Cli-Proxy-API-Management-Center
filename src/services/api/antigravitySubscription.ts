@@ -30,6 +30,11 @@ export type AntigravitySubscriptionSummary = {
   availableCredits: AntigravitySubscriptionCredit[];
 };
 
+type SubscriptionTier = {
+  id: string | null;
+  name: string | null;
+};
+
 type RawTierPayload = {
   id?: unknown;
   name?: unknown;
@@ -49,7 +54,7 @@ const PLAN_BY_TIER_ID = new Map<string, AntigravitySubscriptionPlan>([
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const normalizeTier = (value: unknown): AntigravitySubscriptionTier | null => {
+const normalizeTier = (value: unknown): SubscriptionTier | null => {
   if (!isRecord(value)) return null;
   const rawTier = value as RawTierPayload;
   return {
@@ -95,9 +100,13 @@ export const parseAntigravitySubscriptionSummary = (
   const effectiveTier = paidTier?.id ? paidTier : currentTier;
   if (!effectiveTier?.id && !effectiveTier?.name) return null;
 
-  const rawCredits = isRecord(paidTierPayload)
-    ? (paidTierPayload.availableCredits ?? paidTierPayload.available_credits)
+  const effectiveTierPayload = paidTier?.id ? paidTierPayload : currentTierPayload;
+  const tierCredits = isRecord(effectiveTierPayload)
+    ? (effectiveTierPayload.availableCredits ?? effectiveTierPayload.available_credits)
     : undefined;
+  const availableCredits = normalizeCredits(
+    tierCredits ?? parsed.availableCredits ?? parsed.available_credits
+  );
 
   return {
     plan: resolvePlan(effectiveTier.id),
@@ -106,7 +115,7 @@ export const parseAntigravitySubscriptionSummary = (
     source: paidTier?.id ? 'paid' : 'current',
     currentTier,
     paidTier,
-    availableCredits: normalizeCredits(rawCredits),
+    availableCredits,
   };
 };
 

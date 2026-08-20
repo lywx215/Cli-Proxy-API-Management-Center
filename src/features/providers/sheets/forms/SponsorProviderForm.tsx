@@ -16,28 +16,37 @@ import {
 } from '@/components/ui/icons';
 import { hasDisableAllModelsRule } from '@/components/providers/utils';
 import { maskApiKey } from '@/utils/format';
+import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
 import type { ModelInfo } from '@/utils/models';
+import type { ApiKeyFunUsageSummary } from '../../sponsor';
+import { readThinkingLevels } from '../../thinkingLevels';
+import { isSponsorPartialMutationError } from '../../sponsorMutationRecovery';
 import {
-  APIKEY_FUN_BASE_URL_OPTIONS,
-  getApiKeyFunProtocolUrls,
-  type ApiKeyFunUsageSummary,
-  resolveApiKeyFunBaseUrl,
-} from '../../sponsor';
+  discoveryBrandForSponsorProtocol,
+  getSponsorAggregationConflict,
+  getSponsorProviderDefinition,
+  sponsorProtocolI18nKey,
+  sponsorProtocolModelI18nKey,
+  sponsorProtocolUrl,
+  type SponsorProviderDefinition,
+} from '../../sponsorDefinitions';
 import type {
   ModelEntryInput,
-  ProviderBrand,
   ProviderEntryFormInput,
   ProviderResource,
   SponsorKeyEntryInput,
   SponsorProtocol,
+  SponsorProviderBrand,
   SponsorProviderRaw,
 } from '../../types';
 import { ModelDiscoveryPanel } from './ModelDiscoveryPanel';
+import { ModelEntriesEditor } from './ModelEntriesEditor';
 import { useModelDiscovery, type UseModelDiscoveryResult } from './useModelDiscovery';
 import { useSponsorUsageCheck, type SponsorUsageMessages } from './useSponsorUsageCheck';
 import styles from './sharedForm.module.scss';
 
 interface SponsorProviderFormProps {
+  brand?: SponsorProviderBrand;
   resource: ProviderResource | null;
   mode: 'create' | 'edit';
   mutating: boolean;
@@ -50,6 +59,7 @@ interface SponsorProviderFormProps {
 interface SponsorModelSectionProps {
   label: string;
   description: string;
+  protocol: SponsorProtocol;
   models: ModelEntryInput[];
   discovery: UseModelDiscoveryResult;
   mutating: boolean;
@@ -61,6 +71,7 @@ interface SponsorKeyEntryCardProps {
   index: number;
   formId: string;
   mode: 'create' | 'edit';
+  definition: SponsorProviderDefinition;
   usedProtocols: Set<SponsorProtocol>;
   canRemove: boolean;
   mutating: boolean;
@@ -68,24 +79,26 @@ interface SponsorKeyEntryCardProps {
   onRemove: () => void;
 }
 
-const SPONSOR_PROTOCOLS: SponsorProtocol[] = ['codex', 'claude', 'openai'];
-
 const emptyModel = (): ModelEntryInput => ({ name: '', alias: '' });
 
-const emptySponsorKeyEntry = (protocol: SponsorProtocol = 'codex'): SponsorKeyEntryInput => ({
+const emptySponsorKeyEntry = (
+  definition: SponsorProviderDefinition,
+  protocol: SponsorProtocol = definition.defaultProtocol
+): SponsorKeyEntryInput => ({
   protocol,
   apiKey: '',
   existingApiKey: '',
-  baseUrl: APIKEY_FUN_BASE_URL_OPTIONS[0].baseUrl,
+  baseUrl: definition.baseUrlOptions[0]?.baseUrl ?? '',
   proxyUrl: '',
   prefix: '',
   disabled: false,
   disableCooling: false,
   priority: undefined,
+  weight: undefined,
   models: [emptyModel()],
 });
 
-const emptySponsorForm = (): ProviderEntryFormInput => ({
+const emptySponsorForm = (definition: SponsorProviderDefinition): ProviderEntryFormInput => ({
   apiKey: '',
   name: '',
   baseUrl: '',
@@ -94,37 +107,25 @@ const emptySponsorForm = (): ProviderEntryFormInput => ({
   disabled: false,
   disableCooling: false,
   priority: undefined,
+  weight: undefined,
   models: [],
   headers: [],
   excludedModelsText: '',
-  sponsorKeyEntries: [emptySponsorKeyEntry()],
+  sponsorKeyEntries: [emptySponsorKeyEntry(definition)],
 });
 
-const getSponsorRaw = (resource: ProviderResource | null): SponsorProviderRaw | null => {
-  if (!resource || resource.brand !== 'apikeyFun') return null;
+const getSponsorRaw = (
+  resource: ProviderResource | null,
+  brand: SponsorProviderBrand
+): SponsorProviderRaw | null => {
+  if (!resource || resource.brand !== brand) return null;
   return resource.raw as SponsorProviderRaw;
 };
 
-const protocolI18nKey = (protocol: SponsorProtocol): 'openai' | 'codexResponses' | 'anthropic' => {
-  if (protocol === 'claude') return 'anthropic';
-  if (protocol === 'codex') return 'codexResponses';
-  return 'openai';
-};
-
-const protocolModelI18nKey = (protocol: SponsorProtocol): 'openai' | 'codex' | 'anthropic' => {
-  if (protocol === 'claude') return 'anthropic';
-  return protocol;
-};
-
-const discoveryBrandForProtocol = (protocol: SponsorProtocol): ProviderBrand =>
-  protocol === 'openai' ? 'openaiCompatibility' : protocol;
-
-const protocolUrlForEntry = (entry: SponsorKeyEntryInput): string => {
-  const urls = getApiKeyFunProtocolUrls(entry.baseUrl);
-  if (entry.protocol === 'claude') return urls.anthropic;
-  if (entry.protocol === 'codex') return urls.codex;
-  return urls.openai;
-};
+const protocolUrlForEntry = (
+  entry: SponsorKeyEntryInput,
+  definition: SponsorProviderDefinition
+): string => sponsorProtocolUrl(definition.getProtocolUrls(entry.baseUrl), entry.protocol);
 
 const formatUsageAmount = (value: ApiKeyFunUsageSummary['remaining'], locale: string): string => {
   if (value === null) return '--';
@@ -143,7 +144,14 @@ const isHealthyUsageSummary = (summary: ApiKeyFunUsageSummary): boolean => {
 
 const modelsFromConfig = (
   models:
-    | Array<{ name?: string; alias?: string; priority?: number; testModel?: string }>
+    | Array<{
+        name?: string;
+        alias?: string;
+        priority?: number;
+        testModel?: string;
+        image?: boolean;
+        thinking?: Record<string, unknown>;
+      }>
     | undefined
 ): ModelEntryInput[] =>
   models?.length
@@ -152,51 +160,65 @@ const modelsFromConfig = (
         alias: model.alias ?? '',
         priority: model.priority,
         testModel: model.testModel,
+        image: model.image === true,
+        thinkingJson: model.thinking ? JSON.stringify(model.thinking, null, 2) : '',
+        thinkingLevels: readThinkingLevels(model.thinking),
       }))
     : [emptyModel()];
 
 const sponsorEntryFromProviderKey = (
-  protocol: 'codex' | 'claude',
-  config: SponsorProviderRaw[typeof protocol][number]['config']
+  definition: SponsorProviderDefinition,
+  protocol: Exclude<SponsorProtocol, 'openai'>,
+  config:
+    | SponsorProviderRaw['codex'][number]['config']
+    | SponsorProviderRaw['claude'][number]['config']
+    | SponsorProviderRaw['gemini'][number]['config']
 ): SponsorKeyEntryInput => ({
-  ...emptySponsorKeyEntry(protocol),
+  ...emptySponsorKeyEntry(definition, protocol),
   existingApiKey: config.apiKey ?? '',
-  baseUrl: resolveApiKeyFunBaseUrl(config.baseUrl),
+  baseUrl: definition.resolveBaseUrl(config.baseUrl),
   proxyUrl: config.proxyUrl ?? '',
   prefix: config.prefix ?? '',
   disabled: hasDisableAllModelsRule(config.excludedModels),
   disableCooling: config.disableCooling === true,
   priority: config.priority,
+  weight: config.weight,
   models: modelsFromConfig(config.models),
 });
 
 const sponsorEntryFromOpenAI = (
+  definition: SponsorProviderDefinition,
   config: SponsorProviderRaw['openai'][number]['config']
 ): SponsorKeyEntryInput => {
   const firstEntry = config.apiKeyEntries?.find((entry) => entry.apiKey?.trim());
   return {
-    ...emptySponsorKeyEntry('openai'),
+    ...emptySponsorKeyEntry(definition, 'openai'),
     existingApiKey: firstEntry?.apiKey ?? '',
-    baseUrl: resolveApiKeyFunBaseUrl(config.baseUrl),
+    baseUrl: definition.resolveBaseUrl(config.baseUrl),
     proxyUrl: firstEntry?.proxyUrl ?? '',
     prefix: config.prefix ?? '',
     disabled: config.disabled === true,
     disableCooling: config.disableCooling === true,
     priority: config.priority,
+    weight: firstEntry?.weight,
     models: modelsFromConfig(config.models),
   };
 };
 
-const sponsorKeyEntriesFromRaw = (raw: SponsorProviderRaw | null): SponsorKeyEntryInput[] => {
-  if (!raw) return [emptySponsorKeyEntry()];
-  const entries: SponsorKeyEntryInput[] = [];
-  const codex = raw.codex[0]?.config;
-  const claude = raw.claude[0]?.config;
-  const openai = raw.openai[0]?.config;
-  if (codex) entries.push(sponsorEntryFromProviderKey('codex', codex));
-  if (claude) entries.push(sponsorEntryFromProviderKey('claude', claude));
-  if (openai) entries.push(sponsorEntryFromOpenAI(openai));
-  return entries.length ? entries : [emptySponsorKeyEntry()];
+const sponsorKeyEntriesFromRaw = (
+  raw: SponsorProviderRaw | null,
+  definition: SponsorProviderDefinition
+): SponsorKeyEntryInput[] => {
+  if (!raw) return [emptySponsorKeyEntry(definition)];
+  const entries = definition.protocols.flatMap((protocol): SponsorKeyEntryInput[] => {
+    if (protocol === 'openai') {
+      const openai = raw.openai[0]?.config;
+      return openai ? [sponsorEntryFromOpenAI(definition, openai)] : [];
+    }
+    const config = raw[protocol][0]?.config;
+    return config ? [sponsorEntryFromProviderKey(definition, protocol, config)] : [];
+  });
+  return entries.length ? entries : [emptySponsorKeyEntry(definition)];
 };
 
 const applyDiscoveredModels = (
@@ -235,6 +257,7 @@ const applyDiscoveredModels = (
 function SponsorModelSection({
   label,
   description,
+  protocol,
   models,
   discovery,
   mutating,
@@ -257,17 +280,6 @@ function SponsorModelSection({
     if (!discovery.loading && !discovery.hasFetched) {
       void discovery.fetch();
     }
-  };
-
-  const updateModelEntry = (modelIndex: number, patch: Partial<ModelEntryInput>) => {
-    onChange(
-      modelsList.map((item, itemIndex) => (itemIndex === modelIndex ? { ...item, ...patch } : item))
-    );
-  };
-
-  const removeModelEntry = (modelIndex: number) => {
-    const next = modelsList.filter((_, itemIndex) => itemIndex !== modelIndex);
-    onChange(next.length ? next : [emptyModel()]);
   };
 
   return (
@@ -298,41 +310,25 @@ function SponsorModelSection({
             onClose={() => setDiscoveryOpen(false)}
           />
         ) : null}
-        {modelsList.map((entry, modelIndex) => (
-          <div key={modelIndex} className={styles.modelAliasRow}>
-            <input
-              className={styles.input}
-              placeholder="model-name"
-              value={entry.name}
-              onChange={(event) => updateModelEntry(modelIndex, { name: event.target.value })}
-              disabled={mutating}
-            />
-            <input
-              className={styles.input}
-              placeholder="alias (optional)"
-              value={entry.alias ?? ''}
-              onChange={(event) => updateModelEntry(modelIndex, { alias: event.target.value })}
-              disabled={mutating}
-            />
-            <button
-              type="button"
-              className={styles.removeBtn}
-              disabled={mutating || modelsList.length <= 1}
-              onClick={() => removeModelEntry(modelIndex)}
-            >
-              <IconX size={12} />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          className={styles.addBtn}
-          disabled={mutating}
-          onClick={() => onChange([...modelsList, emptyModel()])}
-        >
-          <IconPlus size={12} />
-          <span>{t('providersPage.form.addModel')}</span>
-        </button>
+        <ModelEntriesEditor
+          models={modelsList}
+          supportsImage={protocol === 'openai'}
+          supportsThinking
+          mutating={mutating}
+          removeDisabled={modelsList.length <= 1}
+          onUpdate={(modelIndex, patch) =>
+            onChange(
+              modelsList.map((item, itemIndex) =>
+                itemIndex === modelIndex ? { ...item, ...patch } : item
+              )
+            )
+          }
+          onAdd={() => onChange([...modelsList, emptyModel()])}
+          onRemove={(modelIndex) => {
+            const next = modelsList.filter((_, itemIndex) => itemIndex !== modelIndex);
+            onChange(next.length ? next : [emptyModel()]);
+          }}
+        />
       </div>
     </Collapsible>
   );
@@ -343,6 +339,7 @@ function SponsorKeyEntryCard({
   index,
   formId,
   mode,
+  definition,
   usedProtocols,
   canRemove,
   mutating,
@@ -354,14 +351,16 @@ function SponsorKeyEntryCard({
   const [expanded, setExpanded] = useState(
     () => mode === 'create' || !entry.existingApiKey?.trim()
   );
-  const endpointUrl = protocolUrlForEntry(entry);
-  const protocolLabel = t(`providersPage.sponsor.protocols.${protocolI18nKey(entry.protocol)}`);
+  const endpointUrl = protocolUrlForEntry(entry, definition);
+  const protocolLabel = t(
+    `providersPage.sponsor.protocols.${sponsorProtocolI18nKey(entry.protocol)}`
+  );
   const titleLabel = t('providersPage.sponsor.groupedKey', { index: index + 1 });
   const summaryKey = entry.apiKey.trim() || entry.existingApiKey?.trim() || '';
   const summaryKeyLabel = summaryKey
     ? maskApiKey(summaryKey)
     : t('providersPage.status.notConfigured');
-  const modelKey = protocolModelI18nKey(entry.protocol);
+  const modelKey = sponsorProtocolModelI18nKey(entry.protocol);
   const usageMessages = useMemo<SponsorUsageMessages>(
     () => ({
       apiKeyRequired: t('providersPage.sponsor.usageApiKeyRequired'),
@@ -398,19 +397,19 @@ function SponsorKeyEntryCard({
     [entry.apiKey, entry.existingApiKey, entry.proxyUrl]
   );
   const discovery = useModelDiscovery({
-    brand: discoveryBrandForProtocol(entry.protocol),
+    brand: discoveryBrandForSponsorProtocol(entry.protocol),
     baseUrl: endpointUrl,
     formHeaders: discoveryHeaders,
     apiKey: entry.apiKey,
     fallbackApiKey: entry.existingApiKey,
     apiKeyEntries: entry.protocol === 'openai' ? openaiDiscoveryEntries : undefined,
   });
-  const protocolOptions = SPONSOR_PROTOCOLS.filter(
-    (protocol) => protocol === entry.protocol || !usedProtocols.has(protocol)
-  ).map((protocol) => ({
-    value: protocol,
-    label: t(`providersPage.sponsor.protocols.${protocolI18nKey(protocol)}`),
-  }));
+  const protocolOptions = definition.protocols
+    .filter((protocol) => protocol === entry.protocol || !usedProtocols.has(protocol))
+    .map((protocol) => ({
+      value: protocol,
+      label: t(`providersPage.sponsor.protocols.${sponsorProtocolI18nKey(protocol)}`),
+    }));
 
   const updateEntry = (patch: Partial<SponsorKeyEntryInput>) => {
     onChange({ ...entry, ...patch });
@@ -481,37 +480,48 @@ function SponsorKeyEntryCard({
             <span className={styles.labelHint}>{t('providersPage.sponsor.protocolHint')}</span>
           </div>
 
-          <div className={styles.field}>
-            <span className={styles.label}>{t('providersPage.sponsor.urlMode')}</span>
-            <div className={styles.sponsorUrlOptions} role="radiogroup">
-              {APIKEY_FUN_BASE_URL_OPTIONS.map((option) => {
-                const checked = resolveApiKeyFunBaseUrl(entry.baseUrl) === option.baseUrl;
-                const className = [
-                  styles.sponsorUrlOption,
-                  checked ? styles.sponsorUrlOptionActive : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ');
-                return (
-                  <label key={option.id} className={className}>
-                    <input
-                      type="radio"
-                      name={`${formId}-group-${index}-base-url`}
-                      value={option.baseUrl}
-                      checked={checked}
-                      onChange={() => updateEntry({ baseUrl: option.baseUrl })}
-                      disabled={mutating}
-                    />
-                    <span className={styles.sponsorUrlOptionText}>
-                      <span>{t(`providersPage.sponsor.urlOptions.${option.id}`)}</span>
-                      <small>{option.baseUrl}</small>
-                    </span>
-                  </label>
-                );
-              })}
+          {definition.baseUrlOptions.length > 1 ? (
+            <div className={styles.field}>
+              <span className={styles.label}>
+                {t('providersPage.sponsor.urlMode', { provider: definition.displayName })}
+              </span>
+              <div className={styles.sponsorUrlOptions} role="radiogroup">
+                {definition.baseUrlOptions.map((option) => {
+                  const checked = definition.resolveBaseUrl(entry.baseUrl) === option.baseUrl;
+                  const className = [
+                    styles.sponsorUrlOption,
+                    checked ? styles.sponsorUrlOptionActive : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ');
+                  return (
+                    <label key={option.id} className={className}>
+                      <input
+                        type="radio"
+                        name={`${formId}-group-${index}-base-url`}
+                        value={option.baseUrl}
+                        checked={checked}
+                        onChange={() => updateEntry({ baseUrl: option.baseUrl })}
+                        disabled={mutating}
+                      />
+                      <span className={styles.sponsorUrlOptionText}>
+                        <span>{t(`providersPage.sponsor.urlOptions.${option.id}`)}</span>
+                        <small>{option.baseUrl}</small>
+                        {option.descriptionKey ? (
+                          <small className={styles.sponsorUrlOptionDescription}>
+                            {t(
+                              `providersPage.sponsor.urlOptionDescriptions.${option.descriptionKey}`
+                            )}
+                          </small>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <span className={styles.labelHint}>{t('providersPage.sponsor.urlHint')}</span>
             </div>
-            <span className={styles.labelHint}>{t('providersPage.sponsor.urlHint')}</span>
-          </div>
+          ) : null}
 
           <div className={styles.sponsorProtocolCard}>
             <span className={styles.sponsorProtocolName}>
@@ -564,73 +574,75 @@ function SponsorKeyEntryCard({
             <span className={styles.labelHint}>{t('providersPage.sponsor.apiKeyHint')}</span>
           </div>
 
-          <div className={styles.sponsorUsageSection}>
-            <button
-              type="button"
-              className={styles.connectivityBtn}
-              onClick={() => void usageCheck.run()}
-              disabled={mutating || usageCheck.isLoading}
-            >
-              {usageCheck.isLoading ? (
-                <IconLoader2 className={styles.statusIconLoading} size={14} />
-              ) : (
-                <IconDollarSign size={14} />
-              )}
-              <span>
-                {usageCheck.isLoading
-                  ? t('providersPage.sponsor.usageChecking')
-                  : t('providersPage.sponsor.usageCheck')}
-              </span>
-            </button>
-            {usageCheck.status.state === 'success' && usageSummary ? (
-              <div
-                className={[
-                  styles.sponsorUsageResult,
-                  usageHealthy ? '' : styles.sponsorUsageResultWarning,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+          {definition.supportsUsageCheck ? (
+            <div className={styles.sponsorUsageSection}>
+              <button
+                type="button"
+                className={styles.connectivityBtn}
+                onClick={() => void usageCheck.run()}
+                disabled={mutating || usageCheck.isLoading}
               >
-                <div className={styles.sponsorUsageMain}>
-                  {usageHealthy ? (
-                    <IconCheckCircle2
-                      className={`${styles.statusIcon} ${styles.statusIconSuccess}`}
-                      size={14}
-                    />
-                  ) : (
-                    <IconAlertTriangle
-                      className={`${styles.statusIcon} ${styles.statusIconError}`}
-                      size={14}
-                    />
-                  )}
-                  <span>
-                    {t('providersPage.sponsor.usageRemaining', {
-                      amount: usageRemaining,
-                      unit: usageSummary.unit,
-                    })}
-                  </span>
+                {usageCheck.isLoading ? (
+                  <IconLoader2 className={styles.statusIconLoading} size={14} />
+                ) : (
+                  <IconDollarSign size={14} />
+                )}
+                <span>
+                  {usageCheck.isLoading
+                    ? t('providersPage.sponsor.usageChecking')
+                    : t('providersPage.sponsor.usageCheck')}
+                </span>
+              </button>
+              {usageCheck.status.state === 'success' && usageSummary ? (
+                <div
+                  className={[
+                    styles.sponsorUsageResult,
+                    usageHealthy ? '' : styles.sponsorUsageResultWarning,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <div className={styles.sponsorUsageMain}>
+                    {usageHealthy ? (
+                      <IconCheckCircle2
+                        className={`${styles.statusIcon} ${styles.statusIconSuccess}`}
+                        size={14}
+                      />
+                    ) : (
+                      <IconAlertTriangle
+                        className={`${styles.statusIcon} ${styles.statusIconError}`}
+                        size={14}
+                      />
+                    )}
+                    <span>
+                      {t('providersPage.sponsor.usageRemaining', {
+                        amount: usageRemaining,
+                        unit: usageSummary.unit,
+                      })}
+                    </span>
+                  </div>
+                  {usageSummary.used !== null || usageSummary.limit !== null ? (
+                    <span className={styles.sponsorUsageMeta}>
+                      {t('providersPage.sponsor.usageBreakdown', {
+                        used: usageUsed,
+                        limit: usageLimit,
+                      })}
+                    </span>
+                  ) : null}
+                  {!usageHealthy ? (
+                    <span className={styles.sponsorUsageMeta}>
+                      {t('providersPage.sponsor.usageStatus', {
+                        status: usageSummary.status || t('providersPage.sponsor.usageInvalid'),
+                      })}
+                    </span>
+                  ) : null}
                 </div>
-                {usageSummary.used !== null || usageSummary.limit !== null ? (
-                  <span className={styles.sponsorUsageMeta}>
-                    {t('providersPage.sponsor.usageBreakdown', {
-                      used: usageUsed,
-                      limit: usageLimit,
-                    })}
-                  </span>
-                ) : null}
-                {!usageHealthy ? (
-                  <span className={styles.sponsorUsageMeta}>
-                    {t('providersPage.sponsor.usageStatus', {
-                      status: usageSummary.status || t('providersPage.sponsor.usageInvalid'),
-                    })}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {usageCheck.status.state === 'error' ? (
-              <div className={styles.connectivityError}>{usageCheck.status.message}</div>
-            ) : null}
-          </div>
+              ) : null}
+              {usageCheck.status.state === 'error' ? (
+                <div className={styles.connectivityError}>{usageCheck.status.message}</div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor={`${formId}-group-${index}-proxy`}>
@@ -678,6 +690,28 @@ function SponsorKeyEntryCard({
             </div>
           </div>
 
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor={`${formId}-group-${index}-weight`}>
+              {t('providersPage.form.weight')}
+            </label>
+            <input
+              id={`${formId}-group-${index}-weight`}
+              type="number"
+              step="1"
+              max={MAX_CREDENTIAL_WEIGHT}
+              className={styles.input}
+              value={entry.weight ?? ''}
+              placeholder="1"
+              onChange={(event) =>
+                updateEntry({
+                  weight: event.target.value === '' ? undefined : Number(event.target.value),
+                })
+              }
+              disabled={mutating}
+            />
+            <span className={styles.labelHint}>{t('providersPage.form.weightHint')}</span>
+          </div>
+
           <label className={styles.checkboxRow}>
             <input
               type="checkbox"
@@ -709,6 +743,7 @@ function SponsorKeyEntryCard({
           <SponsorModelSection
             label={t(`providersPage.sponsor.protocolModels.${modelKey}`)}
             description={t(`providersPage.sponsor.protocolModelHints.${modelKey}`)}
+            protocol={entry.protocol}
             models={entry.models}
             discovery={discovery}
             mutating={mutating}
@@ -721,18 +756,20 @@ function SponsorKeyEntryCard({
 }
 
 const buildInitialForm = (
+  definition: SponsorProviderDefinition,
   resource: ProviderResource | null,
   mode: 'create' | 'edit'
 ): ProviderEntryFormInput => {
-  if (mode === 'create') return emptySponsorForm();
-  const raw = getSponsorRaw(resource);
+  if (mode === 'create') return emptySponsorForm(definition);
+  const raw = getSponsorRaw(resource, definition.brand);
   return {
-    ...emptySponsorForm(),
-    sponsorKeyEntries: sponsorKeyEntriesFromRaw(raw),
+    ...emptySponsorForm(definition),
+    sponsorKeyEntries: sponsorKeyEntriesFromRaw(raw, definition),
   };
 };
 
 export function SponsorProviderForm({
+  brand = 'apikeyFun',
   resource,
   mode,
   mutating,
@@ -742,19 +779,22 @@ export function SponsorProviderForm({
   onDirtyChange,
 }: SponsorProviderFormProps) {
   const { t } = useTranslation();
-  const [form, setForm] = useState<ProviderEntryFormInput>(() => buildInitialForm(resource, mode));
+  const definition = useMemo(() => getSponsorProviderDefinition(brand), [brand]);
+  const [form, setForm] = useState<ProviderEntryFormInput>(() =>
+    buildInitialForm(definition, resource, mode)
+  );
   const [initialFormSignature] = useState<string>(() =>
-    JSON.stringify(buildInitialForm(resource, mode))
+    JSON.stringify(buildInitialForm(definition, resource, mode))
   );
   const [error, setError] = useState<string | null>(null);
   const entries = useMemo(
-    () => form.sponsorKeyEntries ?? [emptySponsorKeyEntry()],
-    [form.sponsorKeyEntries]
+    () => form.sponsorKeyEntries ?? [emptySponsorKeyEntry(definition)],
+    [definition, form.sponsorKeyEntries]
   );
   const usedProtocols = useMemo(() => new Set(entries.map((entry) => entry.protocol)), [entries]);
   const missingProtocols = useMemo(
-    () => SPONSOR_PROTOCOLS.filter((protocol) => !usedProtocols.has(protocol)),
-    [usedProtocols]
+    () => definition.protocols.filter((protocol) => !usedProtocols.has(protocol)),
+    [definition.protocols, usedProtocols]
   );
 
   const isDirty = useMemo(
@@ -776,13 +816,15 @@ export function SponsorProviderForm({
 
   const removeEntry = (entryIndex: number) => {
     const nextEntries = entries.filter((_, index) => index !== entryIndex);
-    updateEntries(nextEntries.length || mode === 'edit' ? nextEntries : [emptySponsorKeyEntry()]);
+    updateEntries(
+      nextEntries.length || mode === 'edit' ? nextEntries : [emptySponsorKeyEntry(definition)]
+    );
   };
 
   const addEntry = () => {
     const protocol = missingProtocols[0];
     if (!protocol) return;
-    updateEntries([...entries, emptySponsorKeyEntry(protocol)]);
+    updateEntries([...entries, emptySponsorKeyEntry(definition, protocol)]);
   };
 
   const validateEntries = (): string | null => {
@@ -796,6 +838,16 @@ export function SponsorProviderForm({
     const protocolSet = new Set(entries.map((entry) => entry.protocol));
     if (protocolSet.size !== entries.length) {
       return t('providersPage.sponsor.validation.protocolDuplicate');
+    }
+    if (
+      entries.some((entry) => entry.weight !== undefined && !Number.isSafeInteger(entry.weight))
+    ) {
+      return t('providersPage.form.validation.weightInteger');
+    }
+    if (
+      entries.some((entry) => entry.weight !== undefined && entry.weight > MAX_CREDENTIAL_WEIGHT)
+    ) {
+      return t('providersPage.form.validation.weightMax', { max: MAX_CREDENTIAL_WEIGHT });
     }
     return null;
   };
@@ -811,13 +863,31 @@ export function SponsorProviderForm({
       setError(null);
       await onSubmit({ ...form, sponsorKeyEntries: entries });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(
+        isSponsorPartialMutationError(err)
+          ? t('providersPage.sponsor.partialMutationWarning')
+          : err instanceof Error
+            ? err.message
+            : String(err)
+      );
     }
   };
 
   const formClassName = [styles.form, variant === 'quickStart' ? styles.quickStartForm : '']
     .filter(Boolean)
     .join(' ');
+  const aggregationConflict =
+    mode === 'edit'
+      ? getSponsorAggregationConflict(getSponsorRaw(resource, definition.brand))
+      : null;
+
+  if (aggregationConflict) {
+    return (
+      <form id={formId} className={formClassName} onSubmit={(event) => event.preventDefault()}>
+        <div className={styles.errorBox}>{t('providersPage.sponsor.aggregationConflict')}</div>
+      </form>
+    );
+  }
 
   return (
     <form id={formId} className={formClassName} onSubmit={handleSubmit} noValidate>
@@ -830,6 +900,7 @@ export function SponsorProviderForm({
             index={index}
             formId={formId}
             mode={mode}
+            definition={definition}
             usedProtocols={usedProtocols}
             canRemove={mode === 'edit' || entries.length > 1}
             mutating={mutating}

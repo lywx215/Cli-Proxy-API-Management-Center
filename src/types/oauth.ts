@@ -5,12 +5,7 @@
 
 // 内置 OAuth 提供商类型
 export type BuiltInOAuthProvider =
-  | 'codex'
-  | 'anthropic'
-  | 'antigravity'
-  | 'gemini-cli'
-  | 'kimi'
-  | 'xai';
+  'codex' | 'anthropic' | 'antigravity' | 'gemini-cli' | 'kimi' | 'xai';
 
 // OAuth provider 可来自内置通道或插件 AuthProvider identifier。
 export type OAuthProvider = string;
@@ -42,6 +37,5 @@ export interface OAuthModelAliasEntry {
   name: string;
   alias: string;
   fork?: boolean;
+  forceMapping?: boolean;
 }
-
-export type OAuthModelAlias = Record<string, OAuthModelAliasEntry[]>;

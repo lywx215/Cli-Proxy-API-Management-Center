@@ -7,8 +7,11 @@ import type { ApiKeyEntryInput, ProviderBrand } from '../../types';
 
 export const MODEL_DISCOVERY_BRANDS: ReadonlyArray<ProviderBrand> = [
   'gemini',
+  'interactions',
   'codex',
+  'xai',
   'claude',
+  'claudeApi',
   'openaiCompatibility',
 ];
 
@@ -52,7 +55,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
       const baseHeaders = buildHeaderObject(formHeaders);
       const resolvedAuthIndex = (authIndex ?? '').trim() || undefined;
       let next: ModelInfo[] = [];
-      if (brand === 'gemini') {
+      if (brand === 'gemini' || brand === 'interactions') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
         next = await modelsApi.fetchGeminiModelsViaApiCall(
           baseUrl,
@@ -60,7 +63,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           baseHeaders,
           resolvedAuthIndex
         );
-      } else if (brand === 'codex') {
+      } else if (brand === 'codex' || brand === 'xai') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
         next = await modelsApi.fetchV1ModelsViaApiCall(
           baseUrl,
@@ -68,7 +71,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           baseHeaders,
           resolvedAuthIndex
         );
-      } else if (brand === 'claude') {
+      } else if (brand === 'claude' || brand === 'claudeApi') {
         const key = (apiKey ?? '').trim() || (fallbackApiKey ?? '').trim();
         next = await modelsApi.fetchClaudeModelsViaApiCall(
           baseUrl,

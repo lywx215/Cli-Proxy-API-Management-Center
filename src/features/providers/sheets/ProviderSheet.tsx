@@ -5,6 +5,7 @@ import { IconLoader2, IconPencil } from '@/components/ui/icons';
 import type { ProviderRecentUsageMap } from '@/components/providers/utils';
 import { useNotificationStore } from '@/stores';
 import { PROVIDER_DESCRIPTORS } from '../descriptors';
+import { isMultiProtocolSponsorBrand } from '../sponsorDefinitions';
 import type { ProviderBrand, ProviderEntryFormInput, ProviderResource } from '../types';
 import type { UseProviderWorkbenchResult } from '../useProviderWorkbench';
 import { BaseProviderForm } from './forms/BaseProviderForm';
@@ -142,10 +143,11 @@ export function ProviderSheet({
       return <ResourceDetailView resource={state.resource} usageByProvider={usageByProvider} />;
     }
     const formKey = `${state.brand}:${state.resource?.id ?? 'new'}:${state.mode}`;
-    if (state.brand === 'apikeyFun') {
+    if (isMultiProtocolSponsorBrand(state.brand)) {
       return (
         <SponsorProviderForm
           key={formKey}
+          brand={state.brand}
           resource={state.resource}
           mode={state.mode}
           mutating={formMutating}
@@ -171,7 +173,7 @@ export function ProviderSheet({
 
   const footer =
     state.mode === 'detail' ? (
-      state.resource && !state.resource.flags.isPlaceholder ? (
+      state.resource ? (
         <>
           <button
             type="button"
@@ -242,7 +244,21 @@ export function ProviderSheet({
             ? '/ai-providers/openai'
             : state.brand === 'apikeyFun'
               ? '/quick-start'
-              : `/ai-providers/${state.brand}`,
+              : state.brand === 'claudeApi'
+                ? '/ai-providers/claudeapi'
+                : state.brand === 'code0'
+                  ? '/ai-providers/code0'
+                  : state.brand === 'fennoAI'
+                    ? '/ai-providers/fennoai'
+                    : state.brand === 'qiniuCloud'
+                      ? '/ai-providers/qiniu'
+                      : state.brand === 'lmuAI'
+                        ? '/ai-providers/lmuai'
+                        : state.brand === 'infistar'
+                          ? '/ai-providers/infistar'
+                          : state.brand === 'kimi'
+                            ? '/ai-providers/kimi'
+                            : `/ai-providers/${state.brand}`,
       })}
       footer={footer}
       closeDisabled={submitting}

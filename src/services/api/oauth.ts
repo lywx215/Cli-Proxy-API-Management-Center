@@ -9,12 +9,7 @@ import {
 } from '@/utils/providerKeys';
 
 export type BuiltInOAuthProvider =
-  | 'codex'
-  | 'anthropic'
-  | 'antigravity'
-  | 'gemini-cli'
-  | 'kimi'
-  | 'xai';
+  'codex' | 'anthropic' | 'antigravity' | 'gemini-cli' | 'kimi' | 'xai';
 
 export type OAuthProvider = string;
 export interface OAuthStartResponse {
