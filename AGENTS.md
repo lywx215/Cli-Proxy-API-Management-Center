@@ -28,6 +28,14 @@ Tests use Bun's built-in test runner and are colocated under `tests/` as `*.test
 
 Git history follows Conventional Commit style, for example `feat: add support for xAI provider`, `fix(auth-files): keep disabled card actions visible`, and `ci: use node 24 for releases`. Keep commits focused and scoped when useful. Pull requests should include a change summary, linked issue when applicable, UI screenshots, backend version or reproduction details for integration work, and verification notes.
 
+## Fork Synchronization
+
+Before updating this fork from its upstream repository, read and follow the shared [Fork Synchronization Guide](https://github.com/lywx215/CLIProxyAPI/blob/main/SYNC_GUIDE.md). The guide in the forked backend repository is the single source of truth for synchronizing both the backend and this management frontend, preserving fork-specific behavior, resolving conflicts, validating cross-project compatibility, and updating the bundled management page. Use the GitHub version instead of a machine-specific local path so the rule works consistently on Windows and macOS.
+
+## Cross-Repository Development
+
+For ordinary changes that affect both this frontend and the backend, consult the shared [Cross-Repository Integration Guide](https://github.com/lywx215/CLIProxyAPI/blob/main/INTEGRATION_GUIDE_CN.md) as a recommended checklist. The guide is advisory for a single-developer workflow: use engineering judgment, allow scoped frontend work to continue when the backend repository or full integration environment is temporarily unavailable, and complete the affected integration checks before release. Do not require an issue, pull request, fixed implementation order, or simultaneous commits solely because a change may span both repositories.
+
 ## Architecture & Configuration Notes
 
-This UI is not the proxy; it talks to the backend Management API under `/v0/management`. Treat backend contracts as the source of truth. For OAuth/provider changes, inspect `../CLIProxyAPI` before changing route names, provider keys, callback parameters, or auth-file semantics. Store no secrets in the repo; management keys are entered at runtime and persisted only in browser storage.
+This UI is not the proxy; it talks to the backend Management API under `/v0/management`. Treat backend contracts as the source of truth. For OAuth/provider changes, inspect the companion backend repository when it is available, locating it through the attached project folders or Git remote instead of assuming a fixed sibling path. If it is temporarily unavailable, proceed from the documented contract and record the integration verification that remains. Store no secrets in the repo; management keys are entered at runtime and persisted only in browser storage.
