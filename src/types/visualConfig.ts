@@ -147,6 +147,7 @@ export type VisualConfigValues = {
   routingSessionAffinityTTL: string;
   wsAuth: boolean;
   enableGeminiCliEndpoint: boolean;
+  antigravitySensitiveWords: string[];
   antigravitySignatureCacheEnabled: boolean;
   antigravitySignatureBypassStrict: boolean;
   claudeHeaderUserAgent: string;
@@ -209,13 +210,14 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   authAutoRefreshWorkers: '',
   quotaSwitchProject: true,
   quotaSwitchPreviewModel: true,
-  quotaAntigravityCredits: true,
+  quotaAntigravityCredits: false,
   quotaAntigravityCreditsForce: false,
   routingStrategy: 'round-robin',
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
   wsAuth: false,
   enableGeminiCliEndpoint: false,
+  antigravitySensitiveWords: [],
   antigravitySignatureCacheEnabled: true,
   antigravitySignatureBypassStrict: false,
   claudeHeaderUserAgent: '',

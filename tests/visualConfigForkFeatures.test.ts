@@ -31,13 +31,17 @@ describe('fork visual config features', () => {
           },
           quotaAntigravityCreditsForce: true,
           enableGeminiCliEndpoint: true,
+          codexIdentityConfuse: true,
+          antigravitySensitiveWords: ['Hermes'],
         });
         setPhase(2);
       } else {
         return createElement(
           'pre',
           null,
-          visualConfig.applyVisualChangesToYaml('debug: true\nunrelated: preserved\n')
+          visualConfig.applyVisualChangesToYaml(
+            'debug: true\nunrelated: preserved\nantigravity:\n  connection-pool:\n    enabled: true\n    idle-conn-timeout: 30s\ncodex:\n  orphan-delegation-compatibility: true\nrouting:\n  session-affinity-subagents: false\n'
+          )
         );
       }
 
@@ -68,6 +72,12 @@ describe('fork visual config features', () => {
         'antigravity-credits-force': true,
       },
       'enable-gemini-cli-endpoint': true,
+      antigravity: {
+        'sensitive-words': ['Hermes'],
+        'connection-pool': { enabled: true, 'idle-conn-timeout': '30s' },
+      },
+      codex: { 'identity-confuse': true, 'orphan-delegation-compatibility': true },
+      routing: { 'session-affinity-subagents': false },
     });
   });
 });

@@ -1129,7 +1129,8 @@
           "title": "進階與實驗",
           "description": "請求標頭偽裝、簽章快取、外掛來源等不常修改的設定",
           "plugins_title": "外掛",
-          "signature_title": "Antigravity 簽章"
+          "antigravity_title": "Antigravity",
+          "signature_title": "簽章驗證"
         },
         "server": {
           "title": "伺服器設定",
@@ -1210,6 +1211,11 @@
           "usage_statistics_enabled_desc": "啟用記憶體中的請求用量聚合",
           "redis_usage_retention": "Redis 用量佇列保留秒數",
           "redis_usage_retention_hint": "RESP 介面 LPOP/RPOP 用量佇列的記憶體保留時間，最大 3600 秒",
+          "antigravity_sensitive_words": "敏感詞混淆",
+          "antigravity_sensitive_words_desc": "在 Antigravity 系統提示詞的匹配項中插入零寬字元，降低上游精確關鍵詞匹配",
+          "antigravity_sensitive_words_label": "敏感詞（antigravity.sensitive-words）",
+          "antigravity_sensitive_words_placeholder": "proxy",
+          "antigravity_sensitive_words_hint": "每項填寫一個詞或短語；匹配不分大小寫，儲存時移除空項，少於 2 個字元的項目會被後端忽略",
           "antigravity_signature_cache": "啟用 Antigravity 簽名快取",
           "antigravity_signature_cache_desc": "優先使用並校驗快取的 thinking block 簽名",
           "antigravity_signature_strict": "嚴格校驗旁路簽名",
@@ -1285,7 +1291,7 @@
           "title": "串流傳輸設定",
           "description": "Keepalive 與 bootstrap 重試設定",
           "keepalive_seconds": "Keepalive 秒數",
-          "keepalive_hint": "設定為 0 或留空表示停用 keepalive",
+          "keepalive_hint": "每 N 秒傳送 SSE 心跳或 WebSocket Ping 訊框，設為 0 或留空以停用",
           "bootstrap_retries": "Bootstrap 重試次數",
           "bootstrap_hint": "串流傳輸啟動時（首包前）的重試次數",
           "nonstream_keepalive": "非串流 Keepalive 間隔（秒）",
@@ -1804,9 +1810,9 @@
     },
     "categories": {
       "title": "提供商",
-      "activeCount": "{{active}}/{{total}} 活躍",
       "sponsors": "贊助商",
-      "quickFill": "快速填入"
+      "quickFill": "快速接入",
+      "activeCount": "{{active}}/{{total}} 活躍"
     },
     "providerNames": {
       "gemini": "Gemini",
@@ -1850,6 +1856,7 @@
       "detailHint": "{{provider}} 會按協議分別寫入對應的 API Key 設定,此處只做聚合管理。",
       "registerLink": "點此註冊",
       "registerNow": "立即註冊",
+      "kimiPromo": "新用戶首次成功儲值，贈送儲值金額 10% 的 API 額度，最高贈送 ¥1000，優惠截至 9 月 30 日",
       "dashboardLink": "控制面板",
       "emptyRegisterHint": "尚未新增設定",
       "apiKeyHint": "此金鑰只會寫入目前選擇的分組/協議設定。",
