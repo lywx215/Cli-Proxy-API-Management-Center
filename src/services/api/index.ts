@@ -13,6 +13,7 @@ export * from './antigravityStats';
 export * from './logs';
 export * from './version';
 export * from './models';
+export * from './metaQuota';
 export * from './plugins';
 export * from './transformers';
 export * from './vertex';

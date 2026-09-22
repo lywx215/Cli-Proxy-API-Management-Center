@@ -15,10 +15,14 @@ import { ANTIGRAVITY_CONFIG } from './antigravity/data';
 import { AntigravityQuotaBody } from './antigravity/AntigravityQuotaBody';
 import { CLAUDE_CONFIG } from './claude/data';
 import { ClaudeQuotaBody } from './claude/ClaudeQuotaBody';
+import { DEVIN_CONFIG } from './devin/data';
+import { DevinQuotaBody } from './devin/DevinQuotaBody';
 import { CODEX_CONFIG } from './codex/data';
 import { CodexQuotaBody } from './codex/CodexQuotaBody';
 import { GEMINI_CLI_CONFIG } from './geminiCli/data';
 import { GeminiCliQuotaBody } from './geminiCli/GeminiCliQuotaBody';
+import { META_CONFIG } from './meta/data';
+import { MetaQuotaBody } from './meta/MetaQuotaBody';
 import { KIMI_CONFIG } from './kimi/data';
 import { KimiQuotaBody } from './kimi/KimiQuotaBody';
 import { XAI_CONFIG } from './xai/data';
@@ -57,7 +61,9 @@ export const QUOTA_ADAPTERS: Record<QuotaProviderType, QuotaAdapter> = {
     ...GEMINI_CLI_CONFIG,
     Body: GeminiCliQuotaBody,
   } as unknown as QuotaAdapter,
+  devin: { ...DEVIN_CONFIG, Body: DevinQuotaBody } as unknown as QuotaAdapter,
   kimi: { ...KIMI_CONFIG, Body: KimiQuotaBody } as unknown as QuotaAdapter,
+  meta: { ...META_CONFIG, Body: MetaQuotaBody } as unknown as QuotaAdapter,
   xai: { ...XAI_CONFIG, Body: XaiQuotaBody } as unknown as QuotaAdapter,
 };
 

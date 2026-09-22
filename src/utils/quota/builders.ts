@@ -658,7 +658,8 @@ export function mergeXaiBillingSummaries(
   // Keep the active period atomic. The primary (weekly endpoint) and fallback
   // (monthly endpoint) describe different clocks, so borrowing one endpoint's
   // dates for the other's period type would turn a billing rollover into a
-  // quota reset.
+  // quota reset. Keep usage with that same period too: monthly spending must
+  // not replace an unavailable weekly percentage.
   const periodSummary =
     primary.periodType !== 'unknown'
       ? primary
@@ -673,7 +674,7 @@ export function mergeXaiBillingSummaries(
     mode: 'billing',
     source: 'cli-chat-proxy',
     periodType: periodSummary.periodType,
-    usagePercent: primary.usagePercent ?? fallback.usagePercent,
+    usagePercent: periodSummary.usagePercent,
     periodStart,
     periodEnd,
     resetAtMs: periodInstants.resetAtMs,
