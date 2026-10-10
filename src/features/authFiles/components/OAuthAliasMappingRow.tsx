@@ -15,6 +15,7 @@ interface OAuthAliasMappingRowProps {
   canRemove: boolean;
   onChange: (field: keyof OAuthModelAliasEntry, value: string | boolean) => void;
   onRemove: () => void;
+  translationPrefix?: 'oauth_model_alias' | 'gemini_management';
 }
 
 export function OAuthAliasMappingRow({
@@ -25,10 +26,11 @@ export function OAuthAliasMappingRow({
   canRemove,
   onChange,
   onRemove,
+  translationPrefix = 'oauth_model_alias',
 }: OAuthAliasMappingRowProps) {
   const { t } = useTranslation();
   const id = useId();
-  const rowLabel = t('oauth_model_alias.mapping_row', { number: index + 1 });
+  const rowLabel = t(`${translationPrefix}.mapping_row`, { number: index + 1 });
 
   return (
     <div className={styles.mappingRow} role="group" aria-label={rowLabel}>
@@ -38,10 +40,10 @@ export function OAuthAliasMappingRow({
       <div className={styles.mappingFields}>
         <AutocompleteInput
           id={`${id}-source`}
-          label={t('oauth_model_alias.alias_name_placeholder')}
+          label={t(`${translationPrefix}.alias_name_placeholder`)}
           wrapperClassName={styles.modelField}
           className={styles.modelInput}
-          placeholder={t('oauth_model_alias.alias_name_placeholder')}
+          placeholder={t(`${translationPrefix}.alias_name_placeholder`)}
           value={entry.name}
           onChange={(value) => onChange('name', value)}
           disabled={disabled}
@@ -51,11 +53,11 @@ export function OAuthAliasMappingRow({
           →
         </span>
         <div className={styles.modelField}>
-          <label htmlFor={`${id}-alias`}>{t('oauth_model_alias.alias_placeholder')}</label>
+          <label htmlFor={`${id}-alias`}>{t(`${translationPrefix}.alias_placeholder`)}</label>
           <input
             id={`${id}-alias`}
             className={`input ${styles.modelInput}`}
-            placeholder={t('oauth_model_alias.alias_placeholder')}
+            placeholder={t(`${translationPrefix}.alias_placeholder`)}
             value={entry.alias}
             onChange={(event) => onChange('alias', event.target.value)}
             disabled={disabled}
@@ -66,7 +68,7 @@ export function OAuthAliasMappingRow({
       </div>
       <div className={styles.mappingFooter}>
         <ToggleSwitch
-          label={t('oauth_model_alias.alias_fork_label')}
+          label={t(`${translationPrefix}.alias_fork_label`)}
           labelPosition="left"
           checked={Boolean(entry.fork)}
           onChange={(value) => onChange('fork', value)}
@@ -78,8 +80,8 @@ export function OAuthAliasMappingRow({
           className={styles.removeMapping}
           onClick={onRemove}
           disabled={disabled || !canRemove}
-          title={t('oauth_model_alias.remove_mapping', { number: index + 1 })}
-          aria-label={t('oauth_model_alias.remove_mapping', { number: index + 1 })}
+          title={t(`${translationPrefix}.remove_mapping`, { number: index + 1 })}
+          aria-label={t(`${translationPrefix}.remove_mapping`, { number: index + 1 })}
         >
           <IconTrash2 size={15} aria-hidden="true" />
         </Button>

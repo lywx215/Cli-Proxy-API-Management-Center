@@ -15,6 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/Table';
+import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
+import { getGeminiModelSource, getGeminiTarget } from '../geminiManagement';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
 import {
@@ -32,7 +34,18 @@ import { isMultiProtocolSponsorBrand } from '../sponsorDefinitions';
 import styles from './ProviderResourceTable.module.scss';
 import statusBarStyles from './providerStatusBar.module.scss';
 
+export interface ProviderTableSelection {
+  selected: ReadonlySet<string>;
+  disabled: boolean;
+  getId: (resource: ProviderResource) => string;
+  onToggle: (resource: ProviderResource, checked: boolean) => void;
+  onTogglePage: (checked: boolean) => void;
+}
+
 interface ProviderResourceTableProps {
+  selection?: ProviderTableSelection;
+  compact?: boolean;
+  aliasCount?: number;
   resources: ProviderResource[];
   selectedId?: string | null;
   disableMutations?: boolean;
@@ -79,6 +92,9 @@ const resolveTotalStats = (
 };
 
 export function ProviderResourceTable({
+  selection,
+  compact,
+  aliasCount,
   resources,
   selectedId,
   disableMutations,
@@ -137,7 +153,19 @@ export function ProviderResourceTable({
         items.push(renderFlagTag('cli-profile', t('providersPage.table.cliProfileTag')));
       }
     }
-    return <div className={styles.metricsCell}>{items}</div>;
+    return (
+      <div className={styles.metricsCell}>
+        {items}
+        {r.brand === 'gemini' && (
+          <span className={styles.sourceHint}>
+            {t(`gemini_management.sources.${getGeminiModelSource(r)}`)}
+            {aliasCount
+              ? ` · ${t('gemini_management.globalAliasCount', { count: aliasCount })}`
+              : ''}
+          </span>
+        )}
+      </div>
+    );
   };
 
   const renderStatus = (r: ProviderResource) => {
@@ -145,14 +173,14 @@ export function ProviderResourceTable({
       return (
         <span className={`${styles.statusBadge} ${styles.statusDisabled}`}>
           <IconAlertTriangle size={14} />
-          {t('providersPage.status.disabled')}
+          {t(r.brand === 'gemini' ? 'gemini_management.disabled' : 'providersPage.status.disabled')}
         </span>
       );
     }
     return (
       <span className={`${styles.statusBadge} ${styles.statusActive}`}>
         <IconCheckCircle2 size={14} />
-        {t('providersPage.status.active')}
+        {t(r.brand === 'gemini' ? 'gemini_management.enabled' : 'providersPage.status.active')}
       </span>
     );
   };
@@ -180,6 +208,11 @@ export function ProviderResourceTable({
     return (
       <div className={styles.primaryCell}>
         <span className={styles.primaryName}>{r.apiKeyPreview ?? '—'}</span>
+        {r.brand === 'gemini' ? (
+          <span className={`${styles.primarySub} ${styles.groupName}`}>
+            {r.name ?? `#${(getGeminiTarget(r)?.groupIndex ?? 0) + 1}`}
+          </span>
+        ) : null}
         {r.authIndex ? <span className={styles.primarySub}>auth: {r.authIndex}</span> : null}
       </div>
     );
@@ -201,13 +234,26 @@ export function ProviderResourceTable({
 
   return (
     <Table
-      className={styles.providerTable}
-      cols={columnWidths.map((w, i) => (
+      className={`${styles.providerTable} ${compact ? styles.compact : ''}`}
+      cols={(selection ? ['44px', ...columnWidths] : columnWidths).map((w, i) => (
         <col key={i} style={{ width: w }} />
       ))}
     >
       <TableHeader>
         <TableRow>
+          {selection && (
+            <TableHead>
+              <SelectionCheckbox
+                checked={
+                  resources.length > 0 &&
+                  resources.every((resource) => selection.selected.has(selection.getId(resource)))
+                }
+                disabled={selection.disabled || resources.length === 0}
+                ariaLabel={t('gemini_management.selectPage')}
+                onChange={selection.onTogglePage}
+              />
+            </TableHead>
+          )}
           <TableHead>{t('providersPage.table.key')}</TableHead>
           <TableHead>{t('providersPage.table.baseUrl')}</TableHead>
           <TableHead>{t('providersPage.table.prefix')}</TableHead>
@@ -221,7 +267,25 @@ export function ProviderResourceTable({
       <TableBody>
         {resources.map((resource) => {
           return (
-            <TableRow key={resource.id} selected={resource.id === selectedId}>
+            <TableRow
+              key={resource.id}
+              selected={
+                resource.id === selectedId ||
+                Boolean(selection?.selected.has(selection.getId(resource)))
+              }
+            >
+              {selection && (
+                <TableCell>
+                  <SelectionCheckbox
+                    checked={selection.selected.has(selection.getId(resource))}
+                    disabled={selection.disabled}
+                    ariaLabel={t('gemini_management.selectKey', {
+                      key: resource.apiKeyPreview ?? resource.identifier,
+                    })}
+                    onChange={(checked) => selection.onToggle(resource, checked)}
+                  />
+                </TableCell>
+              )}
               <TableCell>{renderPrimary(resource)}</TableCell>
               <TableCell>{renderBaseUrl(resource)}</TableCell>
               <TableCell>
@@ -242,15 +306,26 @@ export function ProviderResourceTable({
                         return (
                           <div className={styles.stats}>
                             <span className={`${styles.statPill} ${styles.statSuccess}`}>
-                              {t('stats.success')}: {stats.success}
+                              {resource.brand === 'gemini'
+                                ? t('gemini_management.totalSuccess', { count: stats.success })
+                                : `${t('stats.success')}: ${stats.success}`}
                             </span>
                             <span className={`${styles.statPill} ${styles.statFailure}`}>
-                              {t('stats.failure')}: {stats.failure}
+                              {resource.brand === 'gemini'
+                                ? t('gemini_management.totalFailure', { count: stats.failure })
+                                : `${t('stats.failure')}: ${stats.failure}`}
                             </span>
                           </div>
                         );
                       })()}
-                      <div className={styles.statusBarWrap}>
+                      <div
+                        className={styles.statusBarWrap}
+                        title={
+                          resource.brand === 'gemini'
+                            ? t('gemini_management.recentWindow')
+                            : undefined
+                        }
+                      >
                         <ProviderStatusBar
                           statusData={resolveStatusBarData(resource, usageByProvider)}
                           styles={statusBarStyles}

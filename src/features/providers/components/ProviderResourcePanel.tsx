@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IconExternalLink, IconPlus, IconSearch } from '@/components/ui/icons';
 import type { ProviderRecentUsageMap } from '@/components/providers/utils';
@@ -6,7 +7,7 @@ import { getKimiAffiliateUrl } from '../kimi';
 import { APIKEY_FUN_AFFILIATE_URL, APIKEY_FUN_DASHBOARD_URL } from '../sponsor';
 import { getSponsorProviderDefinition } from '../sponsorDefinitions';
 import type { ProviderGroup, ProviderResource } from '../types';
-import { ProviderResourceTable } from './ProviderResourceTable';
+import { ProviderResourceTable, type ProviderTableSelection } from './ProviderResourceTable';
 import { ProviderResourceToolbar } from './ProviderResourceToolbar';
 import type { ProviderSortBy, SortDir } from '../types';
 import styles from './ProviderResourcePanel.module.scss';
@@ -21,7 +22,12 @@ export interface ProviderPanelControls {
   onSelectedModelsChange: (next: Set<string>) => void;
 }
 
-interface ProviderResourcePanelProps {
+export interface ProviderResourcePanelProps {
+  extraToolbar?: ReactNode;
+  footer?: ReactNode;
+  selection?: ProviderTableSelection;
+  compact?: boolean;
+  aliasCount?: number;
   group: ProviderGroup;
   filter: string;
   onFilterChange: (value: string) => void;
@@ -38,6 +44,11 @@ interface ProviderResourcePanelProps {
 }
 
 export function ProviderResourcePanel({
+  extraToolbar,
+  footer,
+  selection,
+  compact,
+  aliasCount,
   group,
   filter,
   onFilterChange,
@@ -183,6 +194,7 @@ export function ProviderResourcePanel({
             />
           </div>
         ) : null}
+        {extraToolbar}
       </div>
 
       {filteredResources.length === 0 ? (
@@ -210,6 +222,9 @@ export function ProviderResourcePanel({
       ) : (
         <ProviderResourceTable
           resources={filteredResources}
+          selection={selection}
+          compact={compact}
+          aliasCount={aliasCount}
           selectedId={selectedId}
           disableMutations={disableMutations}
           usageByProvider={usageByProvider}
@@ -219,6 +234,7 @@ export function ProviderResourcePanel({
           onToggleDisabled={onToggleDisabled}
         />
       )}
+      {footer}
     </section>
   );
 }

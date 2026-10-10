@@ -15,7 +15,13 @@ import type { OpenAIProviderConfig } from '@/types';
 import { ProviderHeaderCard } from './components/ProviderHeaderCard';
 import { ProviderCategoryList } from './components/ProviderCategoryList';
 import { ProviderResourcePanel } from './components/ProviderResourcePanel';
-import type { ProviderPanelControls } from './components/ProviderResourcePanel';
+import type {
+  ProviderPanelControls,
+  ProviderResourcePanelProps,
+} from './components/ProviderResourcePanel';
+import { GeminiResourcePanel } from './components/GeminiResourcePanel';
+import { useGeminiSnapshot } from './useGeminiSnapshot';
+import { geminiResourcesFromSnapshot } from './geminiManagement';
 import { SponsorQuickStartPanel } from './components/SponsorQuickStartPanel';
 import { ProviderSheet, type ProviderSheetHandle } from './sheets/ProviderSheet';
 import { APIKEY_FUN_DISPLAY_NAME } from './sponsor';
@@ -170,7 +176,20 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
   const filter = activeFilterState.filter;
   const providerSortBy = activeFilterState.sortBy;
   const providerSortDir = activeFilterState.sortDir;
-  const activeGroup = groups.find((g) => g.id === activeBrand) ?? groups[0] ?? null;
+  const gemini = useGeminiSnapshot(
+    connected && activeBrand === 'gemini',
+    workbench.snapshot?.fetchedAt
+  );
+  const activeGroup = useMemo(() => {
+    const group = groups.find((entry) => entry.id === activeBrand) ?? groups[0] ?? null;
+    return group?.id === 'gemini' && gemini.snapshot
+      ? { ...group, resources: geminiResourcesFromSnapshot(gemini.snapshot) }
+      : group;
+  }, [activeBrand, groups, gemini.snapshot]);
+  const reloadGemini = async () => {
+    await workbench.refetch();
+    await gemini.reload();
+  };
 
   const updateActiveFilterState = useCallback(
     (patch: Partial<ProviderFilterState>) => {
@@ -218,14 +237,22 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
       arr = arr.filter((r) => r.models.some((name) => selectedModels.has(name)));
     }
 
+    const recentSuccess =
+      providerSortBy === 'recent-success'
+        ? new Map(
+            arr.map((resource) => [
+              resource.id,
+              getResourceRecentSuccess(resource, usageByProvider),
+            ])
+          )
+        : null;
     const sorted = [...arr].sort((a, b) => {
       const sortDiff =
         providerSortBy === 'name'
           ? getResourceSortName(a).localeCompare(getResourceSortName(b))
           : providerSortBy === 'priority'
             ? a.priority - b.priority
-            : getResourceRecentSuccess(a, usageByProvider) -
-              getResourceRecentSuccess(b, usageByProvider);
+            : (recentSuccess?.get(a.id) ?? 0) - (recentSuccess?.get(b.id) ?? 0);
       const diff = sortDiff || a.originalIndex - b.originalIndex;
       return providerSortDir === 'asc' ? diff : -diff;
     });
@@ -371,7 +398,25 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
     closeSheet();
   }, [closeSheet, showNotification, t]);
 
-  // 加载状态
+  const panelProps: ProviderResourcePanelProps | null = activeGroup
+    ? {
+        group: activeGroup,
+        filter,
+        onFilterChange: (value) => updateActiveFilterState({ filter: value }),
+        filteredResources: visibleResources,
+        selectedId: sheetState.open ? (sheetState.resource?.id ?? null) : null,
+        disableMutations,
+        usageByProvider,
+        toolbarControls,
+        onView: openView,
+        onEdit: openEdit,
+        onDelete: handleDelete,
+        onToggleDisabled: handleToggleDisabled,
+        onCreate: openCreate,
+      }
+    : null;
+
+  // Show placeholders until the workbench snapshot arrives.
   if (!workbench.snapshot && workbench.isPending) {
     return (
       <div className={styles.page}>
@@ -453,21 +498,20 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
             mutationDisabled={disableMutations}
           />
         ) : (
-          <ProviderResourcePanel
-            group={activeGroup}
-            filter={filter}
-            onFilterChange={(value) => updateActiveFilterState({ filter: value })}
-            filteredResources={visibleResources}
-            selectedId={sheetState.open ? (sheetState.resource?.id ?? null) : null}
-            disableMutations={disableMutations}
-            usageByProvider={usageByProvider}
-            toolbarControls={toolbarControls}
-            onView={openView}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-            onToggleDisabled={handleToggleDisabled}
-            onCreate={openCreate}
-          />
+          panelProps &&
+          (activeGroup.id === 'gemini' ? (
+            <GeminiResourcePanel
+              {...panelProps}
+              snapshot={gemini.snapshot}
+              snapshotLoading={gemini.loading}
+              snapshotError={gemini.error}
+              onReload={reloadGemini}
+              preferences={activeFilterState}
+              onPreferences={updateActiveFilterState}
+            />
+          ) : (
+            <ProviderResourcePanel {...panelProps} />
+          ))
         )}
       </div>
 

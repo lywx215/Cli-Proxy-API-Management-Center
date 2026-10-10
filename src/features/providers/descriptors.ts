@@ -10,6 +10,7 @@ export interface ProviderDescriptor {
   supportsProxyUrl: boolean;
   supportsPrefix: boolean;
   supportsModels: boolean;
+  supportsGlobalModelAliases?: boolean;
   supportsHeaders: boolean;
   supportsExcludedModels: boolean;
   supportsPriority: boolean;
@@ -25,6 +26,7 @@ export interface ProviderDescriptor {
 export const PROVIDER_DESCRIPTORS: Record<ProviderBrand, ProviderDescriptor> = {
   gemini: {
     id: 'gemini',
+    supportsGlobalModelAliases: true,
     supportsRequestScopedErrors: true,
     supportsName: false,
     supportsApiKey: true,

@@ -26,6 +26,8 @@ export interface ProviderFilterState {
   sortBy: ProviderSortBy;
   sortDir: SortDir;
   selectedModels: string[];
+  pageSize?: number;
+  compact?: boolean;
 }
 
 export interface ProvidersWorkbenchUiState {
@@ -61,6 +63,8 @@ const normalizeProviderFilterState = (value: unknown): ProviderFilterState => {
     sortBy: isProviderSortBy(value.sortBy) ? value.sortBy : 'name',
     sortDir: isSortDir(value.sortDir) ? value.sortDir : 'asc',
     selectedModels: normalizeSelectedModels(value.selectedModels),
+    pageSize: [25, 50, 100].includes(Number(value.pageSize)) ? Number(value.pageSize) : 25,
+    compact: value.compact === true,
   };
 };
 

@@ -252,3 +252,23 @@
     color: var(--destructive-color);
   }
 }
+
+.sourceHint {
+  width: 100%;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.compact {
+  td {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .primarySub:not(.groupName),
+  .sourceHint,
+  .stats {
+    display: none;
+  }
+  .statusBarWrap {
+    margin-top: 2px;
+  }
+}
