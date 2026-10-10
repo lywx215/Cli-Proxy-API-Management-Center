@@ -14,7 +14,10 @@ function getVersion(): string {
 
   // 2. Try git tag
   try {
-    const gitTag = execSync('git describe --tags --exact-match || git describe --tags', { encoding: 'utf8', stdio: 'pipe' }).trim();
+    const gitTag = execSync('git describe --tags --exact-match || git describe --tags', {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).trim();
     if (gitTag) {
       return gitTag;
     }
@@ -40,28 +43,28 @@ export default defineConfig({
   plugins: [
     react(),
     viteSingleFile({
-      removeViteModuleLoader: true
-    })
+      removeViteModuleLoader: true,
+    }),
   ],
   define: {
     __APP_VERSION__: JSON.stringify(getVersion()),
-    __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString())
+    __APP_BUILD_TIME__: JSON.stringify(process.env.BUILD_TIME || new Date().toISOString()),
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   css: {
     modules: {
       localsConvention: 'camelCase',
-      generateScopedName: '[name]__[local]___[hash:base64:5]'
+      generateScopedName: '[name]__[local]___[hash:base64:5]',
     },
     preprocessorOptions: {
       scss: {
-        additionalData: `@use "@/styles/variables.scss" as *;`
-      }
-    }
+        additionalData: `@use "@/styles/variables.scss" as *;`,
+      },
+    },
   },
   build: {
     target: 'es2020',
@@ -71,8 +74,8 @@ export default defineConfig({
     cssCodeSplit: false,
     rolldownOptions: {
       output: {
-        codeSplitting: false
-      }
-    }
-  }
+        codeSplitting: false,
+      },
+    },
+  },
 });

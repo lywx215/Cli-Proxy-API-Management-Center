@@ -132,7 +132,14 @@ export interface CodexRateLimitResetCredit {
   expiresAt: string;
 }
 
+export interface CodexAccountCredits {
+  has_credits?: boolean;
+  unlimited?: boolean;
+  balance?: string | number | null;
+}
+
 export interface CodexUsagePayload {
+  credits?: CodexAccountCredits | null;
   plan_type?: string;
   planType?: string;
   rate_limit?: CodexRateLimitInfo | null;
@@ -149,6 +156,9 @@ export interface CodexUsagePayload {
 export interface ClaudeUsageWindow {
   utilization: number;
   resets_at: string | null;
+  limit_dollars?: number | null;
+  used_dollars?: number | null;
+  remaining_dollars?: number | null;
 }
 
 export interface ClaudeUsageLimit {
@@ -298,6 +308,20 @@ export interface GeminiCliQuotaState {
   errorStatus?: number;
 }
 
+/** A provider-defined numeric/currency value rendered above generic quota windows. */
+export interface PluginQuotaMetric {
+  key: string;
+  label: string;
+  value: number;
+  unit?: string;
+  format?: 'number' | 'currency';
+  currency?: string;
+}
+
+export interface PluginQuotaState extends AntigravityQuotaState {
+  summary: PluginQuotaMetric[];
+}
+
 export interface CodexQuotaWindow {
   id: string;
   label: string;
@@ -316,6 +340,8 @@ export interface CodexQuotaState {
   windows: CodexQuotaWindow[];
   planType?: string | null;
   subscriptionActiveUntil?: string | number | null;
+  creditBalance?: string | null;
+  creditsUnlimited?: boolean;
   rateLimitResetCreditsAvailableCount?: number | null;
   rateLimitResetCreditsApplicableAvailableCount?: number | null;
   rateLimitResetCredits?: CodexRateLimitResetCredit[];
@@ -409,9 +435,18 @@ export interface KimiLimitItem {
   ttl?: number | string;
 }
 
+export interface KimiUsageRatio {
+  used_ratio?: number | string;
+  reset_time?: string;
+}
+
 export interface KimiUsagePayload {
   usage?: KimiUsageDetail;
   limits?: KimiLimitItem[];
+  /** Plans without a weekly limit report their monthly total here as a 0–1 ratio. */
+  usages?: {
+    limit_month_total?: KimiUsageRatio;
+  };
 }
 
 export interface KimiQuotaRow {
@@ -466,6 +501,8 @@ export interface XaiBillingConfig {
   on_demand_cap?: XaiBillingCent | number | string | null;
   onDemandUsed?: XaiBillingCent | number | string | null;
   on_demand_used?: XaiBillingCent | number | string | null;
+  prepaidBalance?: XaiBillingCent | number | string | null;
+  prepaid_balance?: XaiBillingCent | number | string | null;
   billingPeriodStart?: string;
   billing_period_start?: string;
   billingPeriodEnd?: string;
@@ -501,6 +538,10 @@ export interface XaiBillingSummary {
   onDemandCapCents: number | null;
   onDemandUsedCents: number | null;
   onDemandUsedPercent: number | null;
+  prepaidBalanceCents?: number | null;
+  /** Display name from Grok settings, for example "SuperGrok Heavy". */
+  planLabel?: string;
+  planTier?: 'elite' | 'premium' | 'standard';
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
   usedPercent: number | null;

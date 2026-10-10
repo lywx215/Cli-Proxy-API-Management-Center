@@ -57,6 +57,9 @@ test('Code0 remains a quick-access group and creates, edits, and deletes all fou
   const deleteCodex = spyOn(providersApi, 'deleteCodexConfig').mockResolvedValue(undefined);
   const deleteClaude = spyOn(providersApi, 'deleteClaudeConfig').mockResolvedValue(undefined);
   const deleteOpenai = spyOn(providersApi, 'deleteOpenAIProvider').mockResolvedValue(undefined);
+  const disableOpenai = spyOn(providersApi, 'updateOpenAIProviderDisabled').mockResolvedValue(
+    undefined
+  );
   for (const stub of [
     refreshVertex,
     refreshOpenai,
@@ -72,6 +75,7 @@ test('Code0 remains a quick-access group and creates, edits, and deletes all fou
     deleteCodex,
     deleteClaude,
     deleteOpenai,
+    disableOpenai,
   ]) {
     restorers.push(() => stub.mockRestore());
   }
@@ -109,6 +113,21 @@ test('Code0 remains a quick-access group and creates, edits, and deletes all fou
     claudeApiKeys: [{ ...createClaude.mock.calls[0][0], fingerprintProfile: 'claude-code-cli' }],
     openaiCompatibility: [{ ...createOpenai.mock.calls[0][0], sourceIndex: 7 }],
   };
+  const source = (groupIndex: number, keyIndex?: number) => ({
+    groupIndex,
+    keyIndex,
+    group: {
+      name: `code0-${groupIndex}`,
+      'base-url': 'https://code0.ai',
+      'request-retry': 3,
+      future: { preserve: true },
+      keys: [{ 'api-key': 'same-synthetic-key' }, { 'api-key': 'synthetic-code0-key' }],
+    },
+  });
+  config.geminiApiKeys![0].source = source(3, 1);
+  config.codexApiKeys![0].source = source(4, 1);
+  config.claudeApiKeys![0].source = source(5, 1);
+  config.openaiCompatibility![0].source = source(7);
   const groups = buildProviderGroups(config);
   const resource = groups.find((group) => group.id === 'code0')!.resources[0];
   expect(groups.flatMap((group) => group.resources)).toHaveLength(1);
@@ -117,9 +136,19 @@ test('Code0 remains a quick-access group and creates, edits, and deletes all fou
   for (const stub of [updateGemini, updateCodex, updateClaude, updateOpenai])
     expect(stub).toHaveBeenCalledTimes(1);
   expect(updateClaude.mock.calls[0][2].fingerprintProfile).toBe('claude-code-cli');
+  expect(updateGemini.mock.calls[0][2].source).toEqual(config.geminiApiKeys![0].source);
+  expect(updateCodex.mock.calls[0][2].source).toEqual(config.codexApiKeys![0].source);
+  expect(updateClaude.mock.calls[0][2].source).toEqual(config.claudeApiKeys![0].source);
+  expect(updateOpenai.mock.calls[0][2].source).toEqual(config.openaiCompatibility![0].source);
   expect(updateOpenai.mock.calls[0][1]).toBe(7);
+  await existing.toggleDisabled(resource, true);
+  expect(disableOpenai.mock.calls[0]).toEqual([7, true, config.openaiCompatibility![0].source]);
   await existing.deleteProvider(resource);
   for (const stub of [deleteGemini, deleteCodex, deleteClaude, deleteOpenai])
     expect(stub).toHaveBeenCalledTimes(1);
   expect(deleteOpenai.mock.calls[0][0]).toBe(7);
+  expect(deleteGemini.mock.calls[0][2]).toEqual(config.geminiApiKeys![0].source);
+  expect(deleteCodex.mock.calls[0][2]).toEqual(config.codexApiKeys![0].source);
+  expect(deleteClaude.mock.calls[0][2]).toEqual(config.claudeApiKeys![0].source);
+  expect(deleteOpenai.mock.calls[0][1]).toEqual(config.openaiCompatibility![0].source);
 });

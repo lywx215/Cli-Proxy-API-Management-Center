@@ -72,7 +72,9 @@ export const antigravityStatsApi = {
   getStats: (view: 'auth' | 'model' | 'detail' = 'auth', authId?: string) => {
     const params = new URLSearchParams({ view });
     if (authId) params.set('auth_id', authId);
-    return apiClient.get<AntigravityStatsResponse>(`/antigravity-stats?${params.toString()}`);
+    return apiClient.get<AntigravityStatsResponse>(
+      `/observability/antigravity-stats?${params.toString()}`
+    );
   },
 
   /**
@@ -80,6 +82,8 @@ export const antigravityStatsApi = {
    */
   resetStats: (authId?: string) => {
     const params = authId ? `?auth_id=${encodeURIComponent(authId)}` : '';
-    return apiClient.delete<AntigravityStatsResetResponse>(`/antigravity-stats${params}`);
+    return apiClient.delete<AntigravityStatsResetResponse>(
+      `/observability/antigravity-stats${params}`
+    );
   },
 };

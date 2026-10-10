@@ -15,8 +15,10 @@ import { XaiQuotaBody } from '@/features/quota/providers/xai/XaiQuotaBody';
 import { QUOTA_CLASS_KEYS, bindQuotaClasses } from '@/features/quota/types';
 import {
   buildXaiBillingSummary,
+  formatInstantShort,
   formatQuotaResetTime,
   mergeXaiBillingSummaries,
+  resolveXaiSubscriptionPlan,
 } from '@/utils/quota';
 import type { XaiBillingConfig, XaiQuotaState } from '@/types';
 
@@ -60,11 +62,34 @@ const quotaFor = (
   ),
 });
 
+const usd = (value: number) =>
+  new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value);
+
 const render = (quota: XaiQuotaState): string =>
   renderToStaticMarkup(createElement(XaiQuotaBody, { quota, classes }));
 
 beforeAll(async () => {
   await i18n.changeLanguage('en');
+});
+
+describe('resolveXaiSubscriptionPlan', () => {
+  test('uses the settings display name and treats Heavy as the elite badge', () => {
+    expect(resolveXaiSubscriptionPlan('SuperGrokPro', 'SuperGrok Heavy')).toEqual({
+      label: 'SuperGrok Heavy',
+      tier: 'elite',
+    });
+  });
+
+  test('treats X Premium+ as the premium badge', () => {
+    expect(resolveXaiSubscriptionPlan('XPremiumPlus', 'X Premium+')).toEqual({
+      label: 'X Premium+',
+      tier: 'premium',
+    });
+  });
+
+  test('returns null when neither call produced a name', () => {
+    expect(resolveXaiSubscriptionPlan(null, '  ')).toBeNull();
+  });
 });
 
 describe('XaiQuotaBody unavailable weekly usage', () => {
@@ -80,7 +105,7 @@ describe('XaiQuotaBody unavailable weekly usage', () => {
     expect(markup).not.toContain('Used 0%');
     // Zero-budget zero-used monthly row is hidden while weekly data exists.
     expect(markup).not.toContain('Monthly credits');
-    expect(markup).not.toContain('$0.00 / $0.00');
+    expect(markup).not.toContain(`${usd(0)} / ${usd(0)}`);
   });
 
   test('keeps usagePercent null for a malformed percentage string', () => {
@@ -149,6 +174,93 @@ describe('XaiQuotaBody unavailable weekly usage', () => {
     const markup = render(quotaFor(weeklyConfig(), monthlyConfig({ used: { val: 100 } })));
 
     expect(markup).toContain('Monthly credits');
+  });
+
+  test('shows the Grok subscription name and the weekly reset beside it', () => {
+    const quota = quotaFor(
+      weeklyConfig({
+        creditUsagePercent: 94,
+        prepaidBalance: { val: 250 },
+        productUsage: [
+          { product: 'GrokBuild', usagePercent: 93 },
+          { product: 'GrokChat', usagePercent: 1 },
+        ],
+      }),
+      monthlyConfig({ used: { val: 4 } })
+    );
+    if (!quota.billing) throw new Error('missing billing');
+    quota.billing.planLabel = 'SuperGrok Heavy';
+    quota.billing.planTier = 'elite';
+
+    const markup = render(quota);
+
+    expect(markup).toContain('elitePlanValue');
+    expect(markup).toContain('SuperGrok Heavy');
+    expect(markup).toContain('Resets');
+    expect(markup).toContain(formatInstantShort(Date.parse(WEEKLY_PERIOD_END)));
+    expect(markup).toContain('GrokChat usage');
+    expect(markup).toContain('Prepaid');
+    expect(markup).toContain(usd(2.5));
+    expect(markup).toContain(`${usd(0)} / ${usd(0)}`);
+  });
+
+  test('renders product contributions as text with only one shared weekly meter', () => {
+    const markup = render(
+      quotaFor(
+        weeklyConfig({
+          creditUsagePercent: 16,
+          productUsage: [
+            { product: 'GrokBuild', usagePercent: 14 },
+            { product: 'GrokChat', usagePercent: 2 },
+          ],
+        }),
+        monthlyConfig()
+      )
+    );
+
+    expect(markup).toContain('Used 16%');
+    expect(markup).toContain('Usage breakdown (shared quota)');
+    expect(markup).toContain('GrokBuild usage: 14%');
+    expect(markup).toContain('GrokChat usage: 2%');
+    expect(markup).toContain('width:84%');
+    expect(markup.match(/class="quotaRow"/g)).toHaveLength(1);
+    expect(markup).not.toContain('width:86%');
+    expect(markup).not.toContain('width:98%');
+  });
+
+  test('does not derive a weekly total or product remainder from partial usage', () => {
+    const markup = render(
+      quotaFor(
+        weeklyConfig({
+          productUsage: [
+            { product: 'GrokBuild', usagePercent: 14 },
+            { product: 'GrokChat', usagePercent: null },
+          ],
+        }),
+        monthlyConfig()
+      )
+    );
+
+    expect(markup).toContain('GrokBuild usage: 14%');
+    expect(markup).toContain('GrokChat usage: Usage unavailable from xAI');
+    expect(markup).not.toContain('width:');
+    expect(markup).not.toContain('Used 14%');
+  });
+
+  test('keeps monthly amount, percentage, and meter in the remaining direction', () => {
+    const markup = render(
+      quotaFor(
+        null,
+        monthlyConfig({
+          monthlyLimit: { val: 15000 },
+          used: { val: 1500 },
+        })
+      )
+    );
+    expect(markup).toContain('>90%<');
+    expect(markup).toContain(`${usd(135)} / ${usd(150)}`);
+    expect(markup).not.toContain(`${usd(15)} / ${usd(150)}`);
+    expect(markup).toContain('width:90%');
   });
 
   test('keeps the monthly-only zero row when no weekly data exists', () => {

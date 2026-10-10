@@ -14,6 +14,8 @@ export interface QuotaExceededConfig {
 }
 
 export interface Config {
+  providerGroups?: Record<string, unknown>;
+  enableGeminiCliEndpoint?: boolean;
   debug?: boolean;
   proxyUrl?: string;
   requestRetry?: number;
