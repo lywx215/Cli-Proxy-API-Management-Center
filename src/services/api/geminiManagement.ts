@@ -74,10 +74,41 @@ async function guarded<T>(request: () => Promise<T>): Promise<T> {
   return result;
 }
 
+const cloneRawValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(cloneRawValue);
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, cloneRawValue(item)])
+    );
+  }
+  return value;
+};
+
+const writableGeminiGroups = (groups: Record<string, unknown>[]): Record<string, unknown>[] =>
+  groups.map((source) => {
+    const group = cloneRawValue(source) as Record<string, unknown>;
+    delete group.auth_index;
+    delete group['auth-index'];
+    if (Array.isArray(group.keys)) {
+      group.keys.forEach((key) => {
+        if (!isRecord(key)) return;
+        delete key.auth_index;
+        delete key['auth-index'];
+      });
+    }
+    return group;
+  });
+
 export const geminiManagementApi = {
   async snapshot(): Promise<GeminiSnapshot> {
     return normalizeGeminiSnapshot(await guarded(() => apiClient.get<unknown>(`${ROOT}/snapshot`)));
   },
+  saveGroups: (revision: string, groups: Record<string, unknown>[]) =>
+    guarded(() =>
+      apiClient.put<GeminiMutationResult>('/config/api-keys/gemini', writableGeminiGroups(groups), {
+        headers: { 'If-Match': `"${revision}"` },
+      })
+    ),
   batch: (
     revision: string,
     action: GeminiBatchAction,

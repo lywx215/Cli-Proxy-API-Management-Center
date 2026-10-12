@@ -120,6 +120,12 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
     resource: null,
   });
   const sheetRef = useRef<ProviderSheetHandle>(null);
+  const [geminiCreateRequest, setGeminiCreateRequest] = useState(0);
+  const geminiRequestSequence = useRef(0);
+  const [geminiEditRequest, setGeminiEditRequest] = useState<{
+    id: number;
+    resource: ProviderResource;
+  } | null>(null);
 
   const connected = connectionStatus === 'connected';
   const { usageByProvider, refreshRecentRequests } = useProviderRecentRequests({
@@ -187,9 +193,17 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
       : group;
   }, [activeBrand, groups, gemini.snapshot]);
   const reloadGemini = async () => {
-    await workbench.refetch();
-    await gemini.reload();
+    const next = await gemini.reload();
+    await Promise.allSettled([workbench.refetch(), refreshRecentRequests()]);
+    return next;
   };
+
+  const consumeGeminiRequests = useCallback((createId?: number, editId?: number) => {
+    if (createId !== undefined)
+      setGeminiCreateRequest((current) => (current === createId ? 0 : current));
+    if (editId !== undefined)
+      setGeminiEditRequest((current) => (current?.id === editId ? null : current));
+  }, []);
 
   const updateActiveFilterState = useCallback(
     (patch: Partial<ProviderFilterState>) => {
@@ -317,6 +331,10 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
 
   const openCreate = useCallback(() => {
     const brand = activeBrand;
+    if (brand === 'gemini') {
+      setGeminiCreateRequest(++geminiRequestSequence.current);
+      return;
+    }
     setSheetState({ open: true, brand, mode: 'create', resource: null });
   }, [activeBrand]);
 
@@ -330,6 +348,11 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
   }, []);
 
   const openEdit = useCallback((resource: ProviderResource) => {
+    if (resource.brand === 'gemini') {
+      setSheetState((value) => ({ ...value, open: false }));
+      setGeminiEditRequest({ id: ++geminiRequestSequence.current, resource });
+      return;
+    }
     setSheetState({
       open: true,
       brand: resource.brand,
@@ -459,7 +482,9 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
         providerFamilies={providerFamilies}
         updatedAtLabel={updatedAtLabel}
         isFetching={workbench.isFetching}
-        isNewDisabled={disableMutations}
+        isNewDisabled={
+          disableMutations || (activeBrand === 'gemini' && (!gemini.snapshot || gemini.loading))
+        }
         showNewAction={!fixedBrand}
         showSummary={fixedBrand !== 'apikeyFun'}
         newLabel={t('providersPage.actions.new')}
@@ -508,6 +533,9 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
               onReload={reloadGemini}
               preferences={activeFilterState}
               onPreferences={updateActiveFilterState}
+              createRequest={geminiCreateRequest}
+              editRequest={geminiEditRequest}
+              onRequestsConsumed={consumeGeminiRequests}
             />
           ) : (
             <ProviderResourcePanel {...panelProps} />
@@ -521,7 +549,7 @@ export function ProvidersWorkbenchPage({ fixedBrand }: ProvidersWorkbenchPagePro
           state={sheetState}
           onClose={closeSheet}
           onSwitchToEdit={() => {
-            setSheetState((s) => (s.resource ? { ...s, mode: 'edit' } : s));
+            if (sheetState.resource) openEdit(sheetState.resource);
           }}
           workbench={workbench}
           onCreated={handleCreated}

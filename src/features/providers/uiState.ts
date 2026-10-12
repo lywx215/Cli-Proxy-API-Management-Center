@@ -28,6 +28,7 @@ export interface ProviderFilterState {
   selectedModels: string[];
   pageSize?: number;
   compact?: boolean;
+  viewMode?: 'groups' | 'keys';
 }
 
 export interface ProvidersWorkbenchUiState {
@@ -65,6 +66,7 @@ const normalizeProviderFilterState = (value: unknown): ProviderFilterState => {
     selectedModels: normalizeSelectedModels(value.selectedModels),
     pageSize: [25, 50, 100].includes(Number(value.pageSize)) ? Number(value.pageSize) : 25,
     compact: value.compact === true,
+    viewMode: value.viewMode === 'keys' ? 'keys' : 'groups',
   };
 };
 

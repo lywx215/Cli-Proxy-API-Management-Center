@@ -23,6 +23,7 @@ export interface ProviderPanelControls {
 }
 
 export interface ProviderResourcePanelProps {
+  resourceContent?: ReactNode;
   extraToolbar?: ReactNode;
   footer?: ReactNode;
   selection?: ProviderTableSelection;
@@ -44,6 +45,7 @@ export interface ProviderResourcePanelProps {
 }
 
 export function ProviderResourcePanel({
+  resourceContent,
   extraToolbar,
   footer,
   selection,
@@ -197,7 +199,9 @@ export function ProviderResourcePanel({
         {extraToolbar}
       </div>
 
-      {filteredResources.length === 0 ? (
+      {resourceContent !== undefined ? (
+        resourceContent
+      ) : filteredResources.length === 0 ? (
         <div className={styles.empty}>
           <div>{emptyText}</div>
           <div className={styles.emptyAction}>

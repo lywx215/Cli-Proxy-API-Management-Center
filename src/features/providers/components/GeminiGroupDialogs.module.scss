@@ -1,0 +1,167 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+
+  code {
+    font-weight: 400;
+    overflow-wrap: anywhere;
+  }
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.keyInput,
+.jsonInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: 12px/1.65 var(--font-mono, monospace);
+  resize: vertical;
+
+  &:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+.keyInput {
+  -webkit-text-security: disc;
+}
+
+.fileButton {
+  align-self: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+
+  input {
+    max-width: 100%;
+  }
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  span {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 9px;
+    font-size: 12px;
+  }
+}
+
+.notice,
+.preview {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+
+  p {
+    margin: 0 0 8px;
+  }
+
+  ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+  }
+}
+
+.impact {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.modelLabels,
+.modelRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 8px;
+}
+
+.modelLabels {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.model {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inheritanceField {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 14px;
+}
+
+.inheritanceHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.secretRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  input {
+    min-width: 0;
+    flex: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .inheritanceHeader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modelRow {
+    grid-template-columns: minmax(0, 1fr) 38px;
+
+    input:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .modelLabels {
+    display: none;
+  }
+}

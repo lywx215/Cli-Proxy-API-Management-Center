@@ -12,11 +12,20 @@ const FIELDS = ['base-url', 'proxy-url', 'headers', 'priority', 'weight'] as con
 type PatchField = (typeof FIELDS)[number];
 
 interface GeminiBatchPatchDialogProps {
+  conflict?: boolean;
+  busy?: boolean;
+  onReload?: () => Promise<void>;
   onClose: () => void;
   onPreview: (scope: 'keys' | 'groups', changes: Record<string, unknown>) => void;
 }
 
-export function GeminiBatchPatchDialog({ onClose, onPreview }: GeminiBatchPatchDialogProps) {
+export function GeminiBatchPatchDialog({
+  onClose,
+  onPreview,
+  conflict,
+  busy,
+  onReload,
+}: GeminiBatchPatchDialogProps) {
   const { t } = useTranslation();
   const id = useId();
   const [scope, setScope] = useState<'keys' | 'groups'>('keys');
@@ -75,7 +84,12 @@ export function GeminiBatchPatchDialog({ onClose, onPreview }: GeminiBatchPatchD
       open
       title={t('gemini_management.patch')}
       onClose={onClose}
-      footer={<Button onClick={preview}>{t('gemini_management.preview')}</Button>}
+      closeDisabled={busy}
+      footer={
+        <Button disabled={busy || conflict} onClick={preview}>
+          {t('gemini_management.preview')}
+        </Button>
+      }
     >
       <div className={styles.patchForm}>
         <label className={styles.field} htmlFor={`${id}-scope`}>
@@ -139,6 +153,14 @@ export function GeminiBatchPatchDialog({ onClose, onPreview }: GeminiBatchPatchD
           <p role="alert" className="error-box">
             {t('gemini_management.invalidPatch')}
           </p>
+        )}
+        {conflict && (
+          <div className="error-box" role="alert">
+            <p>{t('gemini_groups.conflict')}</p>
+            <Button variant="secondary" disabled={busy} onClick={() => void onReload?.()}>
+              {t('gemini_groups.refreshPreview')}
+            </Button>
+          </div>
         )}
       </div>
     </Modal>

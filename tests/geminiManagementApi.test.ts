@@ -118,6 +118,64 @@ describe('Gemini management v8 API', () => {
     ]);
   });
 
+  test('saves raw groups once with a revision and strips only direct read-only indexes', async () => {
+    const groups = snapshotFixture().groups;
+    Object.assign(groups[0], { auth_index: 'group-index', 'auth-index': 'other-group-index' });
+    Object.assign(groups[0].keys[0], {
+      auth_index: 'key-index',
+      'auth-index': 'other-key-index',
+      metadata: { auth_index: 'keep-nested', 'auth-index': 'keep-too' },
+    });
+    const before = structuredClone(groups);
+    const calls: unknown[][] = [];
+    const result = { status: 'ok', revision: 'next-groups' };
+    apiClient.put = (async (...args: unknown[]) => {
+      calls.push(args);
+      return result;
+    }) as typeof apiClient.put;
+    expect(await geminiManagementApi.saveGroups('current-groups', groups)).toBe(result);
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toBe('/config/api-keys/gemini');
+    expect(calls[0][2]).toEqual({ headers: { 'If-Match': '"current-groups"' } });
+    const sent = calls[0][1] as Record<string, unknown>[];
+    const expected = structuredClone(before);
+    delete (expected[0] as Record<string, unknown>).auth_index;
+    delete (expected[0] as Record<string, unknown>)['auth-index'];
+    delete (expected[0].keys[0] as Record<string, unknown>).auth_index;
+    delete (expected[0].keys[0] as Record<string, unknown>)['auth-index'];
+    expect(sent).toEqual(expected);
+    expect(sent[0].headers).toEqual({ 'auth-index': 'header-value' });
+    expect(groups).toEqual(before);
+    expect(sent).not.toBe(groups);
+  });
+
+  test.each([100, 1000])(
+    'saves %s Keys in one request without changing order or metadata',
+    async (count) => {
+      const groups = [
+        {
+          name: 'bulk',
+          models: null,
+          future: { keep: true },
+          keys: Array.from({ length: count }, (_, index) => ({
+            'api-key': `fixture-${index}`,
+            models: index % 2 ? [] : null,
+            metadata: { index },
+          })),
+        },
+      ];
+      let calls = 0;
+      apiClient.put = (async (url: string, data: unknown) => {
+        calls += 1;
+        expect(url).toBe('/config/api-keys/gemini');
+        expect(data).toEqual(groups);
+        return { status: 'ok', revision: 'next' };
+      }) as typeof apiClient.put;
+      await geminiManagementApi.saveGroups('current', groups);
+      expect(calls).toBe(1);
+    }
+  );
+
   test('keeps selected key and whole-group indices distinct in batch payloads', async () => {
     const calls: unknown[] = [];
     apiClient.post = (async (...args: unknown[]) => {
@@ -197,7 +255,7 @@ describe('Gemini management v8 API', () => {
     }
   });
 
-  test.each(['snapshot', 'batch', 'aliases', 'preview', 'apply', 'definitions'] as const)(
+  test.each(['snapshot', 'batch', 'groups', 'aliases', 'preview', 'apply', 'definitions'] as const)(
     'rejects a stale %s response after a connection revision changes during the request',
     async (operation) => {
       let revision = 10;
@@ -215,6 +273,7 @@ describe('Gemini management v8 API', () => {
         batch: () =>
           geminiManagementApi.batch('current', 'enable', [{ groupIndex: 0, keyIndex: 0 }]),
         aliases: () => geminiManagementApi.saveAliases('current', []),
+        groups: () => geminiManagementApi.saveGroups('current', snapshotFixture().groups),
         preview: () => geminiManagementApi.previewMigration('current'),
         apply: () => geminiManagementApi.applyMigration('current', ['candidate']),
         definitions: () => geminiManagementApi.modelDefinitions(),
@@ -235,5 +294,21 @@ describe('Gemini management v8 API', () => {
       expect(error).toBe(conflict);
       expect(isGeminiConfigConflict(error)).toBe(true);
     }
+  });
+
+  test('propagates a group-save revision conflict without retrying', async () => {
+    const conflict = { status: 409, apiCode: 'config_conflict', revision: 'fresh' };
+    let calls = 0;
+    apiClient.put = (async () => {
+      calls += 1;
+      throw conflict;
+    }) as typeof apiClient.put;
+    try {
+      await geminiManagementApi.saveGroups('stale', snapshotFixture().groups);
+      throw new Error('The stale save should have failed.');
+    } catch (error) {
+      expect(error).toBe(conflict);
+    }
+    expect(calls).toBe(1);
   });
 });

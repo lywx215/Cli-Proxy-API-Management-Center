@@ -7,6 +7,8 @@ import {
 } from './code0';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { providersApi } from '@/services/api';
+import { apiClient } from '@/services/api/client';
+import { guardConfigConnection } from '@/services/api/configValue';
 import { getErrorMessage } from '@/utils/helpers';
 import { useAuthStore, useConfigStore } from '@/stores';
 import {
@@ -72,6 +74,7 @@ import {
 } from './kimi';
 import { getSponsorProviderDefinition, type SponsorProtocolUrls } from './sponsorDefinitions';
 import { runSponsorMutationWithRecovery } from './sponsorMutationRecovery';
+import type { RawConfigSection } from '@/types/config';
 
 export interface UseProviderWorkbenchResult {
   connected: boolean;
@@ -481,8 +484,34 @@ export const buildProviderGroups = (config: Config): ProviderGroup[] =>
 /* hook                                                                       */
 /* -------------------------------------------------------------------------- */
 
+// Completed individual reads may become stale while another read is still pending.
+export async function refreshProviderWorkbenchConfig(
+  fetchConfig: () => Promise<unknown>,
+  updateConfigValue: (section: RawConfigSection, value: unknown) => void,
+  isCurrent: () => boolean
+): Promise<boolean> {
+  const assertConnection = guardConfigConnection();
+  const [configResult, vertexResult, openaiResult] = await Promise.allSettled([
+    fetchConfig(),
+    providersApi.getVertexConfigs(),
+    providersApi.getOpenAIProviders(),
+  ]);
+  assertConnection();
+  if (!isCurrent()) return false;
+  if (configResult.status !== 'fulfilled') throw configResult.reason;
+  if (vertexResult.status === 'fulfilled') {
+    updateConfigValue('vertex-api-key', vertexResult.value || []);
+  }
+  if (openaiResult.status === 'fulfilled') {
+    updateConfigValue('openai-compatibility', openaiResult.value || []);
+  }
+  return true;
+}
+
 export function useProviderWorkbench(): UseProviderWorkbenchResult {
   const connectionStatus = useAuthStore((s) => s.connectionStatus);
+  const apiBase = useAuthStore((s) => s.apiBase);
+  const managementKey = useAuthStore((s) => s.managementKey);
   const config = useConfigStore((s) => s.config);
   const fetchConfig = useConfigStore((s) => s.fetchConfig);
   const updateConfigValue = useConfigStore((s) => s.updateConfigValue);
@@ -495,33 +524,31 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
   const [fetchedAt, setFetchedAt] = useState<string>(() => new Date().toISOString());
 
   const hasFetchedRef = useRef(false);
+  const refetchRequestRef = useRef(0);
 
   const connected = connectionStatus === 'connected';
 
   const refetch = useCallback(async () => {
+    const request = ++refetchRequestRef.current;
+    const connection = apiClient.getConnectionRevision();
+    const isCurrent = () =>
+      request === refetchRequestRef.current && connection === apiClient.getConnectionRevision();
     setIsFetching(true);
     setErrorMessage(null);
     try {
-      const [configResult, vertexResult, openaiResult] = await Promise.allSettled([
-        fetchConfig(true),
-        providersApi.getVertexConfigs(),
-        providersApi.getOpenAIProviders(),
-      ]);
-      if (configResult.status !== 'fulfilled') {
-        throw configResult.reason;
-      }
-      if (vertexResult.status === 'fulfilled') {
-        updateConfigValue('vertex-api-key', vertexResult.value || []);
-      }
-      if (openaiResult.status === 'fulfilled') {
-        updateConfigValue('openai-compatibility', openaiResult.value || []);
-      }
-      setFetchedAt(new Date().toISOString());
+      const applied = await refreshProviderWorkbenchConfig(
+        () => fetchConfig(true),
+        updateConfigValue,
+        isCurrent
+      );
+      if (applied && isCurrent()) setFetchedAt(new Date().toISOString());
     } catch (err) {
-      setErrorMessage(getErrorMessage(err) || 'Failed to load providers');
+      if (isCurrent()) setErrorMessage(getErrorMessage(err) || 'Failed to load providers');
     } finally {
-      setIsPending(false);
-      setIsFetching(false);
+      if (isCurrent()) {
+        setIsPending(false);
+        setIsFetching(false);
+      }
     }
   }, [fetchConfig, updateConfigValue]);
 
@@ -530,11 +557,22 @@ export function useProviderWorkbench(): UseProviderWorkbenchResult {
   }, []);
 
   useEffect(() => {
+    refetchRequestRef.current += 1;
+    hasFetchedRef.current = false;
+    setIsPending(!isCacheValid());
+    setIsFetching(false);
+    setErrorMessage(null);
+    return () => {
+      refetchRequestRef.current += 1;
+    };
+  }, [apiBase, managementKey, isCacheValid]);
+
+  useEffect(() => {
     if (hasFetchedRef.current) return;
     if (!connected) return;
     hasFetchedRef.current = true;
     refetch().catch(() => {});
-  }, [connected, refetch]);
+  }, [connected, refetch, apiBase, managementKey]);
 
   /* ------------------- snapshot 计算 ------------------- */
 
