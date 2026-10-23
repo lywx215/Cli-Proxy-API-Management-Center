@@ -2658,6 +2658,8 @@
     "newest": "最新"
   },
   "usage_stats": {
+    "tokens_unavailable": "未提供",
+    "enterprise_tokens_unavailable_hint": "Gemini Enterprise 未提供 Token 用量时，明细显示“未提供”，相关 Token 总量、TPM 和费用也无法据此确定。请求数、结果和延迟仍按实际记录。",
     "title": "使用统计",
     "total_requests": "总请求数",
     "success_requests": "成功请求",

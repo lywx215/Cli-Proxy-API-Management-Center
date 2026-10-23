@@ -2660,6 +2660,8 @@
     "newest": "Latest"
   },
   "usage_stats": {
+    "tokens_unavailable": "Not reported",
+    "enterprise_tokens_unavailable_hint": "When Gemini Enterprise does not report token usage, events show “Not reported”. Token totals, TPM and costs cannot be determined from these events. Request counts, results and latency remain recorded.",
     "title": "Usage Statistics",
     "total_requests": "Total Requests",
     "success_requests": "Success Requests",

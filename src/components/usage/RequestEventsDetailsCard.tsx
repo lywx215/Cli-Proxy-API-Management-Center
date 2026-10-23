@@ -19,6 +19,10 @@ import {
   normalizeAuthIndex,
 } from '@/utils/usage';
 import { downloadBlob } from '@/utils/download';
+import {
+  isRequestTokenUsageAvailable,
+  reportedRequestTokenValue,
+} from './requestTokenAvailability';
 import styles from '@/pages/UsagePage.module.scss';
 
 const ALL_FILTER = '__all__';
@@ -38,6 +42,7 @@ type RequestEventRow = {
   failed: boolean;
   creditsUsed: boolean;
   latencyMs: number | null;
+  tokensAvailable: boolean;
   inputTokens: number;
   outputTokens: number;
   reasoningTokens: number;
@@ -128,64 +133,66 @@ export function RequestEventsDetailsCard({
   const rows = useMemo<RequestEventRow[]>(() => {
     const details = collectUsageDetails(usage);
 
-    const baseRows = details
-      .map((detail, index) => {
-        const timestamp = detail.timestamp;
-        const timestampMs =
-          typeof detail.__timestampMs === 'number' && detail.__timestampMs > 0
-            ? detail.__timestampMs
-            : parseTimestampMs(timestamp);
-        const date = Number.isNaN(timestampMs) ? null : new Date(timestampMs);
-        const sourceRaw = String(detail.source ?? '').trim();
-        const authIndexRaw = detail.auth_index as unknown;
-        const authIndex =
-          authIndexRaw === null || authIndexRaw === undefined || authIndexRaw === ''
-            ? '-'
-            : String(authIndexRaw);
-        const sourceInfo = resolveSourceDisplay(
-          sourceRaw,
-          authIndexRaw,
-          sourceInfoMap,
-          authFileMap
-        );
-        const source = sourceInfo.displayName;
-        const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
-        const sourceType = sourceInfo.type;
-        const model = String(detail.__modelName ?? '').trim() || '-';
-        const inputTokens = Math.max(toNumber(detail.tokens?.input_tokens), 0);
-        const outputTokens = Math.max(toNumber(detail.tokens?.output_tokens), 0);
-        const reasoningTokens = Math.max(toNumber(detail.tokens?.reasoning_tokens), 0);
-        const cachedTokens = Math.max(
-          Math.max(toNumber(detail.tokens?.cached_tokens), 0),
-          Math.max(toNumber(detail.tokens?.cache_tokens), 0)
-        );
-        const totalTokens = Math.max(
-          toNumber(detail.tokens?.total_tokens),
-          extractTotalTokens(detail)
-        );
-        const latencyMs = extractLatencyMs(detail);
+    const baseRows = details.map((detail, index) => {
+      const timestamp = detail.timestamp;
+      const timestampMs =
+        typeof detail.__timestampMs === 'number' && detail.__timestampMs > 0
+          ? detail.__timestampMs
+          : parseTimestampMs(timestamp);
+      const date = Number.isNaN(timestampMs) ? null : new Date(timestampMs);
+      const sourceRaw = String(detail.source ?? '').trim();
+      const authIndexRaw = detail.auth_index as unknown;
+      const authIndex =
+        authIndexRaw === null || authIndexRaw === undefined || authIndexRaw === ''
+          ? '-'
+          : String(authIndexRaw);
+      const sourceInfo = resolveSourceDisplay(sourceRaw, authIndexRaw, sourceInfoMap, authFileMap);
+      const source = sourceInfo.displayName;
+      const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
+      const sourceType = sourceInfo.type;
+      const model = String(detail.__modelName ?? '').trim() || '-';
+      const inputTokens = Math.max(toNumber(detail.tokens?.input_tokens), 0);
+      const outputTokens = Math.max(toNumber(detail.tokens?.output_tokens), 0);
+      const reasoningTokens = Math.max(toNumber(detail.tokens?.reasoning_tokens), 0);
+      const cachedTokens = Math.max(
+        Math.max(toNumber(detail.tokens?.cached_tokens), 0),
+        Math.max(toNumber(detail.tokens?.cache_tokens), 0)
+      );
+      const totalTokens = Math.max(
+        toNumber(detail.tokens?.total_tokens),
+        extractTotalTokens(detail)
+      );
+      const latencyMs = extractLatencyMs(detail);
+      const tokensAvailable = isRequestTokenUsageAvailable(sourceType, sourceRaw, [
+        inputTokens,
+        outputTokens,
+        reasoningTokens,
+        cachedTokens,
+        totalTokens,
+      ]);
 
-        return {
-          id: `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
-          timestamp,
-          timestampMs: Number.isNaN(timestampMs) ? 0 : timestampMs,
-          timestampLabel: date ? date.toLocaleString(i18n.language) : timestamp || '-',
-          model,
-          sourceKey,
-          sourceRaw: sourceRaw || '-',
-          source,
-          sourceType,
-          authIndex,
-          failed: detail.failed === true,
-          creditsUsed: detail.credits_used === true,
-          latencyMs,
-          inputTokens,
-          outputTokens,
-          reasoningTokens,
-          cachedTokens,
-          totalTokens,
-        };
-      });
+      return {
+        id: `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
+        timestamp,
+        timestampMs: Number.isNaN(timestampMs) ? 0 : timestampMs,
+        timestampLabel: date ? date.toLocaleString(i18n.language) : timestamp || '-',
+        model,
+        sourceKey,
+        sourceRaw: sourceRaw || '-',
+        source,
+        sourceType,
+        authIndex,
+        failed: detail.failed === true,
+        creditsUsed: detail.credits_used === true,
+        latencyMs,
+        tokensAvailable,
+        inputTokens,
+        outputTokens,
+        reasoningTokens,
+        cachedTokens,
+        totalTokens,
+      };
+    });
 
     const sourceLabelKeyMap = new Map<string, Set<string>>();
     baseRows.forEach((row) => {
@@ -298,6 +305,10 @@ export function RequestEventsDetailsCard({
   );
 
   const renderedRows = useMemo(() => filteredRows.slice(0, MAX_RENDERED_EVENTS), [filteredRows]);
+  const hasUnreportedTokens = filteredRows.some((row) => !row.tokensAvailable);
+  const formatTokens = (value: number, available: boolean) =>
+    reportedRequestTokenValue(value, available)?.toLocaleString() ??
+    t('usage_stats.tokens_unavailable');
 
   const hasActiveFilters =
     effectiveModelFilter !== ALL_FILTER ||
@@ -339,11 +350,11 @@ export function RequestEventsDetailsCard({
         row.failed ? 'failed' : 'success',
         row.creditsUsed ? 'credits' : 'free',
         ...(hasLatencyData ? [row.latencyMs ?? ''] : []),
-        row.inputTokens,
-        row.outputTokens,
-        row.reasoningTokens,
-        row.cachedTokens,
-        row.totalTokens,
+        reportedRequestTokenValue(row.inputTokens, row.tokensAvailable) ?? '',
+        reportedRequestTokenValue(row.outputTokens, row.tokensAvailable) ?? '',
+        reportedRequestTokenValue(row.reasoningTokens, row.tokensAvailable) ?? '',
+        reportedRequestTokenValue(row.cachedTokens, row.tokensAvailable) ?? '',
+        reportedRequestTokenValue(row.totalTokens, row.tokensAvailable) ?? '',
       ]
         .map((value) => encodeCsv(value))
         .join(',')
@@ -369,12 +380,13 @@ export function RequestEventsDetailsCard({
       failed: row.failed,
       credits_used: row.creditsUsed,
       ...(hasLatencyData && row.latencyMs !== null ? { latency_ms: row.latencyMs } : {}),
+      tokens_available: row.tokensAvailable,
       tokens: {
-        input_tokens: row.inputTokens,
-        output_tokens: row.outputTokens,
-        reasoning_tokens: row.reasoningTokens,
-        cached_tokens: row.cachedTokens,
-        total_tokens: row.totalTokens,
+        input_tokens: reportedRequestTokenValue(row.inputTokens, row.tokensAvailable),
+        output_tokens: reportedRequestTokenValue(row.outputTokens, row.tokensAvailable),
+        reasoning_tokens: reportedRequestTokenValue(row.reasoningTokens, row.tokensAvailable),
+        cached_tokens: reportedRequestTokenValue(row.cachedTokens, row.tokensAvailable),
+        total_tokens: reportedRequestTokenValue(row.totalTokens, row.tokensAvailable),
       },
     }));
 
@@ -487,6 +499,10 @@ export function RequestEventsDetailsCard({
             )}
           </div>
 
+          {hasUnreportedTokens && (
+            <div className={styles.hint}>{t('usage_stats.enterprise_tokens_unavailable_hint')}</div>
+          )}
+
           <div className={styles.requestEventsTableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -530,18 +546,16 @@ export function RequestEventsDetailsCard({
                       >
                         {row.failed ? t('stats.failure') : t('stats.success')}
                       </span>
-                      {row.creditsUsed && (
-                        <span className={styles.creditsBadge}>💎</span>
-                      )}
+                      {row.creditsUsed && <span className={styles.creditsBadge}>💎</span>}
                     </td>
                     {hasLatencyData && (
                       <td className={styles.durationCell}>{formatDurationMs(row.latencyMs)}</td>
                     )}
-                    <td>{row.inputTokens.toLocaleString()}</td>
-                    <td>{row.outputTokens.toLocaleString()}</td>
-                    <td>{row.reasoningTokens.toLocaleString()}</td>
-                    <td>{row.cachedTokens.toLocaleString()}</td>
-                    <td>{row.totalTokens.toLocaleString()}</td>
+                    <td>{formatTokens(row.inputTokens, row.tokensAvailable)}</td>
+                    <td>{formatTokens(row.outputTokens, row.tokensAvailable)}</td>
+                    <td>{formatTokens(row.reasoningTokens, row.tokensAvailable)}</td>
+                    <td>{formatTokens(row.cachedTokens, row.tokensAvailable)}</td>
+                    <td>{formatTokens(row.totalTokens, row.tokensAvailable)}</td>
                   </tr>
                 ))}
               </tbody>

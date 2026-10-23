@@ -2675,6 +2675,8 @@
     "newest": "最新"
   },
   "usage_stats": {
+    "tokens_unavailable": "未提供",
+    "enterprise_tokens_unavailable_hint": "Gemini Enterprise 未提供 Token 用量時，明細顯示「未提供」，相關 Token 總量、TPM 和費用也無法據此確定。請求數、結果和延遲仍按實際記錄。",
     "total_time": "總耗時"
   },
   "gemini_management": {
