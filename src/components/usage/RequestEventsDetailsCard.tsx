@@ -13,16 +13,12 @@ import { parseTimestampMs } from '@/utils/timestamp';
 import {
   collectUsageDetails,
   extractLatencyMs,
-  extractTotalTokens,
   formatDurationMs,
   LATENCY_SOURCE_FIELD,
   normalizeAuthIndex,
 } from '@/utils/usage';
 import { downloadBlob } from '@/utils/download';
-import {
-  isRequestTokenUsageAvailable,
-  reportedRequestTokenValue,
-} from './requestTokenAvailability';
+import { normalizeRequestTokenCounts, reportedRequestTokenValue } from './requestTokenAvailability';
 import styles from '@/pages/UsagePage.module.scss';
 
 const ALL_FILTER = '__all__';
@@ -43,11 +39,11 @@ type RequestEventRow = {
   creditsUsed: boolean;
   latencyMs: number | null;
   tokensAvailable: boolean;
-  inputTokens: number;
-  outputTokens: number;
-  reasoningTokens: number;
-  cachedTokens: number;
-  totalTokens: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  reasoningTokens: number | null;
+  cachedTokens: number | null;
+  totalTokens: number | null;
 };
 
 export interface RequestEventsDetailsCardProps {
@@ -59,12 +55,6 @@ export interface RequestEventsDetailsCardProps {
   vertexConfigs: ProviderKeyConfig[];
   openaiProviders: OpenAIProviderConfig[];
 }
-
-const toNumber = (value: unknown): number => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return 0;
-  return parsed;
-};
 
 const encodeCsv = (value: string | number): string => {
   const text = String(value ?? '');
@@ -151,25 +141,20 @@ export function RequestEventsDetailsCard({
       const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
       const sourceType = sourceInfo.type;
       const model = String(detail.__modelName ?? '').trim() || '-';
-      const inputTokens = Math.max(toNumber(detail.tokens?.input_tokens), 0);
-      const outputTokens = Math.max(toNumber(detail.tokens?.output_tokens), 0);
-      const reasoningTokens = Math.max(toNumber(detail.tokens?.reasoning_tokens), 0);
-      const cachedTokens = Math.max(
-        Math.max(toNumber(detail.tokens?.cached_tokens), 0),
-        Math.max(toNumber(detail.tokens?.cache_tokens), 0)
-      );
-      const totalTokens = Math.max(
-        toNumber(detail.tokens?.total_tokens),
-        extractTotalTokens(detail)
-      );
+      const tokens = normalizeRequestTokenCounts({ ...detail.tokens }, sourceType, sourceRaw);
+      const inputTokens = tokens.input_tokens;
+      const outputTokens = tokens.output_tokens;
+      const reasoningTokens = tokens.reasoning_tokens;
+      const cachedTokens = tokens.cached_tokens;
+      const totalTokens = tokens.total_tokens;
       const latencyMs = extractLatencyMs(detail);
-      const tokensAvailable = isRequestTokenUsageAvailable(sourceType, sourceRaw, [
+      const tokensAvailable = [
         inputTokens,
         outputTokens,
         reasoningTokens,
         cachedTokens,
         totalTokens,
-      ]);
+      ].some((value) => value !== null);
 
       return {
         id: `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
@@ -305,8 +290,16 @@ export function RequestEventsDetailsCard({
   );
 
   const renderedRows = useMemo(() => filteredRows.slice(0, MAX_RENDERED_EVENTS), [filteredRows]);
-  const hasUnreportedTokens = filteredRows.some((row) => !row.tokensAvailable);
-  const formatTokens = (value: number, available: boolean) =>
+  const hasUnreportedTokens = filteredRows.some((row) =>
+    [
+      row.inputTokens,
+      row.outputTokens,
+      row.reasoningTokens,
+      row.cachedTokens,
+      row.totalTokens,
+    ].some((value) => value === null)
+  );
+  const formatTokens = (value: number | null, available: boolean) =>
     reportedRequestTokenValue(value, available)?.toLocaleString() ??
     t('usage_stats.tokens_unavailable');
 

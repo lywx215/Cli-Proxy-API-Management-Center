@@ -14,6 +14,7 @@ import {
 } from './usage/latency';
 import { maskApiKey } from './format';
 import { parseTimestampMs } from './timestamp';
+import { normalizeRequestTokenCounts, type RequestTokenCounts } from './usage/tokenAvailability';
 
 export type { DurationFormatOptions, LatencyStats } from './usage/latency';
 export {
@@ -58,14 +59,7 @@ export interface UsageDetail {
   source: string;
   auth_index: string | number | null;
   latency_ms?: number;
-  tokens: {
-    input_tokens: number;
-    output_tokens: number;
-    reasoning_tokens: number;
-    cached_tokens: number;
-    cache_tokens?: number;
-    total_tokens: number;
-  };
+  tokens: RequestTokenCounts;
   failed: boolean;
   credits_used?: boolean;
   __modelName?: string;
@@ -553,13 +547,13 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
         details.push({
           timestamp,
           source: normalizeSource(detailRaw.source),
-          auth_index:
-            (detailRaw?.auth_index ??
-              detailRaw?.authIndex ??
-              detailRaw?.AuthIndex ??
-              null) as UsageDetail['auth_index'],
+          auth_index: (detailRaw?.auth_index ??
+            detailRaw?.authIndex ??
+            detailRaw?.AuthIndex ??
+            null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
-          tokens: tokensRaw as unknown as UsageDetail['tokens'],
+          // Consumers resolve credential types before applying legacy filename fallbacks.
+          tokens: normalizeRequestTokenCounts(tokensRaw),
           failed: detailRaw.failed === true,
           credits_used: detailRaw.credits_used === true,
           __modelName: modelName,
@@ -631,13 +625,12 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
         details.push({
           timestamp,
           source: normalizeSource(detailRaw.source),
-          auth_index:
-            (detailRaw?.auth_index ??
-              detailRaw?.authIndex ??
-              detailRaw?.AuthIndex ??
-              null) as UsageDetail['auth_index'],
+          auth_index: (detailRaw?.auth_index ??
+            detailRaw?.authIndex ??
+            detailRaw?.AuthIndex ??
+            null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
-          tokens: tokensRaw as unknown as UsageDetail['tokens'],
+          tokens: normalizeRequestTokenCounts(tokensRaw),
           failed: detailRaw.failed === true,
           __modelName: modelName,
           __endpoint: endpoint,
@@ -662,6 +655,7 @@ export function extractTotalTokens(detail: unknown): number {
   const record = isRecord(detail) ? detail : null;
   const tokensRaw = record?.tokens;
   const tokens = isRecord(tokensRaw) ? tokensRaw : {};
+  if (tokens.total_tokens === null) return 0;
   if (typeof tokens.total_tokens === 'number') {
     return tokens.total_tokens;
   }
@@ -1236,9 +1230,7 @@ export interface ChartDataset {
   data: number[];
   borderColor: string;
   backgroundColor:
-    | string
-    | CanvasGradient
-    | ((context: ScriptableContext<'line'>) => string | CanvasGradient);
+    string | CanvasGradient | ((context: ScriptableContext<'line'>) => string | CanvasGradient);
   pointBackgroundColor?: string;
   pointBorderColor?: string;
   fill: boolean;
@@ -1702,7 +1694,8 @@ export type TokenCategory = 'input' | 'output' | 'cached' | 'reasoning';
 
 export interface TokenBreakdownSeries {
   labels: string[];
-  dataByCategory: Record<TokenCategory, number[]>;
+  dataByCategory: Record<TokenCategory, (number | null)[]>;
+  availableCategories: TokenCategory[];
   hasData: boolean;
 }
 
@@ -1731,7 +1724,7 @@ export function buildHourlyTokenBreakdown(
     labels.push(formatHourLabel(new Date(earliestTime + i * hourMs)));
   }
 
-  const dataByCategory: Record<TokenCategory, number[]> = {
+  const dataByCategory: Record<TokenCategory, (number | null)[]> = {
     input: new Array(labels.length).fill(0),
     output: new Array(labels.length).fill(0),
     cached: new Array(labels.length).fill(0),
@@ -1740,6 +1733,8 @@ export function buildHourlyTokenBreakdown(
 
   const details = collectUsageDetails(usageData);
   let hasData = false;
+  const availableCategories = new Set<TokenCategory>();
+  const observedBuckets = new Set<number>();
 
   details.forEach((detail) => {
     const timestamp =
@@ -1755,24 +1750,29 @@ export function buildHourlyTokenBreakdown(
     const bucketIndex = Math.floor((bucketStart - earliestTime) / hourMs);
     if (bucketIndex < 0 || bucketIndex >= labels.length) return;
 
-    const tokens = detail.tokens;
-    const input = typeof tokens.input_tokens === 'number' ? Math.max(tokens.input_tokens, 0) : 0;
-    const output = typeof tokens.output_tokens === 'number' ? Math.max(tokens.output_tokens, 0) : 0;
-    const cached = Math.max(
-      typeof tokens.cached_tokens === 'number' ? Math.max(tokens.cached_tokens, 0) : 0,
-      typeof tokens.cache_tokens === 'number' ? Math.max(tokens.cache_tokens, 0) : 0
-    );
-    const reasoning =
-      typeof tokens.reasoning_tokens === 'number' ? Math.max(tokens.reasoning_tokens, 0) : 0;
-
-    dataByCategory.input[bucketIndex] += input;
-    dataByCategory.output[bucketIndex] += output;
-    dataByCategory.cached[bucketIndex] += cached;
-    dataByCategory.reasoning[bucketIndex] += reasoning;
+    if (!observedBuckets.has(bucketIndex)) {
+      for (const category of ['input', 'output', 'cached', 'reasoning'] as TokenCategory[])
+        dataByCategory[category][bucketIndex] = null;
+      observedBuckets.add(bucketIndex);
+    }
+    const values = {
+      input: detail.tokens.input_tokens,
+      output: detail.tokens.output_tokens,
+      cached: detail.tokens.cached_tokens,
+      reasoning: detail.tokens.reasoning_tokens,
+    };
+    for (const category of Object.keys(values) as TokenCategory[]) {
+      const value = values[category];
+      if (value !== null) {
+        dataByCategory[category][bucketIndex] =
+          (dataByCategory[category][bucketIndex] ?? 0) + Math.max(value, 0);
+        availableCategories.add(category);
+      }
+    }
     hasData = true;
   });
 
-  return { labels, dataByCategory, hasData };
+  return { labels, dataByCategory, availableCategories: [...availableCategories], hasData };
 }
 
 /**
@@ -1780,8 +1780,9 @@ export function buildHourlyTokenBreakdown(
  */
 export function buildDailyTokenBreakdown(usageData: unknown): TokenBreakdownSeries {
   const details = collectUsageDetails(usageData);
-  const dayMap: Record<string, Record<TokenCategory, number>> = {};
+  const dayMap: Record<string, Record<TokenCategory, number | null>> = {};
   let hasData = false;
+  const availableCategories = new Set<TokenCategory>();
 
   details.forEach((detail) => {
     const timestamp =
@@ -1793,35 +1794,34 @@ export function buildDailyTokenBreakdown(usageData: unknown): TokenBreakdownSeri
     if (!dayLabel) return;
 
     if (!dayMap[dayLabel]) {
-      dayMap[dayLabel] = { input: 0, output: 0, cached: 0, reasoning: 0 };
+      dayMap[dayLabel] = { input: null, output: null, cached: null, reasoning: null };
     }
 
-    const tokens = detail.tokens;
-    const input = typeof tokens.input_tokens === 'number' ? Math.max(tokens.input_tokens, 0) : 0;
-    const output = typeof tokens.output_tokens === 'number' ? Math.max(tokens.output_tokens, 0) : 0;
-    const cached = Math.max(
-      typeof tokens.cached_tokens === 'number' ? Math.max(tokens.cached_tokens, 0) : 0,
-      typeof tokens.cache_tokens === 'number' ? Math.max(tokens.cache_tokens, 0) : 0
-    );
-    const reasoning =
-      typeof tokens.reasoning_tokens === 'number' ? Math.max(tokens.reasoning_tokens, 0) : 0;
-
-    dayMap[dayLabel].input += input;
-    dayMap[dayLabel].output += output;
-    dayMap[dayLabel].cached += cached;
-    dayMap[dayLabel].reasoning += reasoning;
+    const values = {
+      input: detail.tokens.input_tokens,
+      output: detail.tokens.output_tokens,
+      cached: detail.tokens.cached_tokens,
+      reasoning: detail.tokens.reasoning_tokens,
+    };
+    for (const category of Object.keys(values) as TokenCategory[]) {
+      const value = values[category];
+      if (value !== null) {
+        dayMap[dayLabel][category] = (dayMap[dayLabel][category] ?? 0) + Math.max(value, 0);
+        availableCategories.add(category);
+      }
+    }
     hasData = true;
   });
 
   const labels = Object.keys(dayMap).sort();
-  const dataByCategory: Record<TokenCategory, number[]> = {
+  const dataByCategory: Record<TokenCategory, (number | null)[]> = {
     input: labels.map((l) => dayMap[l].input),
     output: labels.map((l) => dayMap[l].output),
     cached: labels.map((l) => dayMap[l].cached),
     reasoning: labels.map((l) => dayMap[l].reasoning),
   };
 
-  return { labels, dataByCategory, hasData };
+  return { labels, dataByCategory, availableCategories: [...availableCategories], hasData };
 }
 
 export interface CostSeries {

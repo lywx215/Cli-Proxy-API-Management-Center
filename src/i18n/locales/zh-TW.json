@@ -2676,7 +2676,7 @@
   },
   "usage_stats": {
     "tokens_unavailable": "未提供",
-    "enterprise_tokens_unavailable_hint": "Gemini Enterprise 未提供 Token 用量時，明細顯示「未提供」，相關 Token 總量、TPM 和費用也無法據此確定。請求數、結果和延遲仍按實際記錄。",
+    "enterprise_tokens_unavailable_hint": "Gemini Enterprise 輸入與輸出 Token 依本機分詞統計，可能與 Google 計費不同。缺失分項顯示「未提供」；總量、TPM 與費用依已有計數計算，請求數、結果與延遲正常記錄。",
     "total_time": "總耗時"
   },
   "gemini_management": {

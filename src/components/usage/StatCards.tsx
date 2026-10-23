@@ -62,7 +62,10 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
 
   const { tokenBreakdown, rateStats, totalCost, latencyStats } = useMemo(() => {
     const empty = {
-      tokenBreakdown: { cachedTokens: 0, reasoningTokens: 0 },
+      tokenBreakdown: {
+        cachedTokens: null as number | null,
+        reasoningTokens: null as number | null,
+      },
       rateStats: { rpm: 0, tpm: 0, windowMinutes: 30, requestCount: 0, tokenCount: 0 },
       totalCost: 0,
       latencyStats: {
@@ -80,6 +83,8 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
 
     let cachedTokens = 0;
     let reasoningTokens = 0;
+    let hasCachedTokens = false;
+    let hasReasoningTokens = false;
     let totalCost = 0;
 
     const now = nowMs;
@@ -91,6 +96,9 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
 
     details.forEach((detail) => {
       const tokens = detail.tokens;
+      hasCachedTokens ||=
+        typeof tokens.cached_tokens === 'number' || typeof tokens.cache_tokens === 'number';
+      hasReasoningTokens ||= typeof tokens.reasoning_tokens === 'number';
       cachedTokens += Math.max(
         typeof tokens.cached_tokens === 'number' ? Math.max(tokens.cached_tokens, 0) : 0,
         typeof tokens.cache_tokens === 'number' ? Math.max(tokens.cache_tokens, 0) : 0
@@ -117,7 +125,10 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
 
     const denominator = windowMinutes > 0 ? windowMinutes : 1;
     return {
-      tokenBreakdown: { cachedTokens, reasoningTokens },
+      tokenBreakdown: {
+        cachedTokens: hasCachedTokens ? cachedTokens : null,
+        reasoningTokens: hasReasoningTokens ? reasoningTokens : null,
+      },
       rateStats: {
         rpm: requestCount / denominator,
         tpm: tokenCount / denominator,
@@ -171,11 +182,19 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
         <>
           <span className={styles.statMetaItem}>
             {t('usage_stats.cached_tokens')}:{' '}
-            {loading ? '-' : formatCompactNumber(tokenBreakdown.cachedTokens)}
+            {loading
+              ? '-'
+              : tokenBreakdown.cachedTokens === null
+                ? t('usage_stats.tokens_unavailable')
+                : formatCompactNumber(tokenBreakdown.cachedTokens)}
           </span>
           <span className={styles.statMetaItem}>
             {t('usage_stats.reasoning_tokens')}:{' '}
-            {loading ? '-' : formatCompactNumber(tokenBreakdown.reasoningTokens)}
+            {loading
+              ? '-'
+              : tokenBreakdown.reasoningTokens === null
+                ? t('usage_stats.tokens_unavailable')
+                : formatCompactNumber(tokenBreakdown.reasoningTokens)}
           </span>
         </>
       ),
