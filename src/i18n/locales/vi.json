@@ -530,7 +530,8 @@
     "excluded_models_placeholder": "Comma or newline separated, e.g. model-a, gpt-5-*, *-preview",
     "excluded_models_hint": "Saved as an array and normalized by trim/lowercase/dedup/sort.",
     "disable_cooling_placeholder": "e.g. true / false / 1 / 0",
-    "note_display": "Note"
+    "note_display": "Note",
+    "filter_gemini-enterprise": "Gemini Enterprise"
   },
   "antigravity_subscription": {
     "plan_unknown": "Không rõ",
@@ -1059,7 +1060,20 @@
     "gemini_cli_oauth_status_error": "Authentication failed:",
     "gemini_cli_oauth_start_error": "Failed to start Gemini CLI OAuth:",
     "gemini_cli_oauth_polling_error": "Failed to check authentication status:",
-    "kimi_ai_oauth_url_label": "Authorization URL:"
+    "kimi_ai_oauth_url_label": "Authorization URL:",
+    "gemini_enterprise_oauth_hint": "Ủy quyền bằng Google. Nếu ứng dụng đang thử nghiệm, hãy thêm tài khoản vào người dùng thử nghiệm. Kiểm tra URI ở trên khi chuyển hướng không khớp và quyền tài nguyên khi bị từ chối truy cập.",
+    "gemini_enterprise_oauth_button": "Lưu và ủy quyền bằng Google",
+    "gemini_enterprise_oauth_title": "OAuth Gemini Enterprise",
+    "gemini_enterprise_open_link": "Mở ủy quyền Google",
+    "gemini_enterprise_copy_link": "Sao chép liên kết ủy quyền",
+    "gemini_enterprise_oauth_status_waiting": "Đang chờ ủy quyền Google…",
+    "gemini_enterprise_oauth_status_success": "Đã thêm tài khoản Gemini Enterprise",
+    "gemini_enterprise_oauth_status_error": "Ủy quyền Gemini Enterprise thất bại.",
+    "gemini_enterprise_oauth_start_error": "Không thể bắt đầu ủy quyền Google.",
+    "gemini_enterprise_oauth_polling_error": "Không thể kiểm tra trạng thái ủy quyền.",
+    "gemini_enterprise_oauth_cancel": "Hủy ủy quyền",
+    "gemini_enterprise_oauth_cancelled": "Đã hủy ủy quyền",
+    "gemini_enterprise_oauth_cancel_error": "Không thể hủy ủy quyền."
   },
   "stats": {
     "success": "Thành công",
@@ -3027,5 +3041,42 @@
     "state_attempted": "Đã ghi lần thử",
     "state_circuit_open": "Mô hình tạm ngắt",
     "state_not_routable": "Ngoài phạm vi mô hình có thể định tuyến"
+  },
+  "gemini_enterprise": {
+    "settings_title": "Liên kết tài nguyên",
+    "settings_hint": "Nhập tài nguyên Gemini Enterprise cho lần đăng nhập này. Tài khoản hiện có giữ nguyên liên kết đã lưu.",
+    "redirect_label": "Đăng ký chính xác URI chuyển hướng này trong Google Cloud:",
+    "loading": "Đang tải cấu hình…",
+    "save": "Lưu cấu hình",
+    "reload": "Tải lại cấu hình",
+    "ready": "Đã lưu cấu hình. Bạn có thể ủy quyền tài khoản Google.",
+    "conflict": "Cấu hình đã thay đổi ở nơi khác. Hãy tải lại và kiểm tra trước khi lưu.",
+    "callback_hint": "Máy chủ chạy trên máy này tự nhận callback. Với máy chủ từ xa hoặc cổng đang bận, hãy dán toàn bộ URL callback localhost dù trình duyệt báo không thể kết nối. URL phải thuộc lần đăng nhập hiện tại.",
+    "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
+    "callback_url": "Dán URL đầy đủ http://localhost:8788/oauth-callback.",
+    "callback_state": "Callback thuộc lần đăng nhập khác hoặc đã hết hạn. Hãy dùng liên kết ủy quyền hiện tại.",
+    "callback_code": "Callback phải có mã ủy quyền Google hoặc tham số lỗi.",
+    "renewal_ready": "Đã có quyền truy cập ngoại tuyến; hỗ trợ tự động gia hạn.",
+    "renewal_missing": "Không có token làm mới. Hãy ủy quyền lại để tự động gia hạn.",
+    "reauthorize": "Ủy quyền lại",
+    "binding_details": "Tài nguyên và ứng dụng đã lưu",
+    "models_hint": "Danh sách mô hình do máy chủ khám phá. Nhà cung cấp này chưa hỗ trợ hạn mức và đếm token.",
+    "configure_link": "Cấu hình Gemini Enterprise và ủy quyền tài khoản",
+    "validation": {
+      "required": "Trường này là bắt buộc.",
+      "resource": "ID tài nguyên chỉ được chứa chữ cái, chữ số, dấu gạch dưới và dấu gạch nối.",
+      "environment": "Nhập tên biến môi trường, không nhập giá trị Secret."
+    },
+    "fields": {
+      "clientId": "ID ứng dụng OAuth",
+      "clientSecretEnv": "Tên biến môi trường chứa Secret",
+      "projectId": "ID dự án",
+      "location": "Vị trí",
+      "collectionId": "ID bộ sưu tập",
+      "engineId": "ID công cụ",
+      "assistantId": "ID trợ lý"
+    },
+    "access_expiry": "Thời điểm hết hạn token truy cập",
+    "backend_upgrade": "Máy chủ này chưa hỗ trợ OAuth Gemini Enterprise. Hãy nâng cấp máy chủ lên phiên bản tương ứng."
   }
 }

@@ -103,6 +103,14 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
   },
   {
     kind: 'builtin',
+    id: 'gemini-enterprise',
+    label: 'Gemini Enterprise',
+    titleKey: 'auth_login.gemini_enterprise_oauth_title',
+    icon: iconGemini,
+    flow: 'browser',
+  },
+  {
+    kind: 'builtin',
     id: 'antigravity',
     label: 'Antigravity',
     titleKey: 'auth_login.antigravity_oauth_title',
@@ -132,6 +140,7 @@ const BUILTIN_PROVIDER_IDS = new Set<string>(OAUTH_PROVIDERS.map((provider) => p
 /** 后端接受手动回调提交的内置提供商；插件提供商一律允许。 */
 export const CALLBACK_SUPPORTED = new Set<string>([
   'gemini-cli',
+  'gemini-enterprise',
   'codex',
   'anthropic',
   'antigravity',

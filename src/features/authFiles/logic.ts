@@ -61,6 +61,9 @@ export const matchesAuthFileSearch = (
     file.provider,
     file.email,
     file.projectId,
+    file.geminiEnterprise?.projectId,
+    file.geminiEnterprise?.engineId,
+    file.geminiEnterprise?.assistantId,
     getAuthFileStatusMessage(file),
   ].some((value) => {
     const content = (value || '').toString();

@@ -534,7 +534,8 @@
     "excluded_models_hint": "Сохраняется как массив; значения trim/нижний регистр/без дублей/с сортировкой.",
     "disable_cooling_placeholder": "например: true / false / 1 / 0",
     "note_display": "Заметка",
-    "card_tools_title": "Инструменты"
+    "card_tools_title": "Инструменты",
+    "filter_gemini-enterprise": "Gemini Enterprise"
   },
   "antigravity_subscription": {
     "plan_unknown": "Неизвестно",
@@ -1104,7 +1105,20 @@
     "gemini_cli_oauth_status_error": "Ошибка аутентификации:",
     "gemini_cli_oauth_start_error": "Не удалось запустить Gemini CLI OAuth:",
     "gemini_cli_oauth_polling_error": "Не удалось проверить статус аутентификации:",
-    "kimi_ai_oauth_url_label": "URL авторизации:"
+    "kimi_ai_oauth_url_label": "URL авторизации:",
+    "gemini_enterprise_oauth_hint": "Авторизация через Google. В режиме тестирования добавьте аккаунт в тестовые пользователи. При несовпадении перенаправления проверьте URI выше; при ошибках доступа проверьте права на ресурс.",
+    "gemini_enterprise_oauth_button": "Сохранить и авторизоваться через Google",
+    "gemini_enterprise_oauth_title": "Gemini Enterprise OAuth",
+    "gemini_enterprise_open_link": "Открыть авторизацию Google",
+    "gemini_enterprise_copy_link": "Скопировать ссылку",
+    "gemini_enterprise_oauth_status_waiting": "Ожидание авторизации Google…",
+    "gemini_enterprise_oauth_status_success": "Аккаунт Gemini Enterprise добавлен",
+    "gemini_enterprise_oauth_status_error": "Ошибка авторизации Gemini Enterprise.",
+    "gemini_enterprise_oauth_start_error": "Не удалось начать авторизацию Google.",
+    "gemini_enterprise_oauth_polling_error": "Не удалось проверить статус авторизации.",
+    "gemini_enterprise_oauth_cancel": "Отменить авторизацию",
+    "gemini_enterprise_oauth_cancelled": "Авторизация отменена",
+    "gemini_enterprise_oauth_cancel_error": "Не удалось отменить авторизацию."
   },
   "stats": {
     "success": "Успех",
@@ -3004,5 +3018,42 @@
     "state_attempted": "Попытка записана",
     "state_circuit_open": "Модель временно приостановлена",
     "state_not_routable": "Вне доступного диапазона моделей"
+  },
+  "gemini_enterprise": {
+    "settings_title": "Привязка ресурса",
+    "settings_hint": "Укажите ресурс Gemini Enterprise для этого входа. Существующие аккаунты сохраняют свою привязку.",
+    "redirect_label": "Зарегистрируйте в Google Cloud точно этот URI перенаправления:",
+    "loading": "Загрузка настроек…",
+    "save": "Сохранить настройки",
+    "reload": "Перезагрузить настройки",
+    "ready": "Настройки сохранены. Можно авторизовать аккаунт Google.",
+    "conflict": "Настройки изменены в другом окне. Перезагрузите и проверьте их перед сохранением.",
+    "callback_hint": "Локальный сервер принимает обратный вызов автоматически. Для удалённого сервера или занятого порта вставьте полный URL localhost, даже если браузер не может подключиться. URL должен относиться к текущей авторизации.",
+    "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
+    "callback_url": "Вставьте полный URL http://localhost:8788/oauth-callback.",
+    "callback_state": "Обратный вызов относится к другой или истёкшей авторизации. Используйте текущую ссылку.",
+    "callback_code": "URL должен содержать код авторизации Google или ошибку.",
+    "renewal_ready": "Доступ офлайн получен; автоматическое обновление доступно.",
+    "renewal_missing": "Нет токена обновления. Авторизуйтесь повторно для автоматического обновления.",
+    "reauthorize": "Авторизоваться повторно",
+    "binding_details": "Сохранённые ресурс и приложение",
+    "models_hint": "Модели определяются сервером. Квоты и подсчёт токенов для этого провайдера недоступны.",
+    "configure_link": "Настроить Gemini Enterprise и авторизовать аккаунт",
+    "validation": {
+      "required": "Обязательное поле.",
+      "resource": "ID ресурса может содержать только буквы, цифры, подчёркивания и дефисы.",
+      "environment": "Введите имя переменной окружения, а не значение секрета."
+    },
+    "fields": {
+      "clientId": "ID клиента OAuth",
+      "clientSecretEnv": "Переменная окружения секрета",
+      "projectId": "ID проекта",
+      "location": "Регион",
+      "collectionId": "ID коллекции",
+      "engineId": "ID движка",
+      "assistantId": "ID ассистента"
+    },
+    "access_expiry": "Срок действия токена доступа",
+    "backend_upgrade": "Этот сервер не поддерживает Gemini Enterprise OAuth. Обновите сервер до совместимой версии."
   }
 }

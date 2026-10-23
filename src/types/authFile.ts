@@ -10,6 +10,7 @@ export type AuthFileType =
   | 'kimi'
   | 'gemini'
   | 'gemini-cli'
+  | 'gemini-enterprise'
   | 'aistudio'
   | 'claude'
   | 'codex'
@@ -54,6 +55,16 @@ export interface AuthFileItem {
   email?: string;
   /** GCP / Vertex 项目 ID，账号邮箱缺失时作为身份回落。 */
   projectId?: string;
+  geminiEnterprise?: {
+    clientId?: string;
+    projectId?: string;
+    location?: string;
+    collectionId?: string;
+    engineId?: string;
+    assistantId?: string;
+    expiry?: string;
+    hasRefreshToken?: boolean;
+  };
   size?: number;
   authIndex?: string | number | null;
   /** Generic plugin quota capability advertised by CPA's auth-files API. */

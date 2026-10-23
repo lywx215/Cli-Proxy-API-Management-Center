@@ -37,6 +37,8 @@ export interface OAuthFlowDialogProps {
   /** 提供商专属文案：`auth_login.<id>_<suffix>` 或插件模板。 */
   text: (suffix: string) => string;
   supportsCallback: boolean;
+  configuration?: ReactNode;
+  startDisabled?: boolean;
   /** 赞助商：品牌蓝主按钮 + 提示行里的注册链接。 */
   sponsor?: { url: string; label: string };
   onStart: () => void;
@@ -57,11 +59,19 @@ export function OAuthFlowDialog(props: OAuthFlowDialogProps) {
     <Modal
       open={open}
       onClose={onClose}
-      width={500}
+      width={props.providerId === 'gemini-enterprise' ? 680 : 500}
       className={props.sponsor ? `${styles.dialog} ${styles.sponsorDialog}` : styles.dialog}
       title={<DialogTitle {...heading} />}
       footer={view === 'flow' ? <FlowStatusBar {...props} /> : undefined}
     >
+      {view === 'flow' && props.configuration ? (
+        <details className={styles.configuration}>
+          <summary>{t('gemini_enterprise.settings_title')}</summary>
+          {props.configuration}
+        </details>
+      ) : view !== 'success' ? (
+        props.configuration
+      ) : null}
       {props.providerId === 'gemini-cli' && (
         <Input
           label={t('auth_login.gemini_cli_project_id_label')}
@@ -118,7 +128,12 @@ function FlowBody(props: OAuthFlowDialogProps & { view: Exclude<FlowView, 'succe
           </div>
         )}
         <div>
-          <button type="button" className={styles.primary} onClick={onStart}>
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={onStart}
+            disabled={props.startDisabled}
+          >
             {view === 'failed' ? t('auth_login.restart_login') : text('oauth_button')}
           </button>
         </div>
@@ -136,7 +151,7 @@ function FlowBody(props: OAuthFlowDialogProps & { view: Exclude<FlowView, 'succe
       )}
       {state.cancelError && (
         <div className={styles.alert} role="alert">
-          {t('auth_login.devin_oauth_cancel_error')} {state.cancelError}
+          {text('oauth_cancel_error')} {state.cancelError}
         </div>
       )}
       <ol className={styles.steps}>
@@ -237,17 +252,25 @@ function CallbackStep({
   const feedbackId = useId();
   const isXai = providerId === 'xai';
   const isDevin = providerId === 'devin';
-  const disabled = !state.url || (isDevin && (state.cancelling || state.status !== 'waiting'));
+  const isEnterprise = providerId === 'gemini-enterprise';
+  const disabled =
+    !state.url ||
+    ((isDevin || isEnterprise) && state.cancelling) ||
+    (isDevin && state.status !== 'waiting');
   const hintKey = isXai
     ? 'auth_login.xai_callback_hint'
     : isDevin
       ? 'auth_login.devin_callback_hint'
-      : 'auth_login.oauth_callback_hint';
+      : isEnterprise
+        ? 'gemini_enterprise.callback_hint'
+        : 'auth_login.oauth_callback_hint';
   const placeholderKey = isXai
     ? 'auth_login.xai_callback_placeholder'
     : isDevin
       ? 'auth_login.devin_callback_placeholder'
-      : 'auth_login.oauth_callback_placeholder';
+      : isEnterprise
+        ? 'gemini_enterprise.callback_placeholder'
+        : 'auth_login.oauth_callback_placeholder';
 
   const feedback = state.callbackValidation
     ? { tone: 'error' as const, message: state.callbackValidation }
@@ -318,7 +341,7 @@ function FlowStatusBar({ providerId, state, text, onStart, onCancel }: OAuthFlow
   const failed = state.status === 'error';
   const generating = !failed && !state.url;
   // Devin 会话在服务端可能仍挂着：必须先取消才能重开
-  const canCancel = isDevin && Boolean(state.state);
+  const canCancel = (isDevin || providerId === 'gemini-enterprise') && Boolean(state.state);
 
   return (
     <div className={styles.statusBar} data-tone={failed ? 'error' : 'waiting'}>
@@ -346,7 +369,7 @@ function FlowStatusBar({ providerId, state, text, onStart, onCancel }: OAuthFlow
           {state.cancelling && (
             <IconLoader2 size={13} className={styles.spinning} aria-hidden="true" />
           )}
-          {t('auth_login.devin_oauth_cancel')}
+          {text('oauth_cancel')}
         </button>
       ) : failed ? (
         <button type="button" className={styles.ghost} onClick={onStart}>
@@ -359,7 +382,7 @@ function FlowStatusBar({ providerId, state, text, onStart, onCancel }: OAuthFlow
   );
 }
 
-function SuccessView({ text, onStart, onViewAuthFiles }: OAuthFlowDialogProps) {
+function SuccessView({ text, onStart, onViewAuthFiles, startDisabled }: OAuthFlowDialogProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.result} role="status">
@@ -373,7 +396,7 @@ function SuccessView({ text, onStart, onViewAuthFiles }: OAuthFlowDialogProps) {
         <button type="button" className={styles.secondary} onClick={onViewAuthFiles}>
           {t('auth_login.view_auth_files')}
         </button>
-        <button type="button" className={styles.primary} onClick={onStart}>
+        <button type="button" className={styles.primary} onClick={onStart} disabled={startDisabled}>
           {t('auth_login.login_another_account')}
         </button>
       </div>

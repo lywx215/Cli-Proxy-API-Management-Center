@@ -6,6 +6,7 @@ import { getErrorMessage, isRecord } from '@/utils/helpers';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import { createOAuthAttempts, type OAuthAttempt } from '../oauthAttempts';
 import { validateDevinCallback } from '../devinOAuth';
+import { validateGeminiEnterpriseCallback } from '../geminiEnterprise';
 import { resolveCallbackUrl } from '../callbackUrl';
 import {
   buildPluginOAuthProviderCards,
@@ -175,7 +176,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
           completeProviderAuth(provider);
           notify(provider, providerText(provider, 'oauth_status_success'), 'success');
         } else if (res.status === 'error') {
-          if (provider === 'devin') {
+          if (provider === 'devin' || provider === 'gemini-enterprise') {
             // Expired, denied and cancelled states cannot accept another callback.
             attempt.invalidate();
             updateProviderState(provider, {
@@ -210,7 +211,12 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
 
   const cancelAuth = async (provider: string) => {
     const state = states[provider]?.state;
-    if (provider !== 'devin' || !state || states[provider]?.cancelling) return;
+    if (
+      !['devin', 'gemini-enterprise'].includes(provider) ||
+      !state ||
+      states[provider]?.cancelling
+    )
+      return;
     // Replace the attempt before DELETE so late polls/callback submissions cannot
     // overwrite the cancellation result or a subsequent login.
     const attempt = attempts.current.begin(provider);
@@ -228,7 +234,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       if (!attempt.isCurrent()) return;
       if (result.cancelled) {
         resetProviderAttempt(provider);
-        notify(provider, t('auth_login.devin_oauth_cancelled'), 'success');
+        notify(provider, providerText(provider, 'oauth_cancelled'), 'success');
         return;
       }
       // A completed or expired session returns cancelled=false. Read its real
@@ -237,7 +243,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       if (!attempt.isCurrent()) return;
       const message = getErrorMessage(err);
       updateProviderState(provider, { cancelError: message });
-      notify(provider, `${t('auth_login.devin_oauth_cancel_error')} ${message}`, 'error');
+      notify(provider, `${providerText(provider, 'oauth_cancel_error')} ${message}`, 'error');
     }
     updateProviderState(provider, {
       cancelling: false,
@@ -249,8 +255,8 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
 
   const startAuth = async (provider: string) => {
     // A network error can stop polling while the server is still waiting. Require
-    // explicit cancellation before replacing that Devin session.
-    if (provider === 'devin' && states[provider]?.state) return;
+    // explicit cancellation before replacing a cancellable browser session.
+    if (['devin', 'gemini-enterprise'].includes(provider) && states[provider]?.state) return;
     const attempt = attempts.current.begin(provider);
     updateProviderState(provider, {
       url: undefined,
@@ -296,7 +302,10 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       startPolling(provider, res.state, attempt);
     } catch (err: unknown) {
       if (!attempt.isCurrent()) return;
-      const message = getErrorMessage(err);
+      const message =
+        provider === 'gemini-enterprise' && getErrorStatus(err) === 404
+          ? t('gemini_enterprise.backend_upgrade')
+          : getErrorMessage(err);
       updateProviderState(provider, { status: 'error', error: message, polling: false });
       notify(
         provider,
@@ -319,8 +328,9 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     const attempt = attempts.current.get(provider);
     if (!attempt?.isCurrent()) return;
     if (
-      provider === 'devin' &&
-      (states[provider]?.cancelling || states[provider]?.status !== 'waiting')
+      ((provider === 'devin' || provider === 'gemini-enterprise') &&
+        states[provider]?.cancelling) ||
+      (provider === 'devin' && states[provider]?.status !== 'waiting')
     ) {
       return;
     }
@@ -342,6 +352,16 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
         return;
       }
     }
+    if (provider === 'gemini-enterprise') {
+      const callbackError = validateGeminiEnterpriseCallback(
+        callbackInput,
+        states[provider]?.state
+      );
+      if (callbackError) {
+        rejectInput(`gemini_enterprise.callback_${callbackError}`);
+        return;
+      }
+    }
     const redirectUrl = resolveCallbackUrl(provider, callbackInput, states[provider]?.state);
     if (!redirectUrl) {
       rejectInput(
@@ -358,7 +378,11 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     try {
       await oauthApi.submitCallback(provider, redirectUrl, attempt.signal);
       if (!attempt.isCurrent()) return;
-      updateProviderState(provider, { callbackSubmitting: false, callbackStatus: 'success' });
+      updateProviderState(provider, {
+        callbackSubmitting: false,
+        callbackStatus: 'success',
+        ...(provider === 'gemini-enterprise' ? { callbackUrl: '' } : {}),
+      });
       notify(provider, t('auth_login.oauth_callback_success'), 'success');
       // The backend only accepts callbacks for pending logins. If a failed status
       // request stopped polling, resume it so the card can report the outcome.

@@ -25,6 +25,11 @@ export function SectionOAuthBehavior({
       hint={t('config_management.visual.additions.oauthHint')}
     >
       <FieldStack>
+        <section aria-label={t('gemini_enterprise.settings_title')}>
+          <h3>Gemini Enterprise</h3>
+          <p className="hint">{t('gemini_enterprise.settings_hint')}</p>
+          <a href="#/oauth">{t('gemini_enterprise.configure_link')}</a>
+        </section>
         <SettingList title={t('config_management.visual.additions.claudeTitle')}>
           <ToggleSetting
             fieldId="claudeModelLevelCooling"

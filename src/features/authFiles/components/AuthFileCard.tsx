@@ -34,6 +34,7 @@ import { resolveAuthFileQuotaType } from '@/features/authFiles/logic';
 import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
+import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
 import styles from './AuthFileCard.module.scss';
 
 export type AuthFileCardProps = {
@@ -89,7 +90,10 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const providerKey = normalizeProviderKey(String(file.type ?? file.provider ?? 'unknown'));
   const isAistudio = providerKey === 'aistudio';
   const showModelsButton = !isRuntimeOnly || isAistudio;
-  const showManualRefreshButton = !isRuntimeOnly && supportsAuthFileManualRefresh(providerKey);
+  const showManualRefreshButton =
+    !isRuntimeOnly &&
+    supportsAuthFileManualRefresh(providerKey) &&
+    (providerKey !== 'gemini-enterprise' || file.geminiEnterprise?.hasRefreshToken !== false);
   const isManualRefreshing = manualRefreshing[getAuthFileRefreshKey(file)] === true;
   const typeLabel = getTypeLabel(t, providerKey);
   const typeColor = getTypeColor(providerKey, resolvedTheme);
@@ -175,6 +179,10 @@ export function AuthFileCard(props: AuthFileCardProps) {
         <p className={styles.note} title={noteValue}>
           {noteValue}
         </p>
+      )}
+
+      {providerKey === 'gemini-enterprise' && !compact && (
+        <GeminiEnterpriseBinding binding={file.geminiEnterprise} />
       )}
 
       {rawStatusMessage && hasStatusWarning && (

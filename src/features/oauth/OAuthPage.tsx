@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useRevealGroup } from '@/hooks/motion';
 import { useAuthStore, useThemeStore } from '@/stores';
+import { apiClient } from '@/services/api/client';
 import iconVertex from '@/assets/icons/vertex.svg';
 import { OAuthHeader } from './components/OAuthHeader';
 import { ProviderTile } from './components/ProviderTile';
@@ -14,6 +15,8 @@ import {
   type ProviderFlowState,
 } from './hooks/useOAuthFlows';
 import { useVertexImport } from './hooks/useVertexImport';
+import { useGeminiEnterpriseConfig } from './hooks/useGeminiEnterpriseConfig';
+import { GeminiEnterpriseSettings } from './components/GeminiEnterpriseSettings';
 import {
   isSponsor,
   OAUTH_PROVIDERS,
@@ -57,6 +60,11 @@ export function OAuthPage() {
     providerCards,
     isFocused: (provider) => focusedRef.current === provider,
   });
+  const enterpriseLocked = Boolean(flows.states['gemini-enterprise']?.state);
+  const enterprise = useGeminiEnterpriseConfig(
+    dialogOpen && dialog?.kind === 'oauth' && dialog.id === 'gemini-enterprise',
+    enterpriseLocked
+  );
   const vertexImport = useVertexImport({
     isFocused: () => focusedRef.current === VERTEX_DIALOG_ID,
     onCredentialAdded: flows.recordCredentialAdded,
@@ -108,7 +116,12 @@ export function OAuthPage() {
     setDialog({ kind: 'oauth', id: card.id });
     setDialogOpen(true);
     // 已有进行中/失败/刚成功的尝试 → 只是重新打开查看；否则立即开始登录
-    if (card.id !== 'gemini-cli' && !flows.states[card.id]?.status) void flows.startAuth(card.id);
+    if (
+      card.id !== 'gemini-cli' &&
+      card.id !== 'gemini-enterprise' &&
+      !flows.states[card.id]?.status
+    )
+      void flows.startAuth(card.id);
   };
 
   const openVertex = () => {
@@ -189,8 +202,26 @@ export function OAuthPage() {
           state={flows.states[dialogCard.id] ?? {}}
           text={(suffix) => flows.providerText(dialogCard.id, suffix)}
           supportsCallback={supportsManualCallback(dialogCard)}
+          configuration={
+            dialogCard.id === 'gemini-enterprise' ? (
+              <GeminiEnterpriseSettings config={enterprise} locked={enterpriseLocked} />
+            ) : undefined
+          }
+          startDisabled={dialogCard.id === 'gemini-enterprise' && enterprise.startDisabled}
           sponsor={sponsorOf(dialogCard)}
-          onStart={() => void flows.startAuth(dialogCard.id)}
+          onStart={() => {
+            if (dialogCard.id === 'gemini-enterprise') {
+              const revision = apiClient.getConnectionRevision();
+              void enterprise.save().then((saved) => {
+                if (
+                  saved &&
+                  revision === apiClient.getConnectionRevision() &&
+                  focusedRef.current === 'gemini-enterprise'
+                )
+                  void flows.startAuth('gemini-enterprise');
+              });
+            } else void flows.startAuth(dialogCard.id);
+          }}
           onCancel={() => void flows.cancelAuth(dialogCard.id)}
           onProjectChange={flows.setProjectInput}
           onCallbackChange={(value) => flows.setCallbackInput(dialogCard.id, value)}

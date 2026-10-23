@@ -530,7 +530,8 @@
     "excluded_models_placeholder": "Comma or newline separated, e.g. model-a, gpt-5-*, *-preview",
     "excluded_models_hint": "Saved as an array and normalized by trim/lowercase/dedup/sort.",
     "disable_cooling_placeholder": "e.g. true / false / 1 / 0",
-    "note_display": "Note"
+    "note_display": "Note",
+    "filter_gemini-enterprise": "Gemini Enterprise"
   },
   "antigravity_subscription": {
     "plan_unknown": "Unknown",
@@ -1102,7 +1103,20 @@
     "gemini_cli_oauth_status_error": "Authentication failed:",
     "gemini_cli_oauth_start_error": "Failed to start Gemini CLI OAuth:",
     "gemini_cli_oauth_polling_error": "Failed to check authentication status:",
-    "kimi_ai_oauth_url_label": "Authorization URL:"
+    "kimi_ai_oauth_url_label": "Authorization URL:",
+    "gemini_enterprise_oauth_hint": "Authorize with Google. If the app is in Testing, add the account as a test user. A redirect mismatch requires the exact URI above; project access errors require resource permissions.",
+    "gemini_enterprise_oauth_button": "Save and authorize with Google",
+    "gemini_enterprise_oauth_title": "Gemini Enterprise OAuth",
+    "gemini_enterprise_open_link": "Open Google authorization",
+    "gemini_enterprise_copy_link": "Copy authorization link",
+    "gemini_enterprise_oauth_status_waiting": "Waiting for Google authorization…",
+    "gemini_enterprise_oauth_status_success": "Gemini Enterprise account added",
+    "gemini_enterprise_oauth_status_error": "Gemini Enterprise authorization failed.",
+    "gemini_enterprise_oauth_start_error": "Could not start Google authorization.",
+    "gemini_enterprise_oauth_polling_error": "Could not check authorization status.",
+    "gemini_enterprise_oauth_cancel": "Cancel authorization",
+    "gemini_enterprise_oauth_cancelled": "Authorization cancelled",
+    "gemini_enterprise_oauth_cancel_error": "Could not cancel authorization."
   },
   "stats": {
     "success": "Success",
@@ -3022,5 +3036,42 @@
     "state_attempted": "Attempt recorded",
     "state_circuit_open": "Upstream model temporarily paused",
     "state_not_routable": "Outside the routable model range"
+  },
+  "gemini_enterprise": {
+    "settings_title": "Resource binding",
+    "settings_hint": "Enter the Gemini Enterprise resource for this login. Existing accounts retain their saved binding.",
+    "redirect_label": "Register this exact redirect URI in Google Cloud:",
+    "loading": "Loading configuration…",
+    "save": "Save configuration",
+    "reload": "Reload configuration",
+    "ready": "Configuration saved. You can authorize a Google account.",
+    "conflict": "Configuration changed elsewhere. Reload and review it before saving again.",
+    "callback_hint": "For a backend on this computer, the callback is received automatically. With a remote backend or an occupied port, paste the full localhost callback URL here even if the browser says it cannot connect. It must belong to this login attempt.",
+    "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
+    "callback_url": "Paste the complete http://localhost:8788/oauth-callback URL.",
+    "callback_state": "The callback belongs to another or expired login. Use the current authorization link.",
+    "callback_code": "The callback must contain a Google authorization code or error.",
+    "renewal_ready": "Offline authorization available; automatic renewal supported.",
+    "renewal_missing": "No refresh token. Authorize again for automatic renewal.",
+    "reauthorize": "Authorize again",
+    "binding_details": "Saved resource and application",
+    "models_hint": "Models come from backend discovery. Quota and token counting are not available for this provider.",
+    "configure_link": "Configure Gemini Enterprise and authorize an account",
+    "validation": {
+      "required": "This field is required.",
+      "resource": "Use a resource ID containing only letters, numbers, underscores and hyphens.",
+      "environment": "Enter an environment variable name, not the Secret value."
+    },
+    "fields": {
+      "clientId": "OAuth client ID",
+      "clientSecretEnv": "Secret environment variable",
+      "projectId": "Project ID",
+      "location": "Location",
+      "collectionId": "Collection ID",
+      "engineId": "Engine ID",
+      "assistantId": "Assistant ID"
+    },
+    "access_expiry": "Access token expiry",
+    "backend_upgrade": "This backend does not support Gemini Enterprise OAuth. Update the backend to the matching version."
   }
 }

@@ -25,10 +25,11 @@ export interface ProviderBrandLogo {
   invertOnDark?: boolean;
 }
 
-export type ProviderBrandLogoKey = ProviderBrand | 'devin';
+export type ProviderBrandLogoKey = ProviderBrand | 'devin' | 'gemini-enterprise';
 
 export const PROVIDER_LOGOS: Record<ProviderBrandLogoKey, ProviderBrandLogo> = {
   gemini: { src: geminiLogo },
+  'gemini-enterprise': { src: geminiLogo },
   interactions: { src: geminiLogo },
   claude: { src: claudeLogo },
   codex: { src: codexLogo },

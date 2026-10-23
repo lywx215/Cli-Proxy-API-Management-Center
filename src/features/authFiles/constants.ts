@@ -46,6 +46,7 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
 
 export const OAUTH_PROVIDER_PRESETS = [
   'gemini-cli',
+  'gemini-enterprise',
   'meta',
   'vertex',
   'aistudio',
@@ -68,6 +69,7 @@ export const FALSY_TEXT_VALUES = new Set(['false', '0', 'no', 'n', 'off']);
 export const AUTH_FILE_WEBSOCKET_PROVIDERS = new Set(['codex', 'xai']);
 export const AUTH_FILE_USING_API_PROVIDERS = new Set(['xai']);
 export const AUTH_FILE_MANUAL_REFRESH_PROVIDERS = new Set([
+  'gemini-enterprise',
   'meta',
   'antigravity',
   'claude',
@@ -88,6 +90,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   devin: { light: iconDevin, dark: iconDevinDark },
   gemini: iconGemini,
   'gemini-cli': iconGemini,
+  'gemini-enterprise': iconGemini,
   xai: { light: iconGrok, dark: iconGrokDark },
   iflow: iconIflow,
   kimi: { light: iconKimiDark, dark: iconKimiLight },

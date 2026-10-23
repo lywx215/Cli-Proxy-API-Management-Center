@@ -528,7 +528,8 @@
     "excluded_models_placeholder": "用逗号或换行分隔，例如: model-a, gpt-5-*, *-preview",
     "excluded_models_hint": "保存为数组；会自动 trim、小写、去重并排序。",
     "disable_cooling_placeholder": "例如: true / false / 1 / 0",
-    "note_display": "备注"
+    "note_display": "备注",
+    "filter_gemini-enterprise": "Gemini Enterprise"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",
@@ -1100,7 +1101,20 @@
     "gemini_cli_oauth_status_error": "认证失败:",
     "gemini_cli_oauth_start_error": "启动 Gemini CLI OAuth 失败:",
     "gemini_cli_oauth_polling_error": "检查认证状态失败:",
-    "kimi_ai_oauth_url_label": "授权链接:"
+    "kimi_ai_oauth_url_label": "授权链接:",
+    "gemini_enterprise_oauth_hint": "使用 Google 授权。应用处于测试状态时，需先将账号加入测试用户。重定向不匹配时核对上方 URI；项目访问错误需检查资源权限。",
+    "gemini_enterprise_oauth_button": "保存并使用 Google 授权",
+    "gemini_enterprise_oauth_title": "Gemini Enterprise 授权",
+    "gemini_enterprise_open_link": "打开 Google 授权",
+    "gemini_enterprise_copy_link": "复制授权链接",
+    "gemini_enterprise_oauth_status_waiting": "等待 Google 授权…",
+    "gemini_enterprise_oauth_status_success": "Gemini Enterprise 账号已添加",
+    "gemini_enterprise_oauth_status_error": "Gemini Enterprise 授权失败。",
+    "gemini_enterprise_oauth_start_error": "无法启动 Google 授权。",
+    "gemini_enterprise_oauth_polling_error": "无法查询授权状态。",
+    "gemini_enterprise_oauth_cancel": "取消授权",
+    "gemini_enterprise_oauth_cancelled": "授权已取消",
+    "gemini_enterprise_oauth_cancel_error": "无法取消授权。"
   },
   "stats": {
     "success": "成功",
@@ -3020,5 +3034,42 @@
     "state_attempted": "已记录尝试",
     "state_circuit_open": "上游模型暂时熔断",
     "state_not_routable": "不在当前可路由模型范围"
+  },
+  "gemini_enterprise": {
+    "settings_title": "资源绑定",
+    "settings_hint": "填写本次登录使用的 Gemini Enterprise 资源，已有账号仍保留各自保存的绑定。",
+    "redirect_label": "请在 Google Cloud 中登记完全一致的重定向 URI：",
+    "loading": "正在加载配置…",
+    "save": "保存配置",
+    "reload": "重新加载配置",
+    "ready": "配置已保存，可以授权 Google 账号。",
+    "conflict": "配置已被其他窗口修改，请重新加载并核对后再保存。",
+    "callback_hint": "后端在本机运行时会自动接收回调。使用远程后端或端口被占用时，即使浏览器提示无法连接，也可将完整的 localhost 回调地址粘贴到这里。地址必须来自本次授权。",
+    "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
+    "callback_url": "请粘贴完整的 http://localhost:8788/oauth-callback 回调地址。",
+    "callback_state": "该回调属于其他或已失效的授权，请使用当前授权链接。",
+    "callback_code": "回调地址中必须包含 Google 授权码或错误参数。",
+    "renewal_ready": "已获得离线授权，支持自动续期。",
+    "renewal_missing": "没有刷新令牌，请重新授权以启用自动续期。",
+    "reauthorize": "重新授权",
+    "binding_details": "已保存的资源与应用",
+    "models_hint": "模型列表来自后端发现。此提供商暂不支持配额查询和 Token 计数。",
+    "configure_link": "配置 Gemini Enterprise 并授权账号",
+    "validation": {
+      "required": "此项不能为空。",
+      "resource": "请填写只包含字母、数字、下划线和连字符的资源 ID。",
+      "environment": "请填写环境变量名，不要填写 Secret 值。"
+    },
+    "fields": {
+      "clientId": "OAuth 客户端 ID",
+      "clientSecretEnv": "Secret 环境变量名",
+      "projectId": "项目 ID",
+      "location": "区域",
+      "collectionId": "集合 ID",
+      "engineId": "引擎 ID",
+      "assistantId": "助手 ID"
+    },
+    "access_expiry": "访问令牌到期时间",
+    "backend_upgrade": "此后端尚不支持 Gemini Enterprise 授权，请升级到配套后端版本。"
   }
 }

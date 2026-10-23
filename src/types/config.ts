@@ -5,6 +5,16 @@
 
 import type { GeminiKeyConfig, ProviderKeyConfig, OpenAIProviderConfig } from './provider';
 
+export interface GeminiEnterpriseConfig {
+  clientId: string;
+  clientSecretEnv: string;
+  projectId: string;
+  location: string;
+  collectionId: string;
+  engineId: string;
+  assistantId: string;
+}
+
 export interface QuotaExceededConfig {
   switchProject?: boolean;
   switchPreviewModel?: boolean;

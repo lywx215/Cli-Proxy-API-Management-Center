@@ -11,6 +11,7 @@ import {
 export type BuiltInOAuthProvider =
   | 'codex'
   | 'gemini-cli'
+  | 'gemini-enterprise'
   | 'anthropic'
   | 'antigravity'
   | 'kimi'
@@ -26,6 +27,8 @@ export interface OAuthStartResponse {
   user_code?: string;
   flow?: string;
   expires_in?: number;
+  callback_url?: string;
+  manual_callback_required?: boolean;
 }
 
 export interface OAuthCallbackResponse {
@@ -44,6 +47,7 @@ const WEBUI_SUPPORTED = new Set<string>([
   'xai',
   'devin',
   'gemini-cli',
+  'gemini-enterprise',
 ]);
 
 const CALLBACK_PROVIDER_MAP: Record<string, string> = { 'gemini-cli': 'gemini' };

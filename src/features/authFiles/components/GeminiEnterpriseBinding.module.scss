@@ -1,0 +1,31 @@
+.binding {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.resource {
+  color: var(--text-primary);
+  font-family: var(--font-mono, monospace);
+  overflow-wrap: anywhere;
+  margin: 0 0 6px;
+}
+.renewal,
+.hint {
+  margin: 0 0 6px;
+}
+.binding summary {
+  cursor: pointer;
+}
+.binding dl {
+  margin: 8px 0;
+}
+.binding dl > div {
+  display: grid;
+  grid-template-columns: minmax(85px, 1fr) minmax(0, 2fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.binding dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

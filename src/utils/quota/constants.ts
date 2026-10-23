@@ -18,6 +18,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#e0e8ff', text: '#1e4fa3' },
     dark: { bg: '#1c3f73', text: '#a8c7ff' },
   },
+  'gemini-enterprise': {
+    light: { bg: '#e0e8ff', text: '#1e4fa3' },
+    dark: { bg: '#1c3f73', text: '#a8c7ff' },
+  },
   aistudio: {
     light: { bg: '#f0f2f5', text: '#2f343c' },
     dark: { bg: '#373c42', text: '#cfd3db' },

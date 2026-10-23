@@ -147,7 +147,7 @@ const normalizeBatchDeleteResponse = (
   };
 };
 
-const readTextField = (entry: AuthFileEntry, key: string): string => {
+const readTextField = (entry: Record<string, unknown>, key: string): string => {
   const value = entry[key];
   return typeof value === 'string' ? value.trim() : '';
 };
@@ -277,11 +277,25 @@ const normalizeAuthFileEntry = (
   // account / account_type 故意不归一化：api-key 类凭证的 account 就是 API key 本身
   // （sdk/cliproxy/auth/types.go AccountInfo），不能进入展示与搜索路径。
   const projectId = readTextField(entry, 'project_id');
+  const enterprise = isRecord(entry.gemini_enterprise) ? entry.gemini_enterprise : null;
+  const geminiEnterprise = enterprise
+    ? {
+        clientId: readTextField(enterprise, 'client_id') || undefined,
+        projectId: readTextField(enterprise, 'project_id') || undefined,
+        location: readTextField(enterprise, 'location') || undefined,
+        collectionId: readTextField(enterprise, 'collection_id') || undefined,
+        engineId: readTextField(enterprise, 'engine_id') || undefined,
+        assistantId: readTextField(enterprise, 'assistant_id') || undefined,
+        expiry: readTextField(enterprise, 'expiry') || undefined,
+        hasRefreshToken: readBooleanField(enterprise.has_refresh_token),
+      }
+    : undefined;
   const modified = readDateField(entry);
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
   const supportsQuota = readBooleanField(entry['supports_quota'] ?? entry.supportsQuota);
-  const quotaProvider = readTextField(entry, 'quota_provider') || readTextField(entry, 'quotaProvider');
+  const quotaProvider =
+    readTextField(entry, 'quota_provider') || readTextField(entry, 'quotaProvider');
 
   return {
     ...entry,
@@ -300,6 +314,7 @@ const normalizeAuthFileEntry = (
     ...(note ? { note } : {}),
     ...(email ? { email } : {}),
     ...(projectId ? { projectId } : {}),
+    ...(geminiEnterprise ? { geminiEnterprise } : {}),
   };
 };
 

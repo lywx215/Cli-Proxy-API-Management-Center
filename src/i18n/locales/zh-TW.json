@@ -527,7 +527,8 @@
     "excluded_models_placeholder": "用逗號或換行分隔，例如: model-a, gpt-5-*, *-preview",
     "excluded_models_hint": "儲存為陣列；會自動 trim、小寫、去重並排序。",
     "disable_cooling_placeholder": "例如: true / false / 1 / 0",
-    "note_display": "備註"
+    "note_display": "備註",
+    "filter_gemini-enterprise": "Gemini Enterprise"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",
@@ -1127,7 +1128,20 @@
     "gemini_cli_oauth_status_error": "驗證失敗:",
     "gemini_cli_oauth_start_error": "啟動 Gemini CLI OAuth 失敗:",
     "gemini_cli_oauth_polling_error": "檢查驗證狀態失敗:",
-    "kimi_ai_oauth_url_label": "授權連結:"
+    "kimi_ai_oauth_url_label": "授權連結:",
+    "gemini_enterprise_oauth_hint": "使用 Google 授權。應用程式處於測試狀態時，請先將帳號加入測試使用者。重新導向不符時請核對上方 URI；專案存取錯誤請檢查資源權限。",
+    "gemini_enterprise_oauth_button": "儲存並使用 Google 授權",
+    "gemini_enterprise_oauth_title": "Gemini Enterprise 授權",
+    "gemini_enterprise_open_link": "開啟 Google 授權",
+    "gemini_enterprise_copy_link": "複製授權連結",
+    "gemini_enterprise_oauth_status_waiting": "等待 Google 授權…",
+    "gemini_enterprise_oauth_status_success": "已新增 Gemini Enterprise 帳號",
+    "gemini_enterprise_oauth_status_error": "Gemini Enterprise 授權失敗。",
+    "gemini_enterprise_oauth_start_error": "無法啟動 Google 授權。",
+    "gemini_enterprise_oauth_polling_error": "無法查詢授權狀態。",
+    "gemini_enterprise_oauth_cancel": "取消授權",
+    "gemini_enterprise_oauth_cancelled": "已取消授權",
+    "gemini_enterprise_oauth_cancel_error": "無法取消授權。"
   },
   "stats": {
     "success": "成功",
@@ -2930,5 +2944,42 @@
     "state_attempted": "已記錄嘗試",
     "state_circuit_open": "上游模型暫時熔斷",
     "state_not_routable": "不在目前可路由模型範圍"
+  },
+  "gemini_enterprise": {
+    "settings_title": "資源綁定",
+    "settings_hint": "填寫本次登入使用的 Gemini Enterprise 資源，現有帳號仍保留各自儲存的綁定。",
+    "redirect_label": "請在 Google Cloud 登記完全一致的重新導向 URI：",
+    "loading": "正在載入設定…",
+    "save": "儲存設定",
+    "reload": "重新載入設定",
+    "ready": "設定已儲存，可以授權 Google 帳號。",
+    "conflict": "設定已在其他視窗修改，請重新載入並確認後再儲存。",
+    "callback_hint": "後端在本機執行時會自動接收回呼。使用遠端後端或連接埠被占用時，即使瀏覽器提示無法連線，也可將完整的 localhost 回呼網址貼到此處。網址必須來自本次授權。",
+    "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
+    "callback_url": "請貼上完整的 http://localhost:8788/oauth-callback 回呼網址。",
+    "callback_state": "此回呼屬於其他或已失效的授權，請使用目前的授權連結。",
+    "callback_code": "回呼網址必須包含 Google 授權碼或錯誤參數。",
+    "renewal_ready": "已取得離線授權，支援自動更新。",
+    "renewal_missing": "沒有更新權杖，請重新授權以啟用自動更新。",
+    "reauthorize": "重新授權",
+    "binding_details": "已儲存的資源與應用程式",
+    "models_hint": "模型清單來自後端探索。此供應商暫不支援配額查詢和 Token 計數。",
+    "configure_link": "設定 Gemini Enterprise 並授權帳號",
+    "validation": {
+      "required": "此欄位必填。",
+      "resource": "請填寫僅含字母、數字、底線及連字號的資源 ID。",
+      "environment": "請填寫環境變數名稱，不要填寫 Secret 值。"
+    },
+    "fields": {
+      "clientId": "OAuth 用戶端 ID",
+      "clientSecretEnv": "Secret 環境變數名稱",
+      "projectId": "專案 ID",
+      "location": "區域",
+      "collectionId": "集合 ID",
+      "engineId": "引擎 ID",
+      "assistantId": "助理 ID"
+    },
+    "access_expiry": "存取權杖到期時間",
+    "backend_upgrade": "此後端尚不支援 Gemini Enterprise 授權，請升級至配套後端版本。"
   }
 }
