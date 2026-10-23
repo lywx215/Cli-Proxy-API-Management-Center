@@ -2,6 +2,36 @@ import { apiClient } from './client';
 import { guardConfigConnection } from './configValue';
 import { isRecord } from '@/utils/helpers';
 import type { GeminiEnterpriseConfig } from '@/types/config';
+import type {
+  GeminiEnterpriseQuotaData,
+  GeminiEnterpriseQuotaStatus,
+} from '@/types/geminiEnterpriseQuota';
+
+export function normalizeGeminiEnterpriseQuota(value: unknown): GeminiEnterpriseQuotaData {
+  const source = isRecord(value) ? value : {};
+  const status = (raw: unknown): GeminiEnterpriseQuotaStatus =>
+    raw === 'ok' || raw === 'no_permission' || raw === 'no_data' ? raw : 'unavailable';
+  const time = (raw: unknown): string | null =>
+    typeof raw === 'string' && Number.isFinite(Date.parse(raw)) && !raw.startsWith('0001-')
+      ? raw
+      : null;
+  const amount = (raw: unknown): number | null =>
+    typeof raw === 'number' && Number.isSafeInteger(raw) && raw >= 0 ? raw : null;
+  return {
+    status: status(source.status),
+    observedAt: time(source.observed_at),
+    periodStart: time(source.period_start),
+    resetAt: time(source.reset_at),
+    pools: (Array.isArray(source.pools) ? source.pools : []).filter(isRecord).map((pool) => ({
+      tier: typeof pool.tier === 'string' ? pool.tier : '',
+      status: status(pool.status),
+      limit: amount(pool.limit),
+      used: amount(pool.used),
+      remaining: amount(pool.remaining),
+      usageUpdatedAt: time(pool.usage_updated_at),
+    })),
+  };
+}
 
 export const GEMINI_ENTERPRISE_CALLBACK_URL = 'http://localhost:8788/oauth-callback';
 export const GEMINI_ENTERPRISE_FIELDS = [
@@ -57,6 +87,21 @@ export function sameGeminiEnterpriseConfig(a: GeminiEnterpriseConfig, b: GeminiE
 export class GeminiEnterpriseConfigConflict extends Error {}
 
 export const geminiEnterpriseApi = {
+  async quota(authIndex: string): Promise<GeminiEnterpriseQuotaData> {
+    const assertConnection = guardConfigConnection();
+    let result: unknown;
+    try {
+      result = await apiClient.get('/quota/gemini-enterprise', {
+        params: { auth_index: authIndex },
+      });
+    } catch {
+      // Optional quota reads must not surface raw Google or transport failures.
+      result = { status: 'unavailable' };
+    }
+    assertConnection();
+    return normalizeGeminiEnterpriseQuota(result);
+  },
+
   async save(
     value: GeminiEnterpriseConfig,
     expected: GeminiEnterpriseConfig,

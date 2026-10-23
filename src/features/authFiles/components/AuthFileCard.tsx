@@ -35,6 +35,7 @@ import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFi
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
 import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
+import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
 import styles from './AuthFileCard.module.scss';
 
 export type AuthFileCardProps = {
@@ -256,6 +257,10 @@ export function AuthFileCard(props: AuthFileCardProps) {
 
       {showQuotaLayout && quotaType && (
         <AuthFileQuotaSection file={file} quotaType={quotaType} disableControls={disableControls} />
+      )}
+
+      {providerKey === 'gemini-enterprise' && !compact && !isRuntimeOnly && (
+        <GeminiEnterpriseQuota file={file} disableControls={disableControls} />
       )}
 
       <footer className={styles.actions}>

@@ -4,6 +4,7 @@
 
 import { create } from 'zustand';
 import { getQuotaCacheFileName } from '@/utils/quota/identity';
+import type { GeminiEnterpriseQuotaState } from '@/types/geminiEnterpriseQuota';
 import type {
   AntigravityQuotaState,
   ClaudeQuotaState,
@@ -21,6 +22,10 @@ type QuotaUpdater<T> = T | ((prev: T) => T);
 interface QuotaStoreState {
   cacheGeneration: number;
   fileGenerations: Record<string, number>;
+  geminiEnterpriseQuota: Record<string, GeminiEnterpriseQuotaState>;
+  setGeminiEnterpriseQuota: (
+    updater: QuotaUpdater<Record<string, GeminiEnterpriseQuotaState>>
+  ) => void;
   antigravityQuota: Record<string, AntigravityQuotaState>;
   claudeQuota: Record<string, ClaudeQuotaState>;
   codexQuota: Record<string, CodexQuotaState>;
@@ -52,6 +57,11 @@ const resolveUpdater = <T>(updater: QuotaUpdater<T>, prev: T): T => {
 export const useQuotaStore = create<QuotaStoreState>((set) => ({
   cacheGeneration: 0,
   fileGenerations: {},
+  geminiEnterpriseQuota: {},
+  setGeminiEnterpriseQuota: (updater) =>
+    set((state) => ({
+      geminiEnterpriseQuota: resolveUpdater(updater, state.geminiEnterpriseQuota),
+    })),
   antigravityQuota: {},
   claudeQuota: {},
   codexQuota: {},
@@ -115,6 +125,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
         };
         return {
           fileGenerations,
+          geminiEnterpriseQuota: omitNames(state.geminiEnterpriseQuota),
           antigravityQuota: omitNames(state.antigravityQuota),
           claudeQuota: omitNames(state.claudeQuota),
           codexQuota: omitNames(state.codexQuota),
@@ -129,6 +140,7 @@ export const useQuotaStore = create<QuotaStoreState>((set) => ({
       return {
         cacheGeneration: state.cacheGeneration + 1,
         fileGenerations: {},
+        geminiEnterpriseQuota: {},
         antigravityQuota: {},
         claudeQuota: {},
         codexQuota: {},
