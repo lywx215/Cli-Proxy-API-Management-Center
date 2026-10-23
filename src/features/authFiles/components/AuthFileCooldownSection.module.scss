@@ -89,7 +89,7 @@
 }
 
 .remaining {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--text-secondary);
 }
 

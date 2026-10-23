@@ -590,6 +590,20 @@ export const authFilesApi = {
       auth_index: authIndex,
     }),
 
+  retrySharedQuota: (authIndex: string, poolId: string, poolVersion: number) =>
+    apiClient.post<{
+      reset_scope: 'shared_pool';
+      pool_id: string;
+      pool_version: number;
+      phase: 'probe_pending';
+      affected_auth_indexes: string[];
+    }>('/routing/cooldown/reset', {
+      auth_index: authIndex,
+      reset_scope: 'shared_pool',
+      pool_id: poolId,
+      pool_version: poolVersion,
+    }),
+
   uploadFiles: async (files: File[]): Promise<AuthFileBatchUploadResult> => {
     const requestedNames = files.map((file) => file.name);
     if (requestedNames.length === 0) {

@@ -55,7 +55,10 @@ export type AuthFileCardProps = {
   onShowModels: (file: AuthFileItem) => void;
   onDownload: (name: string) => void;
   onManualRefresh: (file: AuthFileItem) => void;
-  onCooldownReset: (file: AuthFileItem) => void;
+  onCooldownReset: (
+    file: AuthFileItem,
+    shared?: import('@/types/authFile').AuthFileCooldown
+  ) => void;
   onOpenPrefixProxyEditor: (file: AuthFileItem) => void;
   onDelete: (name: string) => void;
   onToggleStatus: (file: AuthFileItem, enabled: boolean) => void;
@@ -201,7 +204,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
           statusUpdating[getAuthFileRefreshKey(file)] === true ||
           isManualRefreshing
         }
-        onReset={authIndexKey ? () => onCooldownReset(file) : undefined}
+        onReset={authIndexKey ? (shared) => onCooldownReset(file, shared) : undefined}
       />
 
       <div className={styles.health}>

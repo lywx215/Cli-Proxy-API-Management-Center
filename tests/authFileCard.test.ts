@@ -69,7 +69,7 @@ describe('auth file card presentation contract', () => {
       'onShowModels(file)',
       'onDownload(file.name)',
       'onManualRefresh(file)',
-      'onCooldownReset(file)',
+      'onCooldownReset(file, shared)',
       'onOpenPrefixProxyEditor(file)',
       'onDelete(file.name)',
     ]) {

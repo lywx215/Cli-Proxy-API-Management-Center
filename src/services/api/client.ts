@@ -21,6 +21,7 @@ class ApiClient {
   private apiBase: string = '';
   private managementKey: string = '';
   private connectionRevision = 0;
+  private requestRevisions = new WeakMap<object, number>();
 
   constructor() {
     this.instance = axios.create({
@@ -54,6 +55,11 @@ class ApiClient {
   /** Guards read/modify/write operations across connection changes, including ABA switches. */
   getConnectionRevision(): number {
     return this.connectionRevision;
+  }
+
+  private isCurrentRequest(config?: object): boolean {
+    const revision = config && this.requestRevisions.get(config);
+    return revision === undefined || revision === this.connectionRevision;
   }
 
   private readHeader(headers: Record<string, unknown> | undefined, keys: string[]): string | null {
@@ -114,6 +120,7 @@ class ApiClient {
     // 请求拦截器
     this.instance.interceptors.request.use(
       (config) => {
+        this.requestRevisions.set(config, this.connectionRevision);
         // 设置 baseURL
         config.baseURL = this.apiBase;
 
@@ -130,6 +137,7 @@ class ApiClient {
     // 响应拦截器
     this.instance.interceptors.response.use(
       (response) => {
+        if (!this.isCurrentRequest(response.config)) return response;
         const headers = response.headers as Record<string, string | undefined>;
         const cpaVersion = this.readHeader(headers, CPA_VERSION_HEADER_KEYS);
         const cpaBuildDate = this.readHeader(headers, CPA_BUILD_DATE_HEADER_KEYS);
@@ -175,7 +183,7 @@ class ApiClient {
       apiError.data = responseData;
 
       // 401 未授权 - 触发登出事件
-      if (error.response?.status === 401) {
+      if (error.response?.status === 401 && this.isCurrentRequest(error.config)) {
         window.dispatchEvent(new Event('unauthorized'));
       }
 

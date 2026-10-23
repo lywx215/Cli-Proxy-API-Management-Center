@@ -18,6 +18,22 @@ export function cooldownReasonKey(reason: string): string {
     : 'auth_files.cooldown_reason_unknown';
 }
 
+export function canRetrySharedQuota(record: AuthFileCooldown): boolean {
+  return (
+    record.origin === 'shared_pool' &&
+    record.scope === 'credential' &&
+    (record.feature === 'assistant_search' || record.feature === 'technical_requests') &&
+    (record.phase === 'cooling' || record.phase === 'probe_pending') &&
+    record.sharedResetSupported === true &&
+    typeof record.poolId === 'string' &&
+    /^[a-f0-9]{64}$/.test(record.poolId) &&
+    Number.isSafeInteger(record.poolVersion) &&
+    (record.poolVersion ?? 0) > 0 &&
+    Number.isSafeInteger(record.relatedAuthCount) &&
+    (record.relatedAuthCount ?? 0) > 0
+  );
+}
+
 export function cooldownRemainingSeconds(
   record: AuthFileCooldown,
   receivedAtMs: number,

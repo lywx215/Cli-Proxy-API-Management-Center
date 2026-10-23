@@ -536,7 +536,18 @@
     "disable_cooling_placeholder": "например: true / false / 1 / 0",
     "note_display": "Заметка",
     "card_tools_title": "Инструменты",
-    "filter_gemini-enterprise": "Gemini Enterprise"
+    "filter_gemini-enterprise": "Gemini Enterprise",
+    "shared_quota_title": "Общая квота Assistant and Search: ожидание",
+    "shared_quota_all_text": "Все текстовые модели",
+    "shared_quota_related": "Связанных учетных данных: {{count}}",
+    "shared_quota_probe_pending": "Ожидание следующего запроса для проверки восстановления",
+    "shared_quota_probing": "Проверка восстановления",
+    "shared_quota_note": "Восстановление подтверждается только полным успешным запросом. Чтение квоты не блокирует запросы.",
+    "shared_quota_retry_button": "Повторить для общей квоты",
+    "shared_quota_retry_confirm": "Разрешить следующему запросу проверить пул для {{count}} учетных данных? Это не восстанавливает квоту Google и не снимает другие ограничения.",
+    "shared_quota_retry_success": "Общая квота ожидает проверки следующим запросом.",
+    "shared_quota_user_title": "Квота пользователя Assistant and Search: ожидание",
+    "shared_quota_technical_title": "Ограничение частоты запросов проекта Google"
   },
   "antigravity_subscription": {
     "plan_unknown": "Неизвестно",

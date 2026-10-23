@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import type { AxiosAdapter } from 'axios';
+import { AxiosError, type AxiosAdapter, type AxiosResponse } from 'axios';
 import { apiClient } from '../src/services/api/client';
 
 const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -52,4 +52,58 @@ describe('v8 management transport', () => {
     expect((events[0] as CustomEvent).detail.version).toBe('v8.0.3');
     expect((events[1] as CustomEvent).detail.supportsPlugin).toBe(true);
   });
+
+  for (const status of [200, 401]) {
+    for (const transition of ['switch', 'logout', 'aba', 'same'] as const) {
+      test(`${status} response side effects follow the request connection (${transition})`, async () => {
+        const events: string[] = [];
+        Object.defineProperty(globalThis, 'window', {
+          configurable: true,
+          value: { dispatchEvent: (event: Event) => events.push(event.type) },
+        });
+        apiClient.setConfig({ apiBase: 'https://old.invalid', managementKey: 'fixture-old' });
+        let dispatched!: () => void;
+        const started = new Promise<void>((resolve) => {
+          dispatched = resolve;
+        });
+        let deliver!: () => void;
+        const request = apiClient.get('/credentials', {
+          adapter: (config) =>
+            new Promise<AxiosResponse>((resolve, reject) => {
+              deliver = () => {
+                const response: AxiosResponse = {
+                  config,
+                  data: { files: [] },
+                  status,
+                  statusText: String(status),
+                  headers: { 'X-CPA-Version': 'old-server', 'X-CPA-Support-Plugin': 'true' },
+                };
+                if (status === 401)
+                  reject(
+                    new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', config, undefined, response)
+                  );
+                else resolve(response);
+              };
+              dispatched();
+            }),
+        });
+        await started;
+        if (transition === 'logout') apiClient.setConfig({ apiBase: '', managementKey: '' });
+        if (transition === 'switch' || transition === 'aba')
+          apiClient.setConfig({ apiBase: 'https://new.invalid', managementKey: 'fixture-new' });
+        if (transition === 'aba')
+          apiClient.setConfig({ apiBase: 'https://old.invalid', managementKey: 'fixture-old' });
+        deliver();
+        if (status === 401) await expect(request).rejects.toHaveProperty('status', 401);
+        else expect(await request).toEqual({ files: [] });
+        expect(events).toEqual(
+          transition === 'same'
+            ? status === 401
+              ? ['unauthorized']
+              : ['server-version-update', 'server-plugin-support-update']
+            : []
+        );
+      });
+    }
+  }
 });

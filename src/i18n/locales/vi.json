@@ -532,7 +532,18 @@
     "excluded_models_hint": "Saved as an array and normalized by trim/lowercase/dedup/sort.",
     "disable_cooling_placeholder": "e.g. true / false / 1 / 0",
     "note_display": "Note",
-    "filter_gemini-enterprise": "Gemini Enterprise"
+    "filter_gemini-enterprise": "Gemini Enterprise",
+    "shared_quota_title": "Tạm dừng hạn mức dùng chung Assistant and Search",
+    "shared_quota_all_text": "Tất cả mô hình văn bản",
+    "shared_quota_related": "{{count}} thông tin xác thực liên kết",
+    "shared_quota_probe_pending": "Chờ yêu cầu tiếp theo xác minh khôi phục",
+    "shared_quota_probing": "Đang xác minh khôi phục",
+    "shared_quota_note": "Chỉ yêu cầu thông thường thành công hoàn toàn mới xác nhận khôi phục. Truy vấn hạn mức chỉ đọc không chặn yêu cầu.",
+    "shared_quota_retry_button": "Thử lại hạn mức chung",
+    "shared_quota_retry_confirm": "Cho phép yêu cầu tiếp theo kiểm tra nhóm cho {{count}} thông tin xác thực? Thao tác này không khôi phục hạn mức Google hoặc xóa các hạn chế khác.",
+    "shared_quota_retry_success": "Hạn mức chung đang chờ yêu cầu tiếp theo xác minh khôi phục.",
+    "shared_quota_user_title": "Tạm dừng hạn mức người dùng Assistant and Search",
+    "shared_quota_technical_title": "Giới hạn tần suất dự án Google"
   },
   "antigravity_subscription": {
     "plan_unknown": "Không rõ",

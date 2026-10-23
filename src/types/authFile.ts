@@ -24,6 +24,17 @@ export type AuthFileType =
   | 'unknown';
 
 export interface AuthFileCooldown {
+  /** Optional shared quota projection; scope remains compatible with older backends. */
+  origin?: 'shared_pool';
+  feature?: string;
+  poolId?: string;
+  poolVersion?: number;
+  relatedAuthCount?: number;
+  phase?: 'cooling' | 'probe_pending' | 'probing';
+  restrictionKind?: string;
+  restrictionScope?: string;
+  timeSource?: string;
+  sharedResetSupported?: boolean;
   scope: 'model' | 'credential';
   modelKey?: string;
   reason: string;

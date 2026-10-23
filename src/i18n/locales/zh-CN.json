@@ -530,7 +530,18 @@
     "excluded_models_hint": "保存为数组；会自动 trim、小写、去重并排序。",
     "disable_cooling_placeholder": "例如: true / false / 1 / 0",
     "note_display": "备注",
-    "filter_gemini-enterprise": "Gemini Enterprise"
+    "filter_gemini-enterprise": "Gemini Enterprise",
+    "shared_quota_title": "Assistant and Search 共享额度冷却",
+    "shared_quota_all_text": "全部文字模型",
+    "shared_quota_related": "关联 {{count}} 份凭证",
+    "shared_quota_probe_pending": "等待下次请求验证恢复",
+    "shared_quota_probing": "正在验证恢复",
+    "shared_quota_note": "只有正常请求完整成功才能确认恢复。只读额度查询不会阻止调用。",
+    "shared_quota_retry_button": "共享额度重试",
+    "shared_quota_retry_confirm": "允许下次请求验证此池的恢复状态？将影响 {{count}} 份凭证，不会恢复 Google 官方额度或清除其他限制。",
+    "shared_quota_retry_success": "共享额度已转为待验证，等待下一次正常请求。",
+    "shared_quota_user_title": "Assistant and Search 用户额度冷却",
+    "shared_quota_technical_title": "Google 项目分钟限流"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",

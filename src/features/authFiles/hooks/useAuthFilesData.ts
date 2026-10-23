@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { apiClient, authFilesApi } from '@/services/api';
 import type { AuthFileRefreshResult } from '@/services/api/authFiles';
 import { getAuthFileRefreshKey } from '@/features/authFiles/manualRefresh';
+import { canRetrySharedQuota } from '@/features/authFiles/cooldowns';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import { useNotificationStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
@@ -64,7 +65,10 @@ export type UseAuthFilesDataResult = {
   handleDeleteAll: (options: DeleteAllOptions) => void;
   handleDownload: (name: string) => Promise<void>;
   handleManualRefresh: (item: AuthFileItem) => Promise<void>;
-  handleCooldownReset: (item: AuthFileItem) => void;
+  handleCooldownReset: (
+    item: AuthFileItem,
+    shared?: import('@/types/authFile').AuthFileCooldown
+  ) => void;
   handleStatusToggle: (item: AuthFileItem, enabled: boolean) => Promise<void>;
   toggleSelect: (name: string) => void;
   selectAllVisible: (visibleFiles: AuthFileItem[]) => void;
@@ -101,6 +105,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
   const uploadPendingRef = useRef(false);
   const manualRefreshPendingRef = useRef<Set<string>>(new Set());
   const cooldownResetPendingRef = useRef<Set<string>>(new Set());
+  const cooldownResetRevisionRef = useRef(apiClient.getConnectionRevision());
   const batchStatusPendingRef = useRef(false);
   const statusPendingRef = useRef({ revision: -1, keys: new Set<string>() });
   /** 列表请求代号：变更操作会使在途响应过期，防止旧轮询复活已删/已改文件。 */
@@ -210,6 +215,11 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
       const background = options?.background === true;
       const requestId = ++loadRequestIdRef.current;
       const connectionRevision = apiClient.getConnectionRevision();
+      if (cooldownResetRevisionRef.current !== connectionRevision) {
+        cooldownResetRevisionRef.current = connectionRevision;
+        cooldownResetPendingRef.current.clear();
+        setCooldownResetting({});
+      }
       const isCurrentRequest = () =>
         requestId === loadRequestIdRef.current &&
         connectionRevision === apiClient.getConnectionRevision();
@@ -604,52 +614,79 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
   }, [invalidateInFlightLoads, loadFiles, showConfirmation, showNotification, t]);
 
   const handleCooldownReset = useCallback(
-    (item: AuthFileItem) => {
+    (item: AuthFileItem, shared?: import('@/types/authFile').AuthFileCooldown) => {
       const authIndex = String(item.authIndex ?? '').trim();
       if (
         !authIndex ||
         !item.cooldownSnapshot?.records?.length ||
-        cooldownResetPendingRef.current.has(authIndex)
+        cooldownResetPendingRef.current.has(
+          `${apiClient.getConnectionRevision()}:${authIndex}:${shared?.poolId ?? 'credential'}`
+        )
       ) {
         return;
       }
 
+      if (shared && !canRetrySharedQuota(shared)) return;
       const connectionRevision = apiClient.getConnectionRevision();
+      const pendingKey = `${connectionRevision}:${authIndex}:${shared?.poolId ?? 'credential'}`;
       showConfirmation({
-        title: t('auth_files.cooldown_reset_title'),
-        message: t('auth_files.cooldown_reset_confirm', { name: item.name }),
-        confirmText: t('auth_files.cooldown_reset_button'),
+        title: t(
+          shared ? 'auth_files.shared_quota_retry_button' : 'auth_files.cooldown_reset_title'
+        ),
+        message: shared
+          ? t('auth_files.shared_quota_retry_confirm', { count: shared.relatedAuthCount ?? 1 })
+          : t('auth_files.cooldown_reset_confirm', { name: item.name }),
+        confirmText: t(
+          shared ? 'auth_files.shared_quota_retry_button' : 'auth_files.cooldown_reset_button'
+        ),
         variant: 'primary',
         onConfirm: async () => {
           if (
             connectionRevision !== apiClient.getConnectionRevision() ||
-            cooldownResetPendingRef.current.has(authIndex)
+            cooldownResetPendingRef.current.has(
+              `${apiClient.getConnectionRevision()}:${authIndex}:${shared?.poolId ?? 'credential'}`
+            )
           ) {
             return;
           }
-          cooldownResetPendingRef.current.add(authIndex);
+          cooldownResetPendingRef.current.add(pendingKey);
           setCooldownResetting((prev) => ({ ...prev, [authIndex]: true }));
 
           try {
-            await authFilesApi.resetCooldown(authIndex);
+            if (shared?.poolId && shared.poolVersion) {
+              await authFilesApi.retrySharedQuota(authIndex, shared.poolId, shared.poolVersion);
+            } else {
+              await authFilesApi.resetCooldown(authIndex);
+            }
             if (connectionRevision !== apiClient.getConnectionRevision()) return;
             invalidateInFlightLoads();
-            setFiles((prev) =>
-              prev.map((file) =>
-                String(file.authIndex ?? '').trim() === authIndex && file.cooldownSnapshot
-                  ? {
-                      ...file,
-                      cooldownSnapshot: {
-                        ...file.cooldownSnapshot,
-                        receivedAtMs: Date.now(),
-                        records: [],
-                      },
-                    }
-                  : file
-              )
-            );
+            if (!shared) {
+              setFiles((prev) =>
+                connectionRevision !== apiClient.getConnectionRevision()
+                  ? prev
+                  : prev.map((file) =>
+                      String(file.authIndex ?? '').trim() === authIndex && file.cooldownSnapshot
+                        ? {
+                            ...file,
+                            cooldownSnapshot: {
+                              ...file.cooldownSnapshot,
+                              records:
+                                file.cooldownSnapshot.records?.filter(
+                                  (record) => record.origin === 'shared_pool'
+                                ) ?? null,
+                            },
+                          }
+                        : file
+                    )
+              );
+            }
             showNotification(
-              t('auth_files.cooldown_reset_success', { name: item.name }),
+              t(
+                shared
+                  ? 'auth_files.shared_quota_retry_success'
+                  : 'auth_files.cooldown_reset_success',
+                { name: item.name }
+              ),
               'success'
             );
             await loadFiles({ background: true });
@@ -660,9 +697,14 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
               t('auth_files.cooldown_reset_failed', { name: item.name, message }),
               'error'
             );
+            if (shared) {
+              invalidateInFlightLoads();
+              await loadFiles({ background: true });
+            }
           } finally {
-            cooldownResetPendingRef.current.delete(authIndex);
+            cooldownResetPendingRef.current.delete(pendingKey);
             setCooldownResetting((prev) => {
+              if (connectionRevision !== apiClient.getConnectionRevision()) return prev;
               if (!prev[authIndex]) return prev;
               const next = { ...prev };
               delete next[authIndex];

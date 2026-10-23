@@ -2,10 +2,14 @@ import { useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { IconChevronDown, IconRefreshCw } from '@/components/ui/icons';
-import type { AuthFileCooldownSnapshot } from '@/types/authFile';
+import type { AuthFileCooldown, AuthFileCooldownSnapshot } from '@/types/authFile';
 import { createSharedClock } from '@/utils/time/sharedClock';
 import { formatDateTimeValue } from '@/utils/format';
-import { cooldownReasonKey, summarizeCooldowns } from '@/features/authFiles/cooldowns';
+import {
+  canRetrySharedQuota,
+  cooldownReasonKey,
+  summarizeCooldowns,
+} from '@/features/authFiles/cooldowns';
 import styles from './AuthFileCooldownSection.module.scss';
 
 // One timer for visible cooldown cards, never one interval/request per credential.
@@ -15,7 +19,7 @@ export type AuthFileCooldownSectionProps = {
   snapshot?: AuthFileCooldownSnapshot;
   resetting?: boolean;
   resetDisabled?: boolean;
-  onReset?: () => void;
+  onReset?: (shared?: AuthFileCooldown) => void;
 };
 
 export function AuthFileCooldownSection({
@@ -49,12 +53,27 @@ function CooldownDetails({
   snapshot: AuthFileCooldownSnapshot;
   resetting: boolean;
   resetDisabled: boolean;
-  onReset?: () => void;
+  onReset?: (shared?: AuthFileCooldown) => void;
 }) {
   const { t, i18n } = useTranslation();
   const now = useSyncExternalStore(clock.subscribe, clock.getSnapshot, clock.getSnapshot);
   const { rows, modelCount, credentialWide, earliestSeconds } = summarizeCooldowns(snapshot, now);
   const elapsed = earliestSeconds === 0;
+  const sharedRows = rows.filter(({ record }) => record.origin === 'shared_pool');
+  const sharedTitle = (record: AuthFileCooldown) =>
+    record.restrictionScope === 'user'
+      ? 'auth_files.shared_quota_user_title'
+      : record.feature === 'technical_requests'
+        ? 'auth_files.shared_quota_technical_title'
+        : 'auth_files.shared_quota_title';
+  const sharedPhase = sharedRows.some(({ record }) => record.phase === 'probing')
+    ? 'probing'
+    : sharedRows.some(
+          ({ record, remainingSeconds }) =>
+            record.phase === 'probe_pending' || remainingSeconds === 0
+        )
+      ? 'probe_pending'
+      : 'cooling';
   const duration = (seconds: number) => {
     if (seconds < 60) return t('auth_files.cooldown_seconds', { count: seconds });
     if (seconds < 3600) return t('auth_files.cooldown_minutes', { count: Math.ceil(seconds / 60) });
@@ -71,12 +90,18 @@ function CooldownDetails({
       <summary className={styles.summary}>
         <span className={styles.summaryContent}>
           <span className={styles.scope}>
-            {elapsed ? t('auth_files.cooldown_elapsed') : scopeLabel}
+            {sharedRows.length
+              ? t(sharedTitle(sharedRows[0].record))
+              : elapsed
+                ? t('auth_files.cooldown_elapsed')
+                : scopeLabel}
           </span>
           <span className={styles.next}>
-            {elapsed
-              ? t('auth_files.cooldown_refresh_hint')
-              : t('auth_files.cooldown_earliest', { time: duration(earliestSeconds) })}
+            {sharedRows.length && sharedPhase !== 'cooling'
+              ? t(`auth_files.shared_quota_${sharedPhase}`)
+              : elapsed
+                ? t('auth_files.cooldown_refresh_hint')
+                : t('auth_files.cooldown_earliest', { time: duration(earliestSeconds) })}
           </span>
         </span>
         <IconChevronDown size={14} className={styles.chevron} aria-hidden="true" />
@@ -88,17 +113,34 @@ function CooldownDetails({
               <div className={styles.rowHead}>
                 <span className={styles.model}>
                   {record.scope === 'credential'
-                    ? t('auth_files.cooldown_scope_credential')
+                    ? record.origin === 'shared_pool'
+                      ? t('auth_files.shared_quota_all_text')
+                      : t('auth_files.cooldown_scope_credential')
                     : record.modelKey}
                 </span>
                 <span className={styles.remaining}>
                   {remainingSeconds > 0
                     ? duration(remainingSeconds)
-                    : t('auth_files.cooldown_timer_elapsed')}
+                    : record.origin === 'shared_pool'
+                      ? t(
+                          `auth_files.shared_quota_${record.phase === 'probing' ? 'probing' : 'probe_pending'}`
+                        )
+                      : t('auth_files.cooldown_timer_elapsed')}
                 </span>
               </div>
               <div className={styles.reason}>
-                <span>{t(cooldownReasonKey(record.reason))}</span>
+                <span>
+                  {t(
+                    record.origin === 'shared_pool'
+                      ? sharedTitle(record)
+                      : cooldownReasonKey(record.reason)
+                  )}
+                </span>
+                {record.origin === 'shared_pool' && record.relatedAuthCount !== undefined && (
+                  <span>
+                    {t('auth_files.shared_quota_related', { count: record.relatedAuthCount })}
+                  </span>
+                )}
                 {record.httpStatus !== undefined && (
                   <span>{t('auth_files.cooldown_http_status', { status: record.httpStatus })}</span>
                 )}
@@ -106,12 +148,28 @@ function CooldownDetails({
                   <span>{t('auth_files.cooldown_backoff', { level: record.backoffLevel })}</span>
                 )}
               </div>
-              <div className={styles.deadline}>
-                {t('auth_files.cooldown_deadline')}{' '}
-                <time dateTime={record.retryAt}>
-                  {formatDateTimeValue(record.retryAt, i18n.language)}
-                </time>
-              </div>
+              {remainingSeconds > 0 && (
+                <div className={styles.deadline}>
+                  {t('auth_files.cooldown_deadline')}{' '}
+                  <time dateTime={record.retryAt}>
+                    {formatDateTimeValue(record.retryAt, i18n.language)}
+                  </time>
+                </div>
+              )}
+              {record.origin === 'shared_pool' && (
+                <p className={styles.note}>{t('auth_files.shared_quota_note')}</p>
+              )}
+              {canRetrySharedQuota(record) && onReset && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onReset(record)}
+                  loading={resetting}
+                  disabled={resetDisabled || record.phase === 'probing'}
+                >
+                  {t('auth_files.shared_quota_retry_button')}
+                </Button>
+              )}
             </li>
           ))}
         </ul>
@@ -129,7 +187,7 @@ function CooldownDetails({
             <Button
               variant="secondary"
               size="sm"
-              onClick={onReset}
+              onClick={() => onReset()}
               loading={resetting}
               disabled={resetDisabled}
               title={t('auth_files.cooldown_reset_hint')}

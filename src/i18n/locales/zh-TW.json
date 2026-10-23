@@ -529,7 +529,18 @@
     "excluded_models_hint": "儲存為陣列；會自動 trim、小寫、去重並排序。",
     "disable_cooling_placeholder": "例如: true / false / 1 / 0",
     "note_display": "備註",
-    "filter_gemini-enterprise": "Gemini Enterprise"
+    "filter_gemini-enterprise": "Gemini Enterprise",
+    "shared_quota_title": "Assistant and Search 共用額度冷卻",
+    "shared_quota_all_text": "全部文字模型",
+    "shared_quota_related": "關聯 {{count}} 份憑證",
+    "shared_quota_probe_pending": "等待下次請求驗證恢復",
+    "shared_quota_probing": "正在驗證恢復",
+    "shared_quota_note": "只有正常請求完整成功才能確認恢復。唯讀額度查詢不會阻止呼叫。",
+    "shared_quota_retry_button": "共用額度重試",
+    "shared_quota_retry_confirm": "允許下次請求驗證此池的恢復狀態？將影響 {{count}} 份憑證，不會恢復 Google 官方額度或清除其他限制。",
+    "shared_quota_retry_success": "共用額度已轉為待驗證，等待下一次正常請求。",
+    "shared_quota_user_title": "Assistant and Search 使用者額度冷卻",
+    "shared_quota_technical_title": "Google 專案分鐘限流"
   },
   "antigravity_subscription": {
     "plan_unknown": "未知",

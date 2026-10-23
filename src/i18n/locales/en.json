@@ -532,7 +532,18 @@
     "excluded_models_hint": "Saved as an array and normalized by trim/lowercase/dedup/sort.",
     "disable_cooling_placeholder": "e.g. true / false / 1 / 0",
     "note_display": "Note",
-    "filter_gemini-enterprise": "Gemini Enterprise"
+    "filter_gemini-enterprise": "Gemini Enterprise",
+    "shared_quota_title": "Assistant and Search shared quota cooldown",
+    "shared_quota_all_text": "All text models",
+    "shared_quota_related": "{{count}} linked credentials",
+    "shared_quota_probe_pending": "Waiting for the next request to verify recovery",
+    "shared_quota_probing": "Recovery verification in progress",
+    "shared_quota_note": "Only a successful normal request confirms recovery. Read-only quota observations do not block requests.",
+    "shared_quota_retry_button": "Retry shared quota",
+    "shared_quota_retry_confirm": "Allow the next request to verify this pool for {{count}} credentials? This does not restore Google quota or clear other restrictions.",
+    "shared_quota_retry_success": "Shared quota is waiting for the next request to verify recovery.",
+    "shared_quota_user_title": "Assistant and Search user quota cooldown",
+    "shared_quota_technical_title": "Google project rate limit"
   },
   "antigravity_subscription": {
     "plan_unknown": "Unknown",
