@@ -1105,7 +1105,7 @@
     "gemini_cli_oauth_polling_error": "Failed to check authentication status:",
     "kimi_ai_oauth_url_label": "Authorization URL:",
     "gemini_enterprise_oauth_hint": "Google로 승인하세요. 앱이 테스트 중이면 계정을 테스트 사용자로 추가하세요. 리디렉션 불일치 시 위 URI를 확인하고, 접근 오류 시 리소스 권한을 확인하세요.",
-    "gemini_enterprise_oauth_button": "저장 후 Google로 승인",
+    "gemini_enterprise_oauth_button": "Google 승인",
     "gemini_enterprise_oauth_title": "Gemini Enterprise OAuth",
     "gemini_enterprise_open_link": "Google 승인 열기",
     "gemini_enterprise_copy_link": "승인 링크 복사",
@@ -3039,12 +3039,12 @@
   },
   "gemini_enterprise": {
     "settings_title": "리소스 연결",
-    "settings_hint": "이번 로그인에 사용할 Gemini Enterprise 리소스를 입력하세요. 기존 계정의 저장된 연결은 유지됩니다.",
+    "settings_hint": "이 계정의 앱 ID를 입력하세요. 어시스턴트 ID는 변경할 수 있습니다. 확인된 리소스 연결은 승인된 계정과 함께 저장됩니다.",
     "redirect_label": "Google Cloud에 다음 리디렉션 URI를 정확히 등록하세요:",
     "loading": "설정 불러오는 중…",
     "save": "설정 저장",
-    "reload": "설정 다시 불러오기",
-    "ready": "설정이 저장되었습니다. Google 계정을 승인할 수 있습니다.",
+    "reload": "기존 설정 다시 불러오기",
+    "ready": "Google 승인을 시작할 수 있습니다. 완료 후 계정과 리소스 연결이 저장됩니다.",
     "conflict": "다른 곳에서 설정이 변경되었습니다. 다시 불러와 확인한 후 저장하세요.",
     "callback_hint": "이 컴퓨터에서 실행 중인 백엔드는 콜백을 자동 수신합니다. 원격 백엔드이거나 포트가 사용 중이면 브라우저 연결 오류가 발생해도 전체 localhost 콜백 URL을 여기에 붙여 넣으세요. 현재 로그인 시도의 URL이어야 합니다.",
     "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
@@ -3072,6 +3072,10 @@
       "assistantId": "어시스턴트 ID"
     },
     "access_expiry": "액세스 토큰 만료 시각",
-    "backend_upgrade": "이 백엔드는 Gemini Enterprise OAuth를 지원하지 않습니다. 호환되는 백엔드 버전으로 업데이트하세요."
+    "backend_upgrade": "개별 로그인 리소스와 자동 리소스 확인을 지원하도록 서버를 업그레이드하세요.",
+    "auto_resources_hint": "Google 승인 후 앱 ID로 프로젝트, 위치 및 컬렉션을 자동 확인합니다. 자동 조회는 default_collection을 사용하며 실패하면 직접 입력할 수 있습니다.",
+    "engine_hint": "Gemini Enterprise 앱 ID를 입력하세요. 예: gemini-enterprise-…",
+    "assistant_hint": "기본값은 default_assistant입니다. 다른 어시스턴트 ID를 입력하거나 비워 두어 기본값을 사용하세요.",
+    "manual_resources": "프로젝트, 위치 및 컬렉션 직접 지정"
   }
 }

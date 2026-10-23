@@ -17,7 +17,10 @@ export const withGeminiEnterpriseApplication = (
 const RESOURCE = /^[A-Za-z0-9_-]+$/;
 const ENVIRONMENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-export function validateGeminiEnterpriseConfig(value: GeminiEnterpriseConfig) {
+export function validateGeminiEnterpriseConfig(
+  value: GeminiEnterpriseConfig,
+  discoverResources = false
+) {
   const errors: Partial<
     Record<keyof GeminiEnterpriseConfig, 'required' | 'resource' | 'environment'>
   > = {};
@@ -31,7 +34,9 @@ export function validateGeminiEnterpriseConfig(value: GeminiEnterpriseConfig) {
     'engineId',
     'assistantId',
   ] as const) {
-    if (!RESOURCE.test(value[field])) errors[field] = 'resource';
+    if (discoverResources && ['projectId', 'location', 'collectionId'].includes(field)) continue;
+    const text = field === 'assistantId' ? value[field] || 'default_assistant' : value[field];
+    if (!RESOURCE.test(text)) errors[field] = 'resource';
   }
   return errors;
 }

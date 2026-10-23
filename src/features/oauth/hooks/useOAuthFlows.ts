@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, useNotificationStore } from '@/stores';
 import { oauthApi, pluginsApi } from '@/services/api';
+import { GeminiEnterpriseBackendUpgrade, type OAuthStartOptions } from '@/services/api/oauth';
 import { getErrorMessage, isRecord } from '@/utils/helpers';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import { createOAuthAttempts, type OAuthAttempt } from '../oauthAttempts';
@@ -253,7 +254,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     startPolling(provider, state, attempt);
   };
 
-  const startAuth = async (provider: string) => {
+  const startAuth = async (provider: string, options?: OAuthStartOptions) => {
     // A network error can stop polling while the server is still waiting. Require
     // explicit cancellation before replacing a cancellable browser session.
     if (['devin', 'gemini-enterprise'].includes(provider) && states[provider]?.state) return;
@@ -277,7 +278,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
       const res = await oauthApi.startAuth(
         provider,
         attempt.signal,
-        provider === 'gemini-cli' ? { projectId: states[provider]?.projectId } : undefined
+        provider === 'gemini-cli' ? { projectId: states[provider]?.projectId } : options
       );
       if (!attempt.isCurrent()) return;
       if (!res.state) {
@@ -303,7 +304,8 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     } catch (err: unknown) {
       if (!attempt.isCurrent()) return;
       const message =
-        provider === 'gemini-enterprise' && getErrorStatus(err) === 404
+        provider === 'gemini-enterprise' &&
+        (getErrorStatus(err) === 404 || err instanceof GeminiEnterpriseBackendUpgrade)
           ? t('gemini_enterprise.backend_upgrade')
           : getErrorMessage(err);
       updateProviderState(provider, { status: 'error', error: message, polling: false });

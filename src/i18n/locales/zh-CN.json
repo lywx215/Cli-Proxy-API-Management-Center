@@ -1103,7 +1103,7 @@
     "gemini_cli_oauth_polling_error": "检查认证状态失败:",
     "kimi_ai_oauth_url_label": "授权链接:",
     "gemini_enterprise_oauth_hint": "使用 Google 授权。应用处于测试状态时，需先将账号加入测试用户。重定向不匹配时核对上方 URI；项目访问错误需检查资源权限。",
-    "gemini_enterprise_oauth_button": "保存并使用 Google 授权",
+    "gemini_enterprise_oauth_button": "使用 Google 授权",
     "gemini_enterprise_oauth_title": "Gemini Enterprise 授权",
     "gemini_enterprise_open_link": "打开 Google 授权",
     "gemini_enterprise_copy_link": "复制授权链接",
@@ -3037,12 +3037,12 @@
   },
   "gemini_enterprise": {
     "settings_title": "资源绑定",
-    "settings_hint": "填写本次登录使用的 Gemini Enterprise 资源，已有账号仍保留各自保存的绑定。",
+    "settings_hint": "填写本次账号使用的引擎 ID，助手 ID 可修改。识别出的资源绑定会随授权账号保存。",
     "redirect_label": "请在 Google Cloud 中登记完全一致的重定向 URI：",
     "loading": "正在加载配置…",
     "save": "保存配置",
-    "reload": "重新加载配置",
-    "ready": "配置已保存，可以授权 Google 账号。",
+    "reload": "重新读取已有配置",
+    "ready": "可以开始 Google 授权，完成后保存当前账号及资源绑定。",
     "conflict": "配置已被其他窗口修改，请重新加载并核对后再保存。",
     "callback_hint": "后端在本机运行时会自动接收回调。使用远程后端或端口被占用时，即使浏览器提示无法连接，也可将完整的 localhost 回调地址粘贴到这里。地址必须来自本次授权。",
     "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
@@ -3070,6 +3070,10 @@
       "assistantId": "助手 ID"
     },
     "access_expiry": "访问令牌到期时间",
-    "backend_upgrade": "此后端尚不支持 Gemini Enterprise 授权，请升级到配套后端版本。"
+    "backend_upgrade": "请升级配套后端，以支持独立登录资源和自动资源识别。",
+    "auto_resources_hint": "Google 授权后，根据引擎 ID 自动识别项目、区域和集合。自动查询使用 default_collection；识别失败时可手动补填。",
+    "engine_hint": "填写 Gemini Enterprise 应用的应用 ID，例如 gemini-enterprise-…",
+    "assistant_hint": "默认使用 default_assistant，可填写其他助手 ID；留空时使用默认值。",
+    "manual_resources": "手动指定项目、区域和集合"
   }
 }

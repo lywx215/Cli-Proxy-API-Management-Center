@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import type { GeminiEnterpriseConfig } from '@/types/config';
 import {
   isManagementOAuthProviderKey,
   normalizeManagementOAuthProviderKey,
@@ -29,7 +30,15 @@ export interface OAuthStartResponse {
   expires_in?: number;
   callback_url?: string;
   manual_callback_required?: boolean;
+  resource_inputs_supported?: boolean;
 }
+
+export interface OAuthStartOptions {
+  projectId?: string;
+  geminiEnterprise?: GeminiEnterpriseConfig & { discoverResources: boolean };
+}
+
+export class GeminiEnterpriseBackendUpgrade extends Error {}
 
 export interface OAuthCallbackResponse {
   status: 'ok';
@@ -66,7 +75,7 @@ const normalizeProviderForManagementPath = (provider: string): string => {
 };
 
 export const oauthApi = {
-  startAuth: (provider: string, signal?: AbortSignal, options?: { projectId?: string }) => {
+  startAuth: async (provider: string, signal?: AbortSignal, options?: OAuthStartOptions) => {
     const providerKey = normalizeProviderForManagementPath(provider);
     const params: Record<string, string | boolean> = { provider: providerKey };
     if (WEBUI_SUPPORTED.has(providerKey)) {
@@ -76,10 +85,38 @@ export const oauthApi = {
     if (providerKey === 'gemini-cli' && projectId) {
       params.project_id = projectId;
     }
-    return apiClient.get<OAuthStartResponse>('/oauth/auth-url', {
+    const enterprise = providerKey === 'gemini-enterprise' ? options?.geminiEnterprise : undefined;
+    if (enterprise) {
+      params.auto_discover_resources = enterprise.discoverResources;
+      params.client_id = enterprise.clientId.trim();
+      params.client_secret_env = enterprise.clientSecretEnv.trim();
+      params.engine_id = enterprise.engineId.trim();
+      params.assistant_id = enterprise.assistantId.trim() || 'default_assistant';
+      if (!enterprise.discoverResources) {
+        params.project_id = enterprise.projectId.trim();
+        params.location = enterprise.location.trim();
+        params.collection_id = enterprise.collectionId.trim();
+      }
+    }
+    const revision = apiClient.getConnectionRevision();
+    const response = await apiClient.get<OAuthStartResponse>('/oauth/auth-url', {
       params,
       ...(signal ? { signal } : {}),
     });
+    if (enterprise && response.resource_inputs_supported !== true) {
+      if (response.state && !signal?.aborted && revision === apiClient.getConnectionRevision()) {
+        await apiClient
+          .delete('/oauth/session', {
+            params: { state: response.state },
+            ...(signal ? { signal } : {}),
+          })
+          .catch(() => undefined);
+      }
+      throw new GeminiEnterpriseBackendUpgrade(
+        'Gemini Enterprise resource inputs require a newer backend'
+      );
+    }
+    return response;
   },
 
   getAuthStatus: (state: string, signal?: AbortSignal) =>

@@ -1105,7 +1105,7 @@
     "gemini_cli_oauth_polling_error": "Failed to check authentication status:",
     "kimi_ai_oauth_url_label": "Authorization URL:",
     "gemini_enterprise_oauth_hint": "Authorize with Google. If the app is in Testing, add the account as a test user. A redirect mismatch requires the exact URI above; project access errors require resource permissions.",
-    "gemini_enterprise_oauth_button": "Save and authorize with Google",
+    "gemini_enterprise_oauth_button": "Authorize with Google",
     "gemini_enterprise_oauth_title": "Gemini Enterprise OAuth",
     "gemini_enterprise_open_link": "Open Google authorization",
     "gemini_enterprise_copy_link": "Copy authorization link",
@@ -3039,12 +3039,12 @@
   },
   "gemini_enterprise": {
     "settings_title": "Resource binding",
-    "settings_hint": "Enter the Gemini Enterprise resource for this login. Existing accounts retain their saved binding.",
+    "settings_hint": "Enter the engine ID for this account. The assistant ID can be changed. The resolved resource binding is saved with the authorized account.",
     "redirect_label": "Register this exact redirect URI in Google Cloud:",
     "loading": "Loading configuration…",
     "save": "Save configuration",
-    "reload": "Reload configuration",
-    "ready": "Configuration saved. You can authorize a Google account.",
+    "reload": "Reload existing configuration",
+    "ready": "Ready for Google authorization. The account and resource binding will be saved on completion.",
     "conflict": "Configuration changed elsewhere. Reload and review it before saving again.",
     "callback_hint": "For a backend on this computer, the callback is received automatically. With a remote backend or an occupied port, paste the full localhost callback URL here even if the browser says it cannot connect. It must belong to this login attempt.",
     "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
@@ -3072,6 +3072,10 @@
       "assistantId": "Assistant ID"
     },
     "access_expiry": "Access token expiry",
-    "backend_upgrade": "This backend does not support Gemini Enterprise OAuth. Update the backend to the matching version."
+    "backend_upgrade": "Upgrade the backend to support session resource inputs and automatic resource identification.",
+    "auto_resources_hint": "After Google authorization, detect the project, location and collection using the engine ID. Automatic lookup uses default_collection; enter resources manually if lookup fails.",
+    "engine_hint": "Enter the Gemini Enterprise app ID, for example gemini-enterprise-…",
+    "assistant_hint": "Defaults to default_assistant. Enter another assistant ID if needed; leave blank to use the default.",
+    "manual_resources": "Specify project, location and collection manually"
   }
 }

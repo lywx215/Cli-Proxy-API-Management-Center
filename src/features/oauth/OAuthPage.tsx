@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useRevealGroup } from '@/hooks/motion';
 import { useAuthStore, useThemeStore } from '@/stores';
-import { apiClient } from '@/services/api/client';
 import iconVertex from '@/assets/icons/vertex.svg';
 import { OAuthHeader } from './components/OAuthHeader';
 import { ProviderTile } from './components/ProviderTile';
@@ -211,15 +210,8 @@ export function OAuthPage() {
           sponsor={sponsorOf(dialogCard)}
           onStart={() => {
             if (dialogCard.id === 'gemini-enterprise') {
-              const revision = apiClient.getConnectionRevision();
-              void enterprise.save().then((saved) => {
-                if (
-                  saved &&
-                  revision === apiClient.getConnectionRevision() &&
-                  focusedRef.current === 'gemini-enterprise'
-                )
-                  void flows.startAuth('gemini-enterprise');
-              });
+              if (!enterprise.startDisabled)
+                void flows.startAuth('gemini-enterprise', enterprise.startOptions);
             } else void flows.startAuth(dialogCard.id);
           }}
           onCancel={() => void flows.cancelAuth(dialogCard.id)}

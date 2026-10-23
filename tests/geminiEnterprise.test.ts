@@ -6,7 +6,11 @@ import { createInstance } from 'i18next';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { apiClient } from '@/services/api/client';
-import { oauthApi, type BuiltInOAuthProvider } from '@/services/api/oauth';
+import {
+  GeminiEnterpriseBackendUpgrade,
+  oauthApi,
+  type BuiltInOAuthProvider,
+} from '@/services/api/oauth';
 import {
   GEMINI_ENTERPRISE_CALLBACK_URL,
   geminiEnterpriseApi,
@@ -105,6 +109,74 @@ describe('Gemini Enterprise OAuth and configuration', () => {
     expect(validateGeminiEnterpriseConfig({ ...binding, projectId: '' }).projectId).toBe(
       'resource'
     );
+  });
+
+  test('sends only manual engine and assistant inputs during automatic resource identification', async () => {
+    const get = spyOn(apiClient, 'get').mockResolvedValue({
+      state: 'fixture-state',
+      url: 'https://accounts.google.com/',
+      resource_inputs_supported: true,
+    });
+    const patch = spyOn(apiClient, 'patch').mockResolvedValue({});
+    const cancel = spyOn(apiClient, 'delete').mockResolvedValue({ cancelled: true });
+    const value = withGeminiEnterpriseApplication({ ...binding, assistantId: '' });
+    try {
+      await oauthApi.startAuth('gemini-enterprise', undefined, {
+        geminiEnterprise: { ...value, discoverResources: true },
+      });
+      expect(get).toHaveBeenLastCalledWith('/oauth/auth-url', {
+        params: {
+          provider: 'gemini-enterprise',
+          is_webui: true,
+          auto_discover_resources: true,
+          client_id: value.clientId,
+          client_secret_env: value.clientSecretEnv,
+          engine_id: value.engineId,
+          assistant_id: 'default_assistant',
+        },
+      });
+      expect(patch).not.toHaveBeenCalled();
+      expect(
+        validateGeminiEnterpriseConfig(
+          { ...value, projectId: '', location: '', collectionId: '' },
+          true
+        )
+      ).toEqual({});
+      expect(validateGeminiEnterpriseConfig({ ...value, engineId: '' }, true).engineId).toBe(
+        'resource'
+      );
+      get.mockResolvedValue({ state: 'older-server', url: 'https://accounts.google.com/' });
+      await expect(
+        oauthApi.startAuth('gemini-enterprise', undefined, {
+          geminiEnterprise: { ...value, discoverResources: true },
+        })
+      ).rejects.toBeInstanceOf(GeminiEnterpriseBackendUpgrade);
+      expect(cancel).toHaveBeenCalledWith('/oauth/session', { params: { state: 'older-server' } });
+    } finally {
+      get.mockRestore();
+      patch.mockRestore();
+      cancel.mockRestore();
+    }
+  });
+
+  test('does not clean an old-backend session through a changed connection', async () => {
+    const get = spyOn(apiClient, 'get').mockResolvedValue({ state: 'older-server', url: '' });
+    const cancel = spyOn(apiClient, 'delete').mockResolvedValue({ cancelled: true });
+    const revision = spyOn(apiClient, 'getConnectionRevision')
+      .mockReturnValueOnce(1)
+      .mockReturnValue(2);
+    try {
+      await expect(
+        oauthApi.startAuth('gemini-enterprise', undefined, {
+          geminiEnterprise: { ...binding, discoverResources: true },
+        })
+      ).rejects.toBeInstanceOf(GeminiEnterpriseBackendUpgrade);
+      expect(cancel).not.toHaveBeenCalled();
+    } finally {
+      get.mockRestore();
+      cancel.mockRestore();
+      revision.mockRestore();
+    }
   });
 
   test('preserves siblings and protects saving with the latest revision', async () => {
@@ -279,15 +351,20 @@ describe('Gemini Enterprise account presentation and localization', () => {
       const config: ReturnType<typeof useGeminiEnterpriseConfig> = {
         value: withGeminiEnterpriseApplication(binding),
         errors: {},
-        dirty: false,
         loading: false,
-        saving: false,
         error: '',
         configured: true,
         startDisabled: false,
+        manualResources: false,
+        setManualResources: () => {},
+        startOptions: {
+          geminiEnterprise: {
+            ...withGeminiEnterpriseApplication(binding),
+            discoverResources: true,
+          },
+        },
         setField: () => {},
         retry: () => {},
-        save: async () => true,
       };
       const markup = renderToStaticMarkup(
         createElement(
@@ -297,7 +374,7 @@ describe('Gemini Enterprise account presentation and localization', () => {
         )
       );
       expect(markup).toContain(GEMINI_ENTERPRISE_CALLBACK_URL);
-      expect(markup).toContain('test-project');
+      expect(markup).not.toContain('test-project');
       expect(markup).toContain('test-engine');
       expect(markup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientId);
       expect(markup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientSecretEnv);
@@ -305,6 +382,19 @@ describe('Gemini Enterprise account presentation and localization', () => {
       expect(markup).not.toContain(translations.gemini_enterprise.fields.clientSecretEnv);
       expect(markup).not.toContain('gemini_enterprise.');
       expect(markup).not.toContain('type="password"');
+      const manualMarkup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(GeminiEnterpriseSettings, {
+            config: { ...config, manualResources: true },
+            locked: false,
+          })
+        )
+      );
+      expect(manualMarkup).toContain('test-project');
+      expect(manualMarkup).toContain('default_collection');
+      expect(manualMarkup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientId);
       for (const key of Object.keys(en.auth_login).filter((key) =>
         key.startsWith('gemini_enterprise_')
       ))

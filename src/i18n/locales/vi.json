@@ -1062,7 +1062,7 @@
     "gemini_cli_oauth_polling_error": "Failed to check authentication status:",
     "kimi_ai_oauth_url_label": "Authorization URL:",
     "gemini_enterprise_oauth_hint": "Ủy quyền bằng Google. Nếu ứng dụng đang thử nghiệm, hãy thêm tài khoản vào người dùng thử nghiệm. Kiểm tra URI ở trên khi chuyển hướng không khớp và quyền tài nguyên khi bị từ chối truy cập.",
-    "gemini_enterprise_oauth_button": "Lưu và ủy quyền bằng Google",
+    "gemini_enterprise_oauth_button": "Cấp quyền Google",
     "gemini_enterprise_oauth_title": "OAuth Gemini Enterprise",
     "gemini_enterprise_open_link": "Mở ủy quyền Google",
     "gemini_enterprise_copy_link": "Sao chép liên kết ủy quyền",
@@ -3044,12 +3044,12 @@
   },
   "gemini_enterprise": {
     "settings_title": "Liên kết tài nguyên",
-    "settings_hint": "Nhập tài nguyên Gemini Enterprise cho lần đăng nhập này. Tài khoản hiện có giữ nguyên liên kết đã lưu.",
+    "settings_hint": "Nhập ID ứng dụng cho tài khoản này. Có thể thay đổi ID trợ lý. Liên kết tài nguyên tìm được sẽ được lưu cùng tài khoản đã cấp quyền.",
     "redirect_label": "Đăng ký chính xác URI chuyển hướng này trong Google Cloud:",
     "loading": "Đang tải cấu hình…",
     "save": "Lưu cấu hình",
-    "reload": "Tải lại cấu hình",
-    "ready": "Đã lưu cấu hình. Bạn có thể ủy quyền tài khoản Google.",
+    "reload": "Tải lại cấu hình hiện có",
+    "ready": "Sẵn sàng cấp quyền Google. Tài khoản và liên kết tài nguyên sẽ được lưu khi hoàn tất.",
     "conflict": "Cấu hình đã thay đổi ở nơi khác. Hãy tải lại và kiểm tra trước khi lưu.",
     "callback_hint": "Máy chủ chạy trên máy này tự nhận callback. Với máy chủ từ xa hoặc cổng đang bận, hãy dán toàn bộ URL callback localhost dù trình duyệt báo không thể kết nối. URL phải thuộc lần đăng nhập hiện tại.",
     "callback_placeholder": "http://localhost:8788/oauth-callback?state=…&code=…",
@@ -3077,6 +3077,10 @@
       "assistantId": "ID trợ lý"
     },
     "access_expiry": "Thời điểm hết hạn token truy cập",
-    "backend_upgrade": "Máy chủ này chưa hỗ trợ OAuth Gemini Enterprise. Hãy nâng cấp máy chủ lên phiên bản tương ứng."
+    "backend_upgrade": "Nâng cấp máy chủ để hỗ trợ tài nguyên cho từng lần đăng nhập và tự động xác định tài nguyên.",
+    "auto_resources_hint": "Sau khi cấp quyền Google, tự xác định dự án, khu vực và bộ sưu tập theo ID ứng dụng. Tự tìm kiếm dùng default_collection; có thể nhập thủ công nếu thất bại.",
+    "engine_hint": "Nhập ID ứng dụng Gemini Enterprise, ví dụ gemini-enterprise-…",
+    "assistant_hint": "Mặc định là default_assistant. Có thể nhập ID trợ lý khác; để trống để dùng mặc định.",
+    "manual_resources": "Chỉ định dự án, khu vực và bộ sưu tập thủ công"
   }
 }
