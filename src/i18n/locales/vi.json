@@ -66,6 +66,7 @@
     "subtitle": "Trung tâm Quản lý"
   },
   "login": {
+    "error_invalid_response": "Địa chỉ này trả về trang web hoặc phản hồi API quản lý không hợp lệ. Hãy nhập địa chỉ máy chủ CLIProxyAPI thay vì máy chủ phát triển giao diện.",
     "subtitle": "Vui lòng nhập thông tin kết nối để truy cập giao diện quản lý",
     "connection_current": "URL hiện tại",
     "connection_auto_hint": "Hệ thống sẽ tự động dùng URL hiện tại để kết nối",

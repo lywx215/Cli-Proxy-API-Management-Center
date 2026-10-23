@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from './client';
+import { requireManagementObject } from './managementResponse';
 import type { GeminiEnterpriseConfig } from '@/types/config';
 import {
   isManagementOAuthProviderKey,
@@ -103,6 +104,7 @@ export const oauthApi = {
       params,
       ...(signal ? { signal } : {}),
     });
+    requireManagementObject(response);
     if (enterprise && response.resource_inputs_supported !== true) {
       if (response.state && !signal?.aborted && revision === apiClient.getConnectionRevision()) {
         await apiClient

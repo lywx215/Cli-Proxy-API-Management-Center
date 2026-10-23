@@ -5,6 +5,7 @@
 import { apiClient } from './client';
 import type { Config } from '@/types';
 import { normalizeConfigResponse } from './transformers';
+import { requireManagementObject } from './managementResponse';
 
 export const configApi = {
   /**
@@ -12,6 +13,7 @@ export const configApi = {
    */
   async getConfig(): Promise<Config> {
     const raw = await apiClient.get('/config');
+    requireManagementObject(raw);
     return normalizeConfigResponse(raw);
   },
 

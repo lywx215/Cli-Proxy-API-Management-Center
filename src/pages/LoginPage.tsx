@@ -13,6 +13,7 @@ import { isSupportedLanguage } from '@/utils/language';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import type { ApiError } from '@/types';
 import { LegacyBackendError } from '@/services/api/legacyBackendProbe';
+import { InvalidManagementResponseError } from '@/services/api/managementResponse';
 import styles from './LoginPage.module.scss';
 
 /**
@@ -22,6 +23,7 @@ type RedirectState = { from?: { pathname?: string } };
 
 function getLocalizedErrorMessage(error: unknown, t: (key: string) => string): string {
   if (error instanceof LegacyBackendError) return t('login.error_legacy_backend');
+  if (error instanceof InvalidManagementResponseError) return t('login.error_invalid_response');
   const apiError = error as Partial<ApiError>;
   const status = typeof apiError.status === 'number' ? apiError.status : undefined;
   const code = typeof apiError.code === 'string' ? apiError.code : undefined;

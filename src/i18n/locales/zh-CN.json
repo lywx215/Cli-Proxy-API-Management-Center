@@ -66,6 +66,7 @@
     "subtitle": "管理中心"
   },
   "login": {
+    "error_invalid_response": "当前地址返回了网页或其他无效管理接口响应。请填写 CLIProxyAPI 后端地址，而不是前端开发服务器地址。",
     "subtitle": "连接 CLI Proxy API v8 或更高版本",
     "connection_current": "当前地址",
     "connection_auto_hint": "系统将自动使用当前访问地址进行连接",

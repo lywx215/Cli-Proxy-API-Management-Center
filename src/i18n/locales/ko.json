@@ -66,6 +66,7 @@
     "subtitle": "관리 센터"
   },
   "login": {
+    "error_invalid_response": "이 주소에서 웹 페이지 또는 잘못된 관리 API 응답을 반환했습니다. 프런트엔드 개발 서버 대신 CLIProxyAPI 백엔드 주소를 입력하세요.",
     "subtitle": "CLI Proxy API v8 이상 버전에 연결",
     "connection_current": "현재 URL",
     "connection_auto_hint": "시스템이 자동으로 현재 URL을 사용하여 연결합니다",

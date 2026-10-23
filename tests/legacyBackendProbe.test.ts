@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, spyOn, test } from 'b
 import axios from 'axios';
 import { apiClient } from '@/services/api/client';
 import { LegacyBackendError } from '@/services/api/legacyBackendProbe';
+import { InvalidManagementResponseError } from '@/services/api/managementResponse';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 
@@ -45,6 +46,35 @@ const credentials = {
 };
 
 describe('legacy backend login diagnostic', () => {
+  test('rejects a frontend HTML fallback without authenticating or probing v0', async () => {
+    const response = spyOn(apiClient, 'get').mockResolvedValue(
+      '<!doctype html><html>frontend</html>'
+    );
+    const probe = spyOn(axios, 'get');
+    spies.push(response, probe);
+
+    await expect(useAuthStore.getState().login(credentials)).rejects.toBeInstanceOf(
+      InvalidManagementResponseError
+    );
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAuthStore.getState().connectionStatus).toBe('error');
+    expect(useConfigStore.getState().config).toBeNull();
+    expect(useConfigStore.getState().isCacheValid()).toBe(false);
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  test('accepts a valid v8 configuration after an invalid frontend response', async () => {
+    const response = spyOn(apiClient, 'get').mockResolvedValueOnce('<html>frontend</html>');
+    spies.push(response);
+    await expect(useAuthStore.getState().login(credentials)).rejects.toBeInstanceOf(
+      InvalidManagementResponseError
+    );
+    response.mockResolvedValue({ 'config-version': 8, access: { 'api-keys': [] } });
+    await useAuthStore.getState().login(credentials);
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(useConfigStore.getState().config?.raw?.['config-version']).toBe(8);
+  });
+
   test('confirms v0 config after v8 404 without logging in', async () => {
     const v8Error = Object.assign(new Error('not found'), { status: 404 });
     spies.push(spyOn(useConfigStore.getState(), 'fetchConfig').mockRejectedValue(v8Error));

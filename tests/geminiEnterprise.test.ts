@@ -6,6 +6,7 @@ import { createInstance } from 'i18next';
 import { parse } from 'yaml';
 import { readFileSync } from 'node:fs';
 import { apiClient } from '@/services/api/client';
+import { InvalidManagementResponseError } from '@/services/api/managementResponse';
 import {
   GeminiEnterpriseBackendUpgrade,
   oauthApi,
@@ -52,6 +53,22 @@ const snapshot = (data: unknown, etag = '"fixture-revision"') =>
   ({ data, headers: { etag } }) as Awaited<ReturnType<typeof apiClient.getRaw>>;
 
 describe('Gemini Enterprise OAuth and configuration', () => {
+  test('reports a frontend HTML response as an invalid address, not a backend upgrade', async () => {
+    const get = spyOn(apiClient, 'get').mockResolvedValue('<!doctype html><html>frontend</html>');
+    const cancel = spyOn(apiClient, 'delete').mockResolvedValue({ cancelled: true });
+    try {
+      await expect(
+        oauthApi.startAuth('gemini-enterprise', undefined, {
+          geminiEnterprise: { ...binding, discoverResources: true },
+        })
+      ).rejects.toBeInstanceOf(InvalidManagementResponseError);
+      expect(cancel).not.toHaveBeenCalled();
+    } finally {
+      get.mockRestore();
+      cancel.mockRestore();
+    }
+  });
+
   test('uses the v8 provider with manual callbacks and never sends a Gemini CLI project override', async () => {
     const provider: BuiltInOAuthProvider = 'gemini-enterprise';
     const card = OAUTH_PROVIDERS.find((entry) => entry.id === provider)!;

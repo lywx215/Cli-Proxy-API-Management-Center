@@ -66,6 +66,7 @@
     "subtitle": "Management Center"
   },
   "login": {
+    "error_invalid_response": "This address returned a web page or another invalid Management API response. Enter the CLIProxyAPI backend address instead of the frontend development server address.",
     "subtitle": "Connect to CLI Proxy API v8 or later",
     "connection_current": "Current URL",
     "connection_auto_hint": "The system will automatically use the current URL for connection",

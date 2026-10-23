@@ -66,6 +66,7 @@
     "subtitle": "管理中心"
   },
   "login": {
+    "error_invalid_response": "目前網址回傳了網頁或其他無效管理介面回應。請填寫 CLIProxyAPI 後端網址，而非前端開發伺服器網址。",
     "subtitle": "連線至 CLI Proxy API v8 或更新版本",
     "connection_current": "目前位址",
     "connection_auto_hint": "系統將自動使用目前存取位址進行連線",
