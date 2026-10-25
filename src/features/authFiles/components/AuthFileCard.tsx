@@ -35,6 +35,7 @@ import type { AuthFileStatusBarData } from '@/features/authFiles/hooks/useAuthFi
 import { AuthFileQuotaSection } from '@/features/authFiles/components/AuthFileQuotaSection';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
 import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
+import { GeminiEnterpriseRegionEditor } from './GeminiEnterpriseRegionEditor';
 import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
 import styles from './AuthFileCard.module.scss';
 
@@ -50,9 +51,10 @@ export type AuthFileCardProps = {
   cooldownResetting: Record<string, boolean>;
   quotaFilterType: AuthFileQuotaFilter;
   statusBarCache: Map<string, AuthFileStatusBarData>;
-  /** 首屏一次性级联入场的延迟；null/undefined 表示不做入场动画。 */
+  /** Initial entrance delay; null or undefined disables the animation. */
   entranceDelayMs?: number | null;
   onShowModels: (file: AuthFileItem) => void;
+  onEnterpriseResourcesSaved?: (file: AuthFileItem) => void | Promise<void>;
   onDownload: (name: string) => void;
   onManualRefresh: (file: AuthFileItem) => void;
   onCooldownReset: (
@@ -81,6 +83,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
     statusBarCache,
     entranceDelayMs,
     onShowModels,
+    onEnterpriseResourcesSaved,
     onDownload,
     onManualRefresh,
     onCooldownReset,
@@ -119,10 +122,10 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const priorityValue = Number.isSafeInteger(file.priority) ? file.priority : undefined;
   const weightValue = Number.isSafeInteger(file.weight) ? file.weight : undefined;
   const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
-  // 主行显示账号（email/项目 ID），文件名降为满卡宽的 mono 副行
+  // Lead with the account; display the filename on a separate monospace line.
   const identity = deriveAuthFileIdentity(file);
 
-  // 挂载时捕获一次入场延迟：父级随后传 null 也不会中断已开始的动画
+  // Capture the initial delay so later renders cannot interrupt the animation.
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
   const cardClasses = [
     styles.card,
@@ -186,7 +189,30 @@ export function AuthFileCard(props: AuthFileCardProps) {
       )}
 
       {providerKey === 'gemini-enterprise' && !compact && (
-        <GeminiEnterpriseBinding binding={file.geminiEnterprise} />
+        <>
+          <GeminiEnterpriseBinding binding={file.geminiEnterprise} />
+          {!isRuntimeOnly && file.geminiEnterprise?.resourceEditSupported && (
+            <GeminiEnterpriseRegionEditor
+              key={[
+                file.authIndex,
+                file.geminiEnterprise.projectId,
+                file.geminiEnterprise.location,
+                file.geminiEnterprise.collectionId,
+                file.geminiEnterprise.engineId,
+                file.geminiEnterprise.assistantId,
+              ].join('/')}
+              file={file}
+              disabled={
+                disableControls ||
+                deleting === file.name ||
+                isManualRefreshing ||
+                statusUpdating[getAuthFileRefreshKey(file)] === true ||
+                isCooldownResetting
+              }
+              onSaved={onEnterpriseResourcesSaved}
+            />
+          )}
+        </>
       )}
 
       {rawStatusMessage && hasStatusWarning && (

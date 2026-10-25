@@ -29,3 +29,39 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+.regionEditor {
+  font-size: 12px;
+  margin: 6px 0 10px;
+  color: var(--text-secondary);
+}
+.regionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.endpoint {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  margin: 4px 0 6px;
+}
+.resourceForm {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+}
+.resourceForm summary {
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.regionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.regionError {
+  color: var(--danger-color, #dc2626);
+  margin: 6px 0 0;
+}

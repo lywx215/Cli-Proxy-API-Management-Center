@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { enterpriseRegionOptions } from '@/features/authFiles/enterpriseResources';
 import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { GEMINI_ENTERPRISE_CALLBACK_URL } from '@/services/api/geminiEnterprise';
@@ -57,7 +59,15 @@ export function GeminiEnterpriseSettings({
           {config.manualResources && (
             <fieldset disabled={locked || !config.configured} className={styles.fields}>
               <legend className={styles.legend}>{t('gemini_enterprise.manual_resources')}</legend>
-              {(['projectId', 'location', 'collectionId'] as const).map((field) => (
+              <label>{t('gemini_enterprise.fields.location')}</label>
+              <Select
+                value={config.value.location}
+                options={enterpriseRegionOptions(config.value.location)}
+                disabled={locked || !config.configured}
+                ariaLabel={t('gemini_enterprise.fields.location')}
+                onChange={(location) => config.setField('location', location)}
+              />
+              {(['projectId', 'collectionId'] as const).map((field) => (
                 <Input
                   key={field}
                   label={t(`gemini_enterprise.fields.${field}`)}

@@ -1,6 +1,12 @@
 import { apiClient } from './client';
 import { guardConfigConnection } from './configValue';
 import { isRecord } from '@/utils/helpers';
+import type { AuthFileItem } from '@/types';
+import { requireManagementObject, InvalidManagementResponseError } from './managementResponse';
+import {
+  serializeEnterpriseResources,
+  type EnterpriseResources,
+} from '@/features/authFiles/enterpriseResources';
 import type { GeminiEnterpriseConfig } from '@/types/config';
 import type {
   GeminiEnterpriseQuotaData,
@@ -87,6 +93,31 @@ export function sameGeminiEnterpriseConfig(a: GeminiEnterpriseConfig, b: GeminiE
 export class GeminiEnterpriseConfigConflict extends Error {}
 
 export const geminiEnterpriseApi = {
+  async updateResources(
+    file: Pick<AuthFileItem, 'name' | 'authIndex'>,
+    resources: EnterpriseResources,
+    expected: EnterpriseResources,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const assertConnection = guardConfigConnection();
+    const result = await apiClient.patch(
+      '/credentials/gemini-enterprise/resources',
+      {
+        name: file.name,
+        auth_index: String(file.authIndex ?? ''),
+        expected: serializeEnterpriseResources(expected),
+        resources: serializeEnterpriseResources(resources),
+      },
+      { signal }
+    );
+    assertConnection();
+    signal?.throwIfAborted();
+    requireManagementObject(result);
+    if (result.status !== 'ok' || !isRecord(result.gemini_enterprise)) {
+      throw new InvalidManagementResponseError();
+    }
+  },
+
   async quota(authIndex: string): Promise<GeminiEnterpriseQuotaData> {
     const assertConnection = guardConfigConnection();
     let result: unknown;

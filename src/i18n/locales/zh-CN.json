@@ -3050,6 +3050,17 @@
     "state_not_routable": "不在当前可路由模型范围"
   },
   "gemini_enterprise": {
+    "region_endpoint": "地区端点",
+    "edit_resources": "修改资源",
+    "region_hint": "请选择目标 Google 应用实际所在的地区。切换地区不会迁移资源。请填写目标项目编号和应用 ID；保存前会检查应用及模型目录。不同地区的可用模型和功能可能不同。",
+    "resource_advanced": "集合与助手",
+    "validate_save": "验证并保存",
+    "region_validating": "正在检查应用和模型目录…",
+    "region_saved": "Gemini Enterprise 资源已更新。",
+    "region_conflict": "凭证已发生变化，请刷新后重试。",
+    "region_authorization_error": "无法刷新 Google 授权，请重新授权后再切换。",
+    "region_sync_error": "资源已保存，但运行时同步失败，请刷新凭证。",
+    "region_error": "验证或保存失败，请检查目标项目编号、地区、应用 ID、访问权限及网络连接。",
     "settings_title": "资源绑定",
     "settings_hint": "填写本次账号使用的引擎 ID，助手 ID 可修改。识别出的资源绑定会随授权账号保存。",
     "redirect_label": "请在 Google Cloud 中登记完全一致的重定向 URI：",

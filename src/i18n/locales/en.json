@@ -3052,6 +3052,17 @@
     "state_not_routable": "Outside the routable model range"
   },
   "gemini_enterprise": {
+    "region_endpoint": "Region endpoint",
+    "edit_resources": "Edit resources",
+    "region_hint": "Select the region where the target Google application exists. Switching does not migrate resources. Use the target project number and app ID; saving checks the application and its model catalog. Available models and features may vary by region.",
+    "resource_advanced": "Collection and assistant",
+    "validate_save": "Validate and save",
+    "region_validating": "Checking application and model catalog…",
+    "region_saved": "Gemini Enterprise resources updated.",
+    "region_conflict": "The credential changed. Reload and try again.",
+    "region_authorization_error": "Google authorization could not be refreshed. Renew it before switching.",
+    "region_sync_error": "Resources were saved, but runtime synchronization failed. Reload the credential.",
+    "region_error": "Could not validate and save. Check the target project number, region, app ID, access permissions and connection.",
     "settings_title": "Resource binding",
     "settings_hint": "Enter the engine ID for this account. The assistant ID can be changed. The resolved resource binding is saved with the authorized account.",
     "redirect_label": "Register this exact redirect URI in Google Cloud:",

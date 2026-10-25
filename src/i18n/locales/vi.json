@@ -3057,6 +3057,17 @@
     "state_not_routable": "Ngoài phạm vi mô hình có thể định tuyến"
   },
   "gemini_enterprise": {
+    "region_endpoint": "Điểm cuối khu vực",
+    "edit_resources": "Sửa tài nguyên",
+    "region_hint": "Chọn khu vực thực tế của ứng dụng Google đích. Đổi khu vực không di chuyển tài nguyên. Nhập số dự án và ID ứng dụng; ứng dụng và danh mục mô hình sẽ được kiểm tra trước khi lưu. Mô hình và tính năng có thể khác nhau giữa các khu vực.",
+    "resource_advanced": "Bộ sưu tập và trợ lý",
+    "validate_save": "Xác minh và lưu",
+    "region_validating": "Đang kiểm tra ứng dụng và danh mục mô hình…",
+    "region_saved": "Đã cập nhật tài nguyên Gemini Enterprise.",
+    "region_conflict": "Thông tin xác thực đã thay đổi. Hãy tải lại và thử lại.",
+    "region_authorization_error": "Không thể làm mới ủy quyền Google. Hãy ủy quyền lại trước khi chuyển.",
+    "region_sync_error": "Đã lưu tài nguyên nhưng đồng bộ không thành công. Hãy tải lại thông tin xác thực.",
+    "region_error": "Không thể xác minh và lưu. Kiểm tra số dự án, khu vực, ID ứng dụng, quyền truy cập và kết nối.",
     "settings_title": "Liên kết tài nguyên",
     "settings_hint": "Nhập ID ứng dụng cho tài khoản này. Có thể thay đổi ID trợ lý. Liên kết tài nguyên tìm được sẽ được lưu cùng tài khoản đã cấp quyền.",
     "redirect_label": "Đăng ký chính xác URI chuyển hướng này trong Google Cloud:",
