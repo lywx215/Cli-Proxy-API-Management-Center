@@ -9,6 +9,7 @@ const REASON_KEYS: Record<string, string> = {
   payment_required: 'auth_files.cooldown_reason_payment_required',
   not_found: 'auth_files.cooldown_reason_not_found',
   model_not_supported: 'auth_files.cooldown_reason_model_not_supported',
+  model_not_enabled: 'auth_files.cooldown_reason_model_not_enabled',
   transient_error: 'auth_files.cooldown_reason_transient_error',
 };
 

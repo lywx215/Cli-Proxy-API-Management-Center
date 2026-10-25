@@ -111,6 +111,14 @@ export function AuthFilesPage() {
     showModels,
     closeModelsModal,
     invalidateModels,
+    syncModelsFile,
+    modelTestEnabled,
+    modelTestResults,
+    modelTestBusy,
+    modelTestUnsupported,
+    modelTestProgress,
+    runModelTests,
+    cancelModelTests,
   } = useAuthFilesModels();
 
   const invalidateDerivedCaches = useCallback(
@@ -154,6 +162,8 @@ export function AuthFilesPage() {
     batchSetStatus,
     batchDelete,
   } = useAuthFilesData({ onFilesMutated: invalidateDerivedCaches });
+
+  useEffect(() => syncModelsFile(files), [files, syncModelsFile]);
 
   const statusBarCache = useAuthFilesStatusBarCache(files);
 
@@ -806,6 +816,13 @@ export function AuthFilesPage() {
         excluded={excluded}
         onClose={closeModelsModal}
         onCopyText={copyTextWithNotification}
+        testsEnabled={modelTestEnabled && !disableControls}
+        testResults={modelTestResults}
+        testBusy={modelTestBusy}
+        testUnsupported={modelTestUnsupported}
+        testProgress={modelTestProgress}
+        onTestModels={(models) => void runModelTests(models)}
+        onCancelTests={cancelModelTests}
       />
 
       <AuthFileDetailsSheet

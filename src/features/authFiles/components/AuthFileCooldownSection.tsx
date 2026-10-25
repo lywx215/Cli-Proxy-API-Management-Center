@@ -159,6 +159,9 @@ function CooldownDetails({
               {record.origin === 'shared_pool' && (
                 <p className={styles.note}>{t('auth_files.shared_quota_note')}</p>
               )}
+              {record.reason === 'model_not_enabled' && (
+                <p className={styles.note}>{t('auth_files.model_test_cooldown_note')}</p>
+              )}
               {canRetrySharedQuota(record) && onReset && (
                 <Button
                   variant="secondary"
@@ -182,7 +185,7 @@ function CooldownDetails({
           </p>
         )}
         <p className={styles.note}>{t('auth_files.cooldown_note')}</p>
-        {onReset && (
+        {onReset && rows.some(({ record }) => record.reason !== 'model_not_enabled') && (
           <div className={styles.actionRow}>
             <Button
               variant="secondary"

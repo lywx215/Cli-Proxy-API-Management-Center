@@ -16,6 +16,7 @@ interface ModalProps {
   open: boolean;
   title?: ReactNode;
   onClose: () => void;
+  onRequestClose?: () => void;
   footer?: ReactNode;
   width?: number | string;
   className?: string;
@@ -28,6 +29,7 @@ export function Modal({
   open,
   title,
   onClose,
+  onRequestClose,
   footer,
   width = 520,
   className,
@@ -53,6 +55,7 @@ export function Modal({
   const startClose = useCallback(
     (notifyParent: boolean) => {
       if (closeTimerRef.current !== null) return;
+      if (notifyParent) onRequestClose?.();
       setIsClosing(true);
       closeTimerRef.current = window.setTimeout(() => {
         setIsVisible(false);
@@ -63,7 +66,7 @@ export function Modal({
         }
       }, CLOSE_ANIMATION_DURATION);
     },
-    [onClose]
+    [onClose, onRequestClose]
   );
 
   useEffect(() => {
