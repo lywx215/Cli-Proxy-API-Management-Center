@@ -1,4 +1,4 @@
-import { afterEach, expect, spyOn, test } from 'bun:test';
+import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
@@ -15,18 +15,24 @@ import { providersApi } from '../src/services/api/providers';
 import { useConfigStore } from '../src/stores/useConfigStore';
 import type { Config } from '../src/types';
 
-const initialState = useConfigStore.getState();
-const savedState = { ...initialState };
+let savedState: ReturnType<typeof useConfigStore.getState>;
+let savedInitialState: ReturnType<typeof useConfigStore.getInitialState>;
 const restorers: Array<() => void> = [];
+beforeEach(() => {
+  savedState = { ...useConfigStore.getState() };
+  savedInitialState = { ...useConfigStore.getInitialState() };
+  // Other suites may have already separated the current and SSR snapshots.
+  useConfigStore.setState({ config: null });
+});
 afterEach(() => {
   restorers.splice(0).forEach((restore) => restore());
-  Object.assign(initialState, savedState);
+  Object.assign(useConfigStore.getInitialState(), savedInitialState);
   useConfigStore.setState(savedState, true);
 });
 
 function workbench(config: Config) {
   // React SSR reads Zustand's initial snapshot rather than the current snapshot.
-  Object.assign(initialState, { config, fetchConfig: async () => config });
+  Object.assign(useConfigStore.getInitialState(), { config, fetchConfig: async () => config });
   useConfigStore.setState({ config, fetchConfig: async () => config });
   let captured!: ReturnType<typeof useProviderWorkbench>;
   function Harness() {
