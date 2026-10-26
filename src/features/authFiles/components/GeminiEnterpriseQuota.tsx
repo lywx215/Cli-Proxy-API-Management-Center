@@ -87,13 +87,24 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
 export function GeminiEnterpriseQuota({
   file,
   disableControls,
+  compact = false,
 }: {
   file: AuthFileItem;
   disableControls: boolean;
+  compact?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const key = enterpriseQuotaKey(file);
   const state = useQuotaStore((store) => store.geminiEnterpriseQuota[key]);
+  const observation = state?.data?.selectedPool?.usageUpdatedAt || state?.data?.observedAt;
+  const observationTitle = observation
+    ? t(
+        state?.data?.selectedPool?.usageUpdatedAt
+          ? 'gemini_enterprise.quota.reported_at'
+          : 'gemini_enterprise.quota.checked_at',
+        { value: new Date(observation).toLocaleString(i18n.resolvedLanguage) }
+      )
+    : undefined;
   useEffect(() => {
     if (!disableControls && shouldLoadGeminiEnterpriseQuota(state, Date.now())) {
       void loadGeminiEnterpriseQuota(file);
@@ -110,9 +121,10 @@ export function GeminiEnterpriseQuota({
 
   return (
     <section
-      className={styles.quota}
+      className={[styles.quota, compact ? styles.compact : ''].filter(Boolean).join(' ')}
       aria-label={t('gemini_enterprise.quota.title')}
       aria-busy={state?.loading}
+      title={compact ? observationTitle : undefined}
     >
       <div className={styles.header}>
         <span>{t('gemini_enterprise.quota.title')}</span>
@@ -121,7 +133,9 @@ export function GeminiEnterpriseQuota({
           size="sm"
           disabled={disableControls || state?.loading}
           onClick={() => void loadGeminiEnterpriseQuota(file, true)}
-          title={t('gemini_enterprise.quota.refresh')}
+          title={[t('gemini_enterprise.quota.refresh'), compact && observationTitle]
+            .filter(Boolean)
+            .join('\n')}
           aria-label={t('gemini_enterprise.quota.refresh')}
         >
           <IconRefreshCw size={13} />

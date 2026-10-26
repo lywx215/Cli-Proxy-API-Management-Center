@@ -99,71 +99,74 @@ function CollectionRows({
     <>
       <tr className={styles.mainRow} data-binding-id={binding?.bindingId}>
         <td>
-          <strong className={styles.resourceName}>
+          <strong className={styles.resourceName} title={enterpriseCollectionName(file)}>
             {enterpriseCollectionName(file) || t('gemini_enterprise.collections.unnamed_project')}
           </strong>
-          {binding?.projectName && <div className={styles.mono}>{binding.projectId}</div>}
-          <div className={styles.mono}>{binding?.engineId}</div>
-        </td>
-        <td>
-          <span className={styles.region}>{binding?.location || 'global'}</span>
-        </td>
-        <td>
-          <GeminiEnterpriseQuota file={file} disableControls={props.disableControls} />
-        </td>
-        <td>
-          <div className={styles.switchRow}>
-            <ToggleSwitch
-              checked={!file.disabled}
-              onChange={(enabled) => void switchCollection(enabled)}
-              disabled={
-                props.disableControls ||
-                busy ||
-                (!binding?.bindingId && props.statusUpdating[getAuthFileRefreshKey(file)]) ||
-                (Boolean(binding?.bindingId) && binding?.revision === undefined)
-              }
-              ariaLabel={t('gemini_enterprise.collections.toggle_collection', {
-                name: enterpriseCollectionName(file),
-                region: binding?.location,
-              })}
-            />
-            <span>{t('gemini_enterprise.collections.' + status)}</span>
+          <div className={styles.resourceMeta}>
+            {binding?.projectName && <span className={styles.mono}>{binding.projectId}</span>}
+            <span className={styles.region}>{binding?.location || 'global'}</span>
           </div>
         </td>
+        <td>
+          <GeminiEnterpriseQuota file={file} disableControls={props.disableControls} compact />
+        </td>
         <td className={styles.rowActions}>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={props.disableControls || busy}
-            onClick={() => props.onShowModels(file)}
-          >
-            {t('gemini_enterprise.collections.models')}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-expanded={expanded}
-            aria-controls={detailId}
-            onClick={() => setExpanded((previous) => !previous)}
-          >
-            {t('gemini_enterprise.collections.details')}
-          </Button>
+          <div className={styles.rowControls}>
+            <div className={styles.switchRow}>
+              <ToggleSwitch
+                checked={!file.disabled}
+                onChange={(enabled) => void switchCollection(enabled)}
+                disabled={
+                  props.disableControls ||
+                  busy ||
+                  (!binding?.bindingId && props.statusUpdating[getAuthFileRefreshKey(file)]) ||
+                  (Boolean(binding?.bindingId) && binding?.revision === undefined)
+                }
+                ariaLabel={t('gemini_enterprise.collections.toggle_collection', {
+                  name: enterpriseCollectionName(file),
+                  region: binding?.location,
+                })}
+              />
+              <span title={t('gemini_enterprise.collections.' + status)}>
+                {t('gemini_enterprise.collections.' + status)}
+              </span>
+            </div>
+            <div className={styles.rowButtons}>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={props.disableControls || busy}
+                onClick={() => props.onShowModels(file)}
+              >
+                {t('gemini_enterprise.collections.models')}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-expanded={expanded}
+                aria-controls={detailId}
+                onClick={() => setExpanded((previous) => !previous)}
+              >
+                {t('gemini_enterprise.collections.details')}
+              </Button>
+            </div>
+          </div>
         </td>
       </tr>
       <tr className={styles.requestsRow}>
-        <td colSpan={5}>
+        <td colSpan={3}>
           <div className={styles.requests}>
             <div className={styles.requestHeading}>
               <span>{t('gemini_enterprise.collections.requests')}</span>
               <span className={styles.counts}>
-                <span>
-                  {t('gemini_enterprise.collections.success')}{' '}
+                <span title={t('gemini_enterprise.collections.success')}>
+                  {t('status_bar.success_short')}{' '}
                   <strong className={styles.success}>
                     {(file.successCount ?? 0).toLocaleString(i18n.resolvedLanguage)}
                   </strong>
                 </span>
-                <span>
-                  {t('gemini_enterprise.collections.failure')}{' '}
+                <span title={t('gemini_enterprise.collections.failure')}>
+                  {t('status_bar.failure_short')}{' '}
                   <strong className={styles.failure}>
                     {(file.failureCount ?? 0).toLocaleString(i18n.resolvedLanguage)}
                   </strong>
@@ -286,8 +289,8 @@ export function GeminiEnterpriseAccount(props: Props) {
           })}
         />
         <div className={styles.identity}>
-          <h2>{file.email || file.name}</h2>
-          <p>{file.name}</p>
+          <h2 title={file.email || file.name}>{file.email || file.name}</h2>
+          <p title={file.name}>{file.name}</p>
         </div>
         <div className={styles.accountActions}>
           <Button
@@ -296,9 +299,13 @@ export function GeminiEnterpriseAccount(props: Props) {
             loading={discovering}
             disabled={disableControls || discovering || !account?.accountManagementSupported}
             onClick={() => void discover()}
+            title={t('gemini_enterprise.collections.discover')}
+            aria-label={t('gemini_enterprise.collections.discover')}
           >
             <IconRefreshCw size={13} />
-            {t('gemini_enterprise.collections.discover')}
+            <span className={styles.discoverLabel}>
+              {t('gemini_enterprise.collections.discover')}
+            </span>
           </Button>
           <Button
             size="sm"
@@ -364,7 +371,7 @@ export function GeminiEnterpriseAccount(props: Props) {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    {['resource', 'region', 'quota', 'status', 'actions'].map((column) => (
+                    {['resource_region', 'quota', 'status_actions'].map((column) => (
                       <th key={column} scope="col">
                         {t('gemini_enterprise.collections.' + column)}
                       </th>

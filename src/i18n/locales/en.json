@@ -3079,6 +3079,8 @@
       "reported_usage": "Reported usage",
       "daily_limit": "Daily limit",
       "resource": "Project / application",
+      "resource_region": "Project / region",
+      "status_actions": "Enabled / actions",
       "region": "Region",
       "quota": "Quota",
       "status": "Enabled",

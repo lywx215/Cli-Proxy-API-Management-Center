@@ -3077,6 +3077,8 @@
       "reported_usage": "已上报用量",
       "daily_limit": "每日上限",
       "resource": "项目 / 应用",
+      "resource_region": "项目 / 区域",
+      "status_actions": "启用 / 操作",
       "region": "区域",
       "quota": "额度",
       "status": "启用",

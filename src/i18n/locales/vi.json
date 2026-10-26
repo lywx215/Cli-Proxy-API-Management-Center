@@ -3084,6 +3084,8 @@
       "reported_usage": "Mức dùng đã báo cáo",
       "daily_limit": "Giới hạn mỗi ngày",
       "resource": "Dự án / ứng dụng",
+      "resource_region": "Dự án / khu vực",
+      "status_actions": "Bật / thao tác",
       "region": "Vùng",
       "quota": "Hạn mức",
       "status": "Bật",

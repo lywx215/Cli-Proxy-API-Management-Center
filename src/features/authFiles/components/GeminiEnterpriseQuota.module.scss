@@ -59,3 +59,96 @@
 .observation {
   font-size: 10px;
 }
+
+.compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 2px 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 10px;
+  line-height: 1.35;
+
+  .header {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+    > span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    button {
+      width: 24px;
+      height: 24px;
+      min-height: 24px;
+      padding: 0;
+      border-color: transparent;
+      background: transparent;
+    }
+  }
+  .remaining {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    strong {
+      font-size: 17px;
+      line-height: 1.1;
+    }
+    .unknown {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  }
+  .amounts {
+    grid-column: 1 / -1;
+    gap: 1px 6px;
+  }
+  .message,
+  .observation {
+    grid-column: 1 / -1;
+    margin: 1px 0 0;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+  .observation {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@container enterprise-account (min-width: 540px) {
+  .compact {
+    grid-template-columns: minmax(58px, 0.8fr) minmax(0, 1.2fr) 24px;
+    .header {
+      grid-column: 3;
+    }
+    .amounts {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .message,
+    .observation {
+      grid-column: 1 / 3;
+    }
+  }
+}

@@ -599,6 +599,13 @@ export function AuthFilesPage() {
     styles.grid,
     compactMode ? styles.gridCompact : '',
     activeQuotaFilter ? styles.gridQuota : '',
+    pageItems.some(
+      (file) =>
+        file.geminiEnterprise &&
+        normalizeProviderKey(String(file.type ?? file.provider)) === 'gemini-enterprise'
+    )
+      ? styles.gridAccounts
+      : '',
   ]
     .filter(Boolean)
     .join(' ');

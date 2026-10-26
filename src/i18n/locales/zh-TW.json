@@ -2987,6 +2987,8 @@
       "reported_usage": "已回報用量",
       "daily_limit": "每日上限",
       "resource": "專案 / 應用程式",
+      "resource_region": "專案 / 區域",
+      "status_actions": "啟用 / 操作",
       "region": "區域",
       "quota": "額度",
       "status": "啟用",

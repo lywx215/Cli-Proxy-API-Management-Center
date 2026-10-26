@@ -3079,6 +3079,8 @@
       "reported_usage": "보고된 사용량",
       "daily_limit": "일일 한도",
       "resource": "프로젝트 / 앱",
+      "resource_region": "프로젝트 / 리전",
+      "status_actions": "활성화 / 작업",
       "region": "리전",
       "quota": "할당량",
       "status": "사용",

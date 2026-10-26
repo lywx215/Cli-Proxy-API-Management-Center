@@ -3061,6 +3061,8 @@
       "reported_usage": "Учтённый расход",
       "daily_limit": "Дневной лимит",
       "resource": "Проект / приложение",
+      "resource_region": "Проект / регион",
+      "status_actions": "Вкл. / действия",
       "region": "Регион",
       "quota": "Квота",
       "status": "Включено",

@@ -1,48 +1,62 @@
 .account {
   grid-column: 1 / -1;
+  container: enterprise-account / inline-size;
   min-width: 0;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 10px;
 }
 .header {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 16px 16px 10px;
+  gap: 8px;
+  padding: 10px 12px 6px;
+  :global(.btn.btn-sm) {
+    min-height: 28px;
+    padding: 5px 6px;
+    font-size: 11px;
+  }
 }
 .identity {
+  flex: 1;
   min-width: 0;
+  h2,
+  p {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
   h2 {
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    overflow-wrap: anywhere;
   }
   p {
-    margin: 3px 0 0;
+    margin: 2px 0 0;
     font-family: $font-mono;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-secondary);
-    overflow-wrap: anywhere;
   }
 }
 .accountActions {
   display: flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   align-items: center;
-  gap: 4px;
-  margin-left: auto;
+  gap: 2px;
+  button > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
 }
 .metadata {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 0 18px 14px;
+  gap: 4px 10px;
+  padding: 0 12px 8px;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 10px;
   > :last-child {
     margin-left: auto;
   }
@@ -54,102 +68,128 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  min-width: 780px;
   th {
-    padding: 9px 10px;
+    padding: 6px 8px;
     border-block: 1px solid var(--border-color);
     background: var(--bg-secondary);
     text-align: left;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 450;
     color: var(--text-secondary);
   }
   th:first-child {
-    width: 27%;
-    padding-left: 20px;
+    width: 34%;
+    padding-left: 12px;
   }
   th:nth-child(2) {
-    width: 9%;
-  }
-  th:nth-child(3) {
-    width: 30%;
-  }
-  th:nth-child(4) {
-    width: 18%;
+    width: 42%;
   }
   th:last-child {
-    width: 16%;
+    width: 24%;
     text-align: right;
-    padding-right: 16px;
+    padding-right: 12px;
   }
 }
 .mainRow {
   td {
-    padding: 14px 10px 8px;
+    padding: 5px 8px 3px;
     vertical-align: middle;
-    font-size: 12px;
     border-top: 1px solid var(--border-color);
+    font-size: 11px;
   }
   td:first-child {
-    padding-left: 20px;
+    padding-left: 12px;
   }
 }
 .resourceName {
   display: block;
-  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 1.4;
   font-weight: 550;
-  overflow-wrap: anywhere;
+}
+.resourceMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  margin-top: 3px;
 }
 .mono {
-  margin-top: 4px;
-  font: 11px/1.6 $font-mono;
-  color: var(--text-secondary);
+  font: 10px/1.3 $font-mono;
   overflow-wrap: anywhere;
+  color: var(--text-secondary);
 }
 .region {
   display: inline-block;
-  padding: 2px 6px;
+  padding: 1px 5px;
   background: var(--bg-tertiary);
   border-radius: 4px;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 10px;
 }
 .switchRow {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 11px;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 0;
+  font-size: 10px;
   color: var(--text-secondary);
+  > label {
+    flex-shrink: 0;
+  }
+  > span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }
 .rowActions {
-  text-align: right;
-  padding-right: 14px !important;
+  padding-right: 10px !important;
+}
+.rowControls {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.rowButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 2px;
+  :global(.btn.btn-sm) {
+    min-height: 24px;
+    padding: 3px 4px;
+    font-size: 11px;
+  }
 }
 .requestsRow > td {
-  padding: 0 20px 14px;
+  padding: 0 12px 4px;
 }
 .requests {
-  background: var(--bg-secondary);
-  padding: 9px 12px 11px;
-  border-radius: 6px;
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 10px;
+  line-height: 1.4;
   color: var(--text-secondary);
 }
 .requestHeading,
 .recent {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-.requestHeading {
-  flex-wrap: wrap;
+  display: contents;
 }
 .counts {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   font-variant-numeric: tabular-nums;
+  > span {
+    white-space: nowrap;
+  }
 }
 .success {
   color: var(--success-color);
@@ -157,50 +197,48 @@
 .failure {
   color: var(--danger-color);
 }
-.recent {
-  margin-top: 7px;
+.recent > span {
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  > span {
-    white-space: nowrap;
-  }
 }
 .bars {
-  flex: 1;
-  min-width: 0;
+  flex: 1 1 100px;
+  min-width: 100px;
+  max-width: 160px;
 }
 .hiddenRate {
   display: none;
 }
 .requestBlock {
-  height: 8px;
+  height: 6px;
   border-radius: 2px;
 }
 .details {
-  padding: 14px 0 4px;
+  margin-top: 8px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
 }
 .empty,
 .notice {
   margin: 0;
-  padding: 16px 20px;
+  padding: 10px 12px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
 }
 .notice {
   color: var(--warning-color);
 }
-@media (max-width: 600px) {
-  .header {
-    padding: 12px;
-    gap: 6px;
+@container auth-files (min-width: 1280px) {
+  .account {
+    grid-column: span 2;
   }
-  .accountActions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-  .metadata {
-    padding-inline: 12px;
+}
+@container enterprise-account (max-width: 680px) {
+  .discoverLabel {
+    display: none;
   }
 }

@@ -19,6 +19,7 @@
 /* ---------- 工作区（tabs + 工具栏 + 网格 + 分页） ---------- */
 
 .workbench {
+  container: auth-files / inline-size;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -54,6 +55,23 @@
    同specificity 靠源序决胜，删掉这条会让「紧凑 + 配额」从 340 掉回 260。 */
 .gridQuota {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+}
+
+.gridAccounts {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@container auth-files (min-width: 696px) {
+  .gridAccounts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container auth-files (min-width: 1280px) {
+  .gridAccounts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .emptyActions {
