@@ -47,7 +47,15 @@ export function normalizeGeminiEnterpriseQuota(value: unknown): GeminiEnterprise
   const pools = (Array.isArray(source.pools) ? source.pools : [])
     .filter(isRecord)
     .map(normalizePool);
-  const selectedPool = isRecord(source.selected_pool) ? normalizePool(source.selected_pool) : null;
+  // Legacy responses omit selection. Preserve explicit unknowns and avoid guessing an edition.
+  const hasSelection = Object.prototype.hasOwnProperty.call(source, 'selected_pool');
+  const selectedPool = hasSelection
+    ? isRecord(source.selected_pool)
+      ? normalizePool(source.selected_pool)
+      : null
+    : pools.length === 1
+      ? pools[0]
+      : null;
   return {
     status: status(source.status),
     observedAt: time(source.observed_at),

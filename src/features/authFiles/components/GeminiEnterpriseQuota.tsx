@@ -23,13 +23,15 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
   const messageStatus =
     pool && !currentDay
       ? 'no_data'
-      : data?.status === 'partial' || data?.status === 'stale'
-        ? data.status
-        : pool && pool.status !== 'ok'
-          ? pool.status
-          : data?.status === 'ok'
-            ? 'no_data'
-            : (data?.status ?? 'unavailable');
+      : pool?.status === 'stale' || data?.status === 'stale'
+        ? 'stale'
+        : data?.status === 'partial'
+          ? 'partial'
+          : pool && pool.status !== 'ok'
+            ? pool.status
+            : data?.status === 'ok'
+              ? 'no_data'
+              : (data?.status ?? 'unavailable');
   const observation = pool?.usageUpdatedAt || data?.observedAt;
   const amount = (value: number | null | undefined) =>
     value === null || value === undefined
