@@ -52,6 +52,57 @@ export interface AuthFileCooldownSnapshot {
   records: AuthFileCooldown[] | null;
 }
 
+export interface GeminiEnterpriseResources {
+  projectId?: string;
+  location?: string;
+  collectionId?: string;
+  engineId?: string;
+  assistantId?: string;
+  endpoint?: string;
+}
+
+export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
+  bindingId: string;
+  revision?: number;
+  authIndex?: string;
+  projectName?: string;
+  disabled: boolean;
+  effectiveDisabled: boolean;
+  missing?: boolean;
+  unavailable?: boolean;
+  status?: string;
+  statusMessage?: string;
+  successCount: number;
+  failureCount: number;
+  recentRequests: RecentRequestBucket[];
+  cooldownSnapshot?: AuthFileCooldownSnapshot;
+  settings: Record<string, unknown>;
+}
+
+export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
+  clientId?: string;
+  expiry?: string;
+  hasRefreshToken?: boolean;
+  resourceEditSupported?: boolean;
+  accountId?: string;
+  revision?: number;
+  accountManagementSupported?: boolean;
+  discovery?: {
+    status?: string;
+    checkedAt?: string;
+    warnings: { project?: string; location?: string; code?: string; message?: string }[];
+  };
+  collections?: GeminiEnterpriseCollection[];
+  /** Present only on a derived collection view; the saved file remains the parent. */
+  bindingId?: string;
+  accountAuthIndex?: string;
+  accountRevision?: number;
+  projectName?: string;
+  effectiveDisabled?: boolean;
+  missing?: boolean;
+  settings?: Record<string, unknown>;
+}
+
 export interface AuthFileItem {
   name: string;
   type?: AuthFileType | string;
@@ -64,18 +115,7 @@ export interface AuthFileItem {
   email?: string;
   /** GCP / Vertex project ID, used when the email is absent. */
   projectId?: string;
-  geminiEnterprise?: {
-    clientId?: string;
-    projectId?: string;
-    location?: string;
-    collectionId?: string;
-    engineId?: string;
-    assistantId?: string;
-    expiry?: string;
-    hasRefreshToken?: boolean;
-    endpoint?: string;
-    resourceEditSupported?: boolean;
-  };
+  geminiEnterprise?: GeminiEnterpriseAccount;
   size?: number;
   authIndex?: string | number | null;
   /** Generic plugin quota capability advertised by CPA's auth-files API. */

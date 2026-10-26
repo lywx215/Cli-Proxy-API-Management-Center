@@ -26,29 +26,33 @@ export function GeminiEnterpriseSettings({
         <p role="status">{t('gemini_enterprise.loading')}</p>
       ) : (
         <>
-          <fieldset disabled={locked || !config.configured} className={styles.fields}>
-            <legend className={styles.legend}>{t('gemini_enterprise.settings_title')}</legend>
-            {(['engineId', 'assistantId'] as const).map((field) => (
-              <Input
-                key={field}
-                label={t(`gemini_enterprise.fields.${field}`)}
-                value={config.value[field]}
-                required={field === 'engineId'}
-                autoComplete="off"
-                spellCheck={false}
-                hint={t(
-                  `gemini_enterprise.${field === 'engineId' ? 'engine_hint' : 'assistant_hint'}`
-                )}
-                placeholder={field === 'assistantId' ? 'default_assistant' : 'gemini-enterprise-…'}
-                error={
-                  config.errors[field]
-                    ? t(`gemini_enterprise.validation.${config.errors[field]}`)
-                    : undefined
-                }
-                onChange={(event) => config.setField(field, event.target.value)}
-              />
-            ))}
-          </fieldset>
+          {config.manualResources && (
+            <fieldset disabled={locked || !config.configured} className={styles.fields}>
+              <legend className={styles.legend}>{t('gemini_enterprise.settings_title')}</legend>
+              {(['engineId', 'assistantId'] as const).map((field) => (
+                <Input
+                  key={field}
+                  label={t(`gemini_enterprise.fields.${field}`)}
+                  value={config.value[field]}
+                  required={field === 'engineId'}
+                  autoComplete="off"
+                  spellCheck={false}
+                  hint={t(
+                    `gemini_enterprise.${field === 'engineId' ? 'engine_hint' : 'assistant_hint'}`
+                  )}
+                  placeholder={
+                    field === 'assistantId' ? 'default_assistant' : 'gemini-enterprise-…'
+                  }
+                  error={
+                    config.errors[field]
+                      ? t(`gemini_enterprise.validation.${config.errors[field]}`)
+                      : undefined
+                  }
+                  onChange={(event) => config.setField(field, event.target.value)}
+                />
+              ))}
+            </fieldset>
+          )}
           <p className={styles.hint}>{t('gemini_enterprise.auto_resources_hint')}</p>
           <ToggleSwitch
             checked={config.manualResources}

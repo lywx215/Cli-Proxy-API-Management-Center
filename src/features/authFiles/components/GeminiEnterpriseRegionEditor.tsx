@@ -81,7 +81,7 @@ export function GeminiEnterpriseRegionEditor({
           options={enterpriseRegionOptions(expected.location)}
           ariaLabel={t('gemini_enterprise.region_endpoint')}
           size="sm"
-          disabled={locked}
+          disabled={locked || Boolean(file.geminiEnterprise?.bindingId)}
           onChange={(location) => {
             setValue((previous) => ({ ...previous, location }));
             setEditing(true);
@@ -97,13 +97,21 @@ export function GeminiEnterpriseRegionEditor({
       <p className={styles.endpoint}>{enterpriseRegionEndpoint(value.location)}</p>
       {editing && (
         <div className={styles.resourceForm}>
-          <p className={styles.hint}>{t('gemini_enterprise.region_hint')}</p>
+          <p className={styles.hint}>
+            {t(
+              file.geminiEnterprise?.bindingId
+                ? 'gemini_enterprise.collection_binding_hint'
+                : 'gemini_enterprise.region_hint'
+            )}
+          </p>
           {(['projectId', 'engineId'] as const).map((field) => (
             <Input
               key={field}
               label={t(`gemini_enterprise.fields.${field}`)}
               value={value[field]}
-              disabled={locked}
+              disabled={
+                locked || (Boolean(file.geminiEnterprise?.bindingId) && field === 'projectId')
+              }
               required
               autoComplete="off"
               spellCheck={false}
@@ -119,7 +127,9 @@ export function GeminiEnterpriseRegionEditor({
                 key={field}
                 label={t(`gemini_enterprise.fields.${field}`)}
                 value={value[field]}
-                disabled={locked}
+                disabled={
+                  locked || (Boolean(file.geminiEnterprise?.bindingId) && field === 'collectionId')
+                }
                 required
                 autoComplete="off"
                 spellCheck={false}

@@ -6,15 +6,28 @@ import { getAuthFileRefreshKey } from '../src/features/authFiles/manualRefresh';
 const source = readFileSync('src/features/authFiles/hooks/useAuthFilesData.ts', 'utf8');
 
 // Execute the actual callback bodies without mocking React globally or requiring a DOM.
-function harness() {
+function harness(enterprise = false) {
   const original = [
-    { name: 'shared.json', authIndex: 'a', disabled: false },
-    { name: 'shared.json', authIndex: 'b', disabled: true },
+    {
+      name: 'shared.json',
+      authIndex: 'a',
+      disabled: false,
+      ...(enterprise
+        ? { geminiEnterprise: { collections: [{ disabled: false }, { disabled: true }] } }
+        : {}),
+    },
+    {
+      name: 'shared.json',
+      authIndex: 'b',
+      disabled: true,
+      ...(enterprise ? { geminiEnterprise: { collections: [{ disabled: true }] } } : {}),
+    },
   ];
   let files = original.map((file) => ({ ...file }));
   let revision = 1;
   let notifications = 0;
   let deselections = 0;
+  let reloads = 0;
   const requests: {
     args: unknown[];
     resolve: (v: { disabled: boolean }) => void;
@@ -38,6 +51,9 @@ function harness() {
       files = update(files);
     },
     invalidateInFlightLoads: () => {},
+    loadFiles: async () => {
+      reloads++;
+    },
     showNotification: () => {
       notifications++;
     },
@@ -70,6 +86,9 @@ function harness() {
     },
     get deselections() {
       return deselections;
+    },
+    get reloads() {
+      return reloads;
     },
     switchConnection() {
       revision++;
@@ -130,6 +149,25 @@ describe('auth file status identity', () => {
     expect(h.requests).toHaveLength(1);
     h.requests[0].resolve({ disabled: true });
     await pending;
+  });
+
+  test('Enterprise parent switches re-read effective child state while preserving saved switches', async () => {
+    const h = harness(true);
+    const pending = h.toggle(h.original[0], false);
+    h.requests[0].resolve({ disabled: true });
+    await pending;
+    expect(h.reloads).toBe(1);
+    expect(
+      h.files[0].geminiEnterprise?.collections.map((collection) => collection.disabled)
+    ).toEqual([false, true]);
+    const batch = h.batch(['shared.json'], true);
+    h.requests[1].resolve({ disabled: false });
+    h.requests[2].resolve({ disabled: false });
+    await batch;
+    expect(h.reloads).toBe(2);
+    expect(
+      h.files[0].geminiEnterprise?.collections.map((collection) => collection.disabled)
+    ).toEqual([false, true]);
   });
 
   for (const batch of [false, true]) {

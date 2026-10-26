@@ -1,4 +1,5 @@
-export type GeminiEnterpriseQuotaStatus = 'ok' | 'no_permission' | 'no_data' | 'unavailable';
+export type GeminiEnterpriseQuotaStatus =
+  'ok' | 'partial' | 'stale' | 'no_permission' | 'no_data' | 'unavailable';
 
 export interface GeminiEnterpriseQuotaPool {
   tier: string;
@@ -15,10 +16,15 @@ export interface GeminiEnterpriseQuotaData {
   periodStart: string | null;
   resetAt: string | null;
   pools: GeminiEnterpriseQuotaPool[];
+  selectedPool: GeminiEnterpriseQuotaPool | null;
+  accountId?: string;
+  bindingId?: string;
+  revision?: number;
 }
 
 export interface GeminiEnterpriseQuotaState {
   loading: boolean;
   fetchedAtMs: number;
   data?: GeminiEnterpriseQuotaData;
+  poolScope?: string;
 }

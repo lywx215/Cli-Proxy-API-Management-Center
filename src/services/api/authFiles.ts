@@ -16,6 +16,7 @@ import {
 } from '@/utils/recentRequests';
 import { parseTimestampMs } from '@/utils/timestamp';
 import { normalizeAuthFileCooldowns, normalizeCooldownTimestamp } from './authFileCooldowns';
+import { normalizeEnterpriseAccount } from './enterpriseAccounts';
 
 type AuthFileStatusResponse = { status: string; disabled: boolean };
 export type AuthFileLookup = { name: string; authIndex?: string };
@@ -276,21 +277,11 @@ const normalizeAuthFileEntry = (
   // Never normalize account/account_type: AccountInfo returns the API key in
   // account for API-key credentials. It must not reach display or search paths.
   const projectId = readTextField(entry, 'project_id');
-  const enterprise = isRecord(entry.gemini_enterprise) ? entry.gemini_enterprise : null;
-  const geminiEnterprise = enterprise
-    ? {
-        clientId: readTextField(enterprise, 'client_id') || undefined,
-        projectId: readTextField(enterprise, 'project_id') || undefined,
-        location: readTextField(enterprise, 'location') || undefined,
-        collectionId: readTextField(enterprise, 'collection_id') || undefined,
-        engineId: readTextField(enterprise, 'engine_id') || undefined,
-        assistantId: readTextField(enterprise, 'assistant_id') || undefined,
-        expiry: readTextField(enterprise, 'expiry') || undefined,
-        hasRefreshToken: readBooleanField(enterprise.has_refresh_token),
-        endpoint: readTextField(enterprise, 'endpoint') || undefined,
-        resourceEditSupported: readBooleanField(enterprise.resource_edit_supported),
-      }
-    : undefined;
+  const geminiEnterprise = normalizeEnterpriseAccount(
+    entry.gemini_enterprise,
+    observedAt,
+    receivedAtMs
+  );
   const modified = readDateField(entry);
   const priority = readIntegerField(entry['priority']);
   const weight = readIntegerField(entry['weight']);
@@ -689,11 +680,16 @@ export const authFilesApi = {
 
   // Get models supported by a credential
   async getModelsForAuthFile(
-    name: string
+    name: string,
+    target?: { authIndex?: string; bindingId?: string; signal?: AbortSignal }
   ): Promise<{ id: string; display_name?: string; type?: string; owned_by?: string }[]> {
-    const data = await apiClient.get<Record<string, unknown>>(
-      `/credentials/models?name=${encodeURIComponent(name)}`
-    );
+    const path = `/credentials/models?name=${encodeURIComponent(name)}`;
+    const data = target
+      ? await apiClient.get<Record<string, unknown>>(path, {
+          params: { auth_index: target.authIndex, binding_id: target.bindingId },
+          signal: target.signal,
+        })
+      : await apiClient.get<Record<string, unknown>>(path);
     const models = data.models ?? data['models'];
     return Array.isArray(models)
       ? (models as { id: string; display_name?: string; type?: string; owned_by?: string }[])

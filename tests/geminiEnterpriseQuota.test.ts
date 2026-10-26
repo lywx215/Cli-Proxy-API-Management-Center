@@ -27,7 +27,7 @@ const fixture = {
   status: 'ok',
   observed_at: '2026-10-23T10:00:00Z',
   period_start: '2026-10-23T07:00:00Z',
-  reset_at: '2026-10-24T07:00:00Z',
+  reset_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   pools: [
     {
       tier: 'enterprise_plus',
@@ -38,6 +38,14 @@ const fixture = {
       usage_updated_at: '2026-10-23T09:17:55Z',
     },
   ],
+  selected_pool: {
+    tier: 'enterprise_plus',
+    status: 'ok',
+    limit: 10000,
+    used: 6,
+    remaining: 9994,
+    usage_updated_at: '2026-10-23T09:17:55Z',
+  },
 };
 
 describe('Gemini Enterprise credential quota', () => {
@@ -216,8 +224,9 @@ describe('Gemini Enterprise credential quota', () => {
         );
       const success = render(fixture);
       expect(success).toContain((9994).toLocaleString(locale));
-      expect(success).toContain(translations.gemini_enterprise.quota.shared);
-      expect(success).toContain('progressbar');
+      expect(success).toContain(translations.gemini_enterprise.collections.reported_usage);
+      expect(success).toContain(translations.gemini_enterprise.collections.daily_limit);
+      expect(success).not.toContain('progressbar');
       const denied = render({ status: 'no_permission', error: 'never-display-raw-error' });
       expect(denied).toContain('roles/viewer');
       expect(denied).not.toContain('never-display');
@@ -227,18 +236,27 @@ describe('Gemini Enterprise credential quota', () => {
       );
       const unknown = render({
         ...fixture,
-        pools: [{ ...fixture.pools[0], used: null, remaining: null }],
+        selected_pool: { ...fixture.pools[0], used: null, remaining: null },
       });
-      expect(unknown).toContain('—');
+      const notProvided = translations.gemini_enterprise.quota.not_provided;
+      expect(unknown).toContain(notProvided);
+      expect(unknown).not.toContain('—');
       expect(unknown).not.toContain('progressbar');
       expect(unknown).not.toContain('gemini_enterprise.quota.');
+      const allMissing = render({
+        ...fixture,
+        selected_pool: { ...fixture.pools[0], used: null, limit: null, remaining: null },
+      });
+      expect(allMissing.split(notProvided)).toHaveLength(4);
+      expect(allMissing).not.toContain('<dd>0</dd>');
       const zero = render({
         ...fixture,
-        pools: [{ ...fixture.pools[0], used: 0, remaining: 10000 }],
+        selected_pool: { ...fixture.pools[0], used: 0, remaining: 10000 },
       });
-      expect(zero).toContain('aria-valuenow="0"');
+      expect(zero).toContain('<dd>0</dd>');
       expect(zero).toContain((10000).toLocaleString(locale));
       expect(zero).not.toContain(translations.gemini_enterprise.quota.no_data);
+      expect(zero).not.toContain(notProvided);
     });
   }
 });

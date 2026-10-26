@@ -7,12 +7,15 @@ import {
   type CredentialPolicyField,
   type CredentialPolicyValue,
 } from '@/features/authFiles/credentialPolicy';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient, authFilesApi, type AuthFileFieldsPatch } from '@/services/api';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import type { AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { geminiEnterpriseApi } from '@/services/api/geminiEnterprise';
+import { enterpriseCollectionIdentity, enterpriseCollectionName } from '../enterpriseAccounts';
 import {
   applyAuthFileWebsockets,
   applyAuthFileUsingApi,
@@ -57,6 +60,8 @@ export type PrefixProxyEditorField =
 export type PrefixProxyEditorFieldValue = string | boolean | CredentialPolicyValue;
 
 export type PrefixProxyEditorState = {
+  collectionTarget?: AuthFileItem;
+  scopeLabel?: string;
   policy?: CredentialPolicyDraft;
   fileName: string;
   fileInfoText: string;
@@ -472,6 +477,7 @@ export function useAuthFilesPrefixProxyEditor(
   const { disableControls, loadFiles, onFilesMutated } = options;
   const editorConnectionRef = useRef(apiClient.getConnectionRevision());
   const editorRequestRef = useRef(0);
+  const collectionRequest = useRef<AbortController | null>(null);
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
 
@@ -496,6 +502,7 @@ export function useAuthFilesPrefixProxyEditor(
     hasKeys(prefixProxyPatch) || Boolean(credentialPolicyError(prefixProxyEditor?.policy));
 
   const closePrefixProxyEditor = () => {
+    collectionRequest.current?.abort();
     editorRequestRef.current += 1;
     setPrefixProxyEditor(null);
   };
@@ -505,7 +512,13 @@ export function useAuthFilesPrefixProxyEditor(
     const fileProviderKey = normalizeProviderKey(String(file.type ?? file.provider ?? ''));
 
     if (disableControls) return;
-    if (prefixProxyEditor?.fileName === name) {
+    if (
+      prefixProxyEditor?.fileName === name &&
+      (prefixProxyEditor.collectionTarget
+        ? enterpriseCollectionIdentity(prefixProxyEditor.collectionTarget) ===
+          enterpriseCollectionIdentity(file)
+        : !file.geminiEnterprise?.bindingId)
+    ) {
       closePrefixProxyEditor();
       return;
     }
@@ -516,6 +529,18 @@ export function useAuthFilesPrefixProxyEditor(
       revision === apiClient.getConnectionRevision() && requestId === editorRequestRef.current;
 
     setPrefixProxyEditor({
+      ...(file.geminiEnterprise?.bindingId
+        ? {
+            collectionTarget: file,
+            scopeLabel: [
+              enterpriseCollectionName(file),
+              file.geminiEnterprise.location,
+              file.geminiEnterprise.engineId,
+            ]
+              .filter(Boolean)
+              .join(' / '),
+          }
+        : {}),
       fileName: name,
       fileInfoText: JSON.stringify(file, null, 2),
       loading: true,
@@ -547,7 +572,9 @@ export function useAuthFilesPrefixProxyEditor(
     });
 
     try {
-      const rawText = await authFilesApi.downloadText(name);
+      const rawText = file.geminiEnterprise?.bindingId
+        ? JSON.stringify(file.geminiEnterprise.settings ?? {})
+        : await authFilesApi.downloadText(name);
       if (!isCurrentEditor()) return;
       const trimmed = rawText.trim();
 
@@ -734,7 +761,17 @@ export function useAuthFilesPrefixProxyEditor(
     });
 
     try {
-      await authFilesApi.patchFields(name, payload);
+      if (prefixProxyEditor.collectionTarget) {
+        const controller = new AbortController();
+        collectionRequest.current = controller;
+        await geminiEnterpriseApi.updateCollection(
+          prefixProxyEditor.collectionTarget,
+          { fields: payload },
+          controller.signal
+        );
+      } else {
+        await authFilesApi.patchFields(name, payload);
+      }
       if (!isCurrentEditor()) return;
       onFilesMutated?.([name]);
       notifyAuthFilesChanged();
@@ -751,6 +788,24 @@ export function useAuthFilesPrefixProxyEditor(
       });
     }
   };
+
+  useEffect(() => {
+    const unsubscribe = useAuthStore.subscribe((state, previous) => {
+      if (
+        !state.isAuthenticated ||
+        state.apiBase !== previous.apiBase ||
+        state.managementKey !== previous.managementKey
+      ) {
+        collectionRequest.current?.abort();
+        editorRequestRef.current += 1;
+        setPrefixProxyEditor(null);
+      }
+    });
+    return () => {
+      unsubscribe();
+      collectionRequest.current?.abort();
+    };
+  }, []);
 
   return {
     prefixProxyEditor,

@@ -91,9 +91,9 @@ export const oauthApi = {
       params.auto_discover_resources = enterprise.discoverResources;
       params.client_id = enterprise.clientId.trim();
       params.client_secret_env = enterprise.clientSecretEnv.trim();
-      params.engine_id = enterprise.engineId.trim();
-      params.assistant_id = enterprise.assistantId.trim() || 'default_assistant';
       if (!enterprise.discoverResources) {
+        params.engine_id = enterprise.engineId.trim();
+        params.assistant_id = enterprise.assistantId.trim() || 'default_assistant';
         params.project_id = enterprise.projectId.trim();
         params.location = enterprise.location.trim();
         params.collection_id = enterprise.collectionId.trim();

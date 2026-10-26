@@ -64,6 +64,15 @@ export const matchesAuthFileSearch = (
     file.geminiEnterprise?.projectId,
     file.geminiEnterprise?.engineId,
     file.geminiEnterprise?.assistantId,
+    ...(file.geminiEnterprise?.collections ?? []).flatMap((collection) => [
+      collection.projectId,
+      collection.projectName,
+      collection.collectionId,
+      collection.location,
+      collection.engineId,
+      collection.assistantId,
+      collection.statusMessage,
+    ]),
     getAuthFileStatusMessage(file),
   ].some((value) => {
     const content = (value || '').toString();

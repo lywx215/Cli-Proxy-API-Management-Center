@@ -128,7 +128,7 @@ describe('Gemini Enterprise OAuth and configuration', () => {
     );
   });
 
-  test('sends only manual engine and assistant inputs during automatic resource identification', async () => {
+  test('automatically discovers resources without requiring or sending an engine', async () => {
     const get = spyOn(apiClient, 'get').mockResolvedValue({
       state: 'fixture-state',
       url: 'https://accounts.google.com/',
@@ -148,8 +148,6 @@ describe('Gemini Enterprise OAuth and configuration', () => {
           auto_discover_resources: true,
           client_id: value.clientId,
           client_secret_env: value.clientSecretEnv,
-          engine_id: value.engineId,
-          assistant_id: 'default_assistant',
         },
       });
       expect(patch).not.toHaveBeenCalled();
@@ -159,7 +157,13 @@ describe('Gemini Enterprise OAuth and configuration', () => {
           true
         )
       ).toEqual({});
-      expect(validateGeminiEnterpriseConfig({ ...value, engineId: '' }, true).engineId).toBe(
+      expect(
+        validateGeminiEnterpriseConfig(
+          { ...value, engineId: '', projectId: '', assistantId: '' },
+          true
+        )
+      ).toEqual({});
+      expect(validateGeminiEnterpriseConfig({ ...value, engineId: '' }, false).engineId).toBe(
         'resource'
       );
       get.mockResolvedValue({ state: 'older-server', url: 'https://accounts.google.com/' });
@@ -392,7 +396,7 @@ describe('Gemini Enterprise account presentation and localization', () => {
       );
       expect(markup).toContain(GEMINI_ENTERPRISE_CALLBACK_URL);
       expect(markup).not.toContain('test-project');
-      expect(markup).toContain('test-engine');
+      expect(markup).not.toContain('test-engine');
       expect(markup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientId);
       expect(markup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientSecretEnv);
       expect(markup).not.toContain(translations.gemini_enterprise.fields.clientId);
@@ -410,6 +414,7 @@ describe('Gemini Enterprise account presentation and localization', () => {
         )
       );
       expect(manualMarkup).toContain('test-project');
+      expect(manualMarkup).toContain('test-engine');
       expect(manualMarkup).toContain('default_collection');
       expect(manualMarkup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientId);
       for (const key of Object.keys(en.auth_login).filter((key) =>

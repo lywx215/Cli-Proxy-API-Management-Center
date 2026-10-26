@@ -760,6 +760,10 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
             : t('auth_files.status_disabled_success', { name }),
           'success'
         );
+        // Child effective_disabled includes the parent's switch; re-read after account changes.
+        if (item.geminiEnterprise?.collections && revision === apiClient.getConnectionRevision()) {
+          await loadFiles({ background: true });
+        }
       } catch (err: unknown) {
         if (revision !== apiClient.getConnectionRevision()) return;
         const errorMessage = err instanceof Error ? err.message : '';
@@ -783,7 +787,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         }
       }
     },
-    [invalidateInFlightLoads, showNotification, t]
+    [invalidateInFlightLoads, loadFiles, showNotification, t]
   );
 
   const batchSetStatus = useCallback(
@@ -888,6 +892,12 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         }
 
         deselectAll();
+        if (
+          [...targets.values()].some((file) => file.geminiEnterprise?.collections) &&
+          revision === apiClient.getConnectionRevision()
+        ) {
+          await loadFiles({ background: true });
+        }
       } finally {
         if (revision === apiClient.getConnectionRevision()) {
           batchStatusPendingRef.current = false;
@@ -904,7 +914,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         }
       }
     },
-    [deselectAll, files, invalidateInFlightLoads, showNotification, t]
+    [deselectAll, files, invalidateInFlightLoads, loadFiles, showNotification, t]
   );
 
   const batchDownload = useCallback(

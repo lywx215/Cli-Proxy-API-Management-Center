@@ -8,9 +8,13 @@ import type { AuthFileModelItem } from '../constants';
 import { enterpriseResources } from '../enterpriseResources';
 import {
   canTestEnterpriseFile,
+  cancelModelTest,
+  enterpriseModelCooldown,
+  isEnterpriseModelExcluded,
   isEnterpriseTextModel,
   modelTestIdentity,
   runSerialModelTests,
+  sanitizeModelTestMessage,
   type ModelTestResult,
   type ModelTestState,
 } from '../modelTesting';
@@ -23,6 +27,14 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const request = useRef<AbortController | null>(null);
   const identity = file ? modelTestIdentity(file) : '';
+  const identityRef = useRef(identity);
+  const resultsRef = useRef(results);
+  const fileRef = useRef(file);
+  useEffect(() => {
+    identityRef.current = identity;
+    resultsRef.current = results;
+    fileRef.current = file;
+  }, [identity, results, file]);
 
   const cancel = useCallback(() => {
     request.current?.abort();
@@ -30,10 +42,7 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
     setBusy(false);
     setResults((previous) =>
       Object.fromEntries(
-        Object.entries(previous).map(([id, result]) => [
-          id,
-          result.state === 'running' ? { state: 'cancelled' as const } : result,
-        ])
+        Object.entries(previous).map(([id, result]) => [id, cancelModelTest(result)])
       )
     );
   }, []);
@@ -67,16 +76,21 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
   const run = useCallback(
     async (requestedModels: string[]) => {
       if (!file || !canTestEnterpriseFile(file) || unsupported || request.current) return;
-      const ids = [...new Set(requestedModels)].filter((id) =>
-        models.some((model) => model.id === id && isEnterpriseTextModel(model))
+      const ids = [...new Set(requestedModels)].filter(
+        (id) =>
+          models.some((model) => model.id === id && isEnterpriseTextModel(model)) &&
+          !isEnterpriseModelExcluded(file, id) &&
+          !enterpriseModelCooldown(file, id, resultsRef.current[id])
       );
       if (!ids.length) return;
       const controller = new AbortController();
       request.current = controller;
       const revision = apiClient.getConnectionRevision();
+      const bindingIdentity = modelTestIdentity(file);
       const current = () =>
         !controller.signal.aborted &&
         request.current === controller &&
+        identityRef.current === bindingIdentity &&
         revision === apiClient.getConnectionRevision();
       let completed = 0;
       setBusy(true);
@@ -86,6 +100,10 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
           ids,
           controller.signal,
           async (model) => {
+            if (!current()) {
+              controller.abort();
+              controller.signal.throwIfAborted();
+            }
             const started = Date.now();
             try {
               return await authFileModelTestsApi.test(file, model, controller.signal);
@@ -112,7 +130,7 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
                   error.status === 404
                     ? t('auth_files.model_test_unsupported')
                     : cause instanceof Error
-                      ? cause.message
+                      ? sanitizeModelTestMessage(cause.message)
                       : t('auth_files.model_test_request_failed'),
               };
               return result;
@@ -120,15 +138,35 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
           },
           (model) => {
             if (current())
-              setResults((previous) => ({ ...previous, [model]: { state: 'running' } }));
+              setResults((previous) => ({
+                ...previous,
+                [model]: { ...previous[model], state: 'running' },
+              }));
           },
           (model, result) => {
             if (!current()) return;
             completed += 1;
-            setResults((previous) => ({ ...previous, [model]: { state: result.status, result } }));
+            setResults((previous) => ({
+              ...previous,
+              [model]: {
+                state: result.status,
+                result,
+                ...(result.retryAfterSeconds
+                  ? { cooldownUntilMs: Date.now() + result.retryAfterSeconds * 1000 }
+                  : {}),
+              },
+            }));
             setProgress({ completed, total: ids.length });
-          }
+          },
+          (model) =>
+            Boolean(
+              fileRef.current &&
+              (isEnterpriseModelExcluded(fileRef.current, model) ||
+                enterpriseModelCooldown(fileRef.current, model, resultsRef.current[model]))
+            )
         );
+      } catch (cause) {
+        if (!controller.signal.aborted) throw cause;
       } finally {
         if (request.current === controller) {
           request.current = null;

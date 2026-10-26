@@ -3,6 +3,7 @@ import { guardConfigConnection } from './configValue';
 import { requireManagementObject, InvalidManagementResponseError } from './managementResponse';
 import type { AuthFileItem } from '@/types';
 import type { ModelTestResult, ModelTestStatus } from '@/features/authFiles/modelTesting';
+import { sanitizeModelTestMessage } from '@/features/authFiles/modelTesting';
 import {
   enterpriseResources,
   sameEnterpriseResources,
@@ -10,6 +11,7 @@ import {
   validEnterpriseResources,
 } from '@/features/authFiles/enterpriseResources';
 import { isRecord } from '@/utils/helpers';
+import { enterpriseRevision } from './enterpriseAccounts';
 
 const STATUSES: readonly string[] = ['ok', 'failed', 'cooling', 'unavailable'];
 
@@ -57,7 +59,9 @@ export function normalizeModelTestResult(value: unknown): ModelTestResult {
     elapsedMs: elapsed,
     httpStatus,
     code: text('code'),
-    message: text('message'),
+    message: sanitizeModelTestMessage(text('message')),
+    bindingId: text('binding_id') || undefined,
+    revision: enterpriseRevision(value.revision),
     retryAfterSeconds:
       typeof retry === 'number' && Number.isFinite(retry) && retry >= 0 ? retry : undefined,
   };
@@ -75,6 +79,12 @@ export const authFileModelTestsApi = {
           auth_index: String(file.authIndex ?? ''),
           model,
           expected: serializeEnterpriseResources(expected),
+          ...(file.geminiEnterprise?.bindingId
+            ? {
+                binding_id: file.geminiEnterprise.bindingId,
+                expected_revision: file.geminiEnterprise.revision,
+              }
+            : {}),
         },
         { signal, timeout: 0 }
       )
@@ -84,6 +94,9 @@ export const authFileModelTestsApi = {
     if (
       result.authIndex !== String(file.authIndex ?? '') ||
       result.model !== model ||
+      (file.geminiEnterprise?.bindingId &&
+        (result.bindingId !== file.geminiEnterprise.bindingId ||
+          result.revision !== file.geminiEnterprise.revision)) ||
       !sameEnterpriseResources(result.resources, expected)
     ) {
       throw new InvalidManagementResponseError();

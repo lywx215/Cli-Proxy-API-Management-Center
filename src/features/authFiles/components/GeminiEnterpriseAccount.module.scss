@@ -1,0 +1,206 @@
+.account {
+  grid-column: 1 / -1;
+  min-width: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 16px 10px;
+}
+.identity {
+  min-width: 0;
+  h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  p {
+    margin: 3px 0 0;
+    font-family: $font-mono;
+    font-size: 11px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+}
+.accountActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.metadata {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px 14px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  > :last-child {
+    margin-left: auto;
+  }
+}
+.tableScroll {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 780px;
+  th {
+    padding: 9px 10px;
+    border-block: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    text-align: left;
+    font-size: 11px;
+    font-weight: 450;
+    color: var(--text-secondary);
+  }
+  th:first-child {
+    width: 27%;
+    padding-left: 20px;
+  }
+  th:nth-child(2) {
+    width: 9%;
+  }
+  th:nth-child(3) {
+    width: 30%;
+  }
+  th:nth-child(4) {
+    width: 18%;
+  }
+  th:last-child {
+    width: 16%;
+    text-align: right;
+    padding-right: 16px;
+  }
+}
+.mainRow {
+  td {
+    padding: 14px 10px 8px;
+    vertical-align: middle;
+    font-size: 12px;
+    border-top: 1px solid var(--border-color);
+  }
+  td:first-child {
+    padding-left: 20px;
+  }
+}
+.resourceName {
+  display: block;
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.mono {
+  margin-top: 4px;
+  font: 11px/1.6 $font-mono;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.region {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.rowActions {
+  text-align: right;
+  padding-right: 14px !important;
+}
+.requestsRow > td {
+  padding: 0 20px 14px;
+}
+.requests {
+  background: var(--bg-secondary);
+  padding: 9px 12px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.requestHeading,
+.recent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.requestHeading {
+  flex-wrap: wrap;
+}
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.success {
+  color: var(--success-color);
+}
+.failure {
+  color: var(--danger-color);
+}
+.recent {
+  margin-top: 7px;
+  font-variant-numeric: tabular-nums;
+  > span {
+    white-space: nowrap;
+  }
+}
+.bars {
+  flex: 1;
+  min-width: 0;
+}
+.hiddenRate {
+  display: none;
+}
+.requestBlock {
+  height: 8px;
+  border-radius: 2px;
+}
+.details {
+  padding: 14px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.empty,
+.notice {
+  margin: 0;
+  padding: 16px 20px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.notice {
+  color: var(--warning-color);
+}
+@media (max-width: 600px) {
+  .header {
+    padding: 12px;
+    gap: 6px;
+  }
+  .accountActions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .metadata {
+    padding-inline: 12px;
+  }
+}

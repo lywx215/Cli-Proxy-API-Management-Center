@@ -1,63 +1,61 @@
 .quota {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px 12px;
   background: var(--bg-secondary);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.5;
+  min-width: 180px;
 }
-
-.header,
-.poolTitle,
-.amounts {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .header {
-  margin-bottom: 7px;
-  color: var(--text-primary);
-}
-
-.pool + .pool {
-  margin-top: 10px;
-}
-
-.poolTitle {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.amounts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   color: var(--text-secondary);
-  margin: 4px 0;
-  font-variant-numeric: tabular-nums;
 }
-
-.meter {
-  height: 5px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--border-color);
-
-  > span {
-    display: block;
-    height: 100%;
-    background: var(--primary-color);
+.remaining {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  strong {
+    font-size: 22px;
+    font-weight: 550;
+    line-height: 1.2;
+    color: var(--success-color);
+    font-variant-numeric: tabular-nums;
   }
 }
-
-.remaining {
-  margin: 4px 0;
-  font-weight: 600;
-  color: var(--text-primary);
+.amounts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  dt {
+    color: var(--text-secondary);
+  }
+  dd {
+    margin: 0;
+    text-align: right;
+  }
 }
-
-.message {
-  margin: 3px 0 0;
+.remaining .unknown {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+.message,
+.observation {
+  display: block;
+  margin: 5px 0 0;
   color: var(--text-tertiary);
   overflow-wrap: anywhere;
+}
+.observation {
+  font-size: 10px;
 }

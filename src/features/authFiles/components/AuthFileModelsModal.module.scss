@@ -32,7 +32,8 @@
 .copyModel {
   display: flex;
   flex: 1;
-  align-items: baseline;
+  align-items: flex-start;
+  flex-direction: column;
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
@@ -47,7 +48,9 @@
 
 .testToolbar {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 12px;
 
@@ -80,8 +83,17 @@
   color: var(--danger-color);
 }
 .testMessage {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
+  color: var(--text-secondary);
+  font-size: 12px;
   overflow-wrap: anywhere;
+  summary {
+    cursor: pointer;
+  }
+  p {
+    margin: 6px 0;
+    white-space: pre-wrap;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -97,10 +109,101 @@
 
 .modelId {
   font-family: $font-mono;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
+}
+
+.context {
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  > p {
+    margin: 0 0 6px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  > p:last-child {
+    margin: 6px 0 0;
+  }
+  > div {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  code {
+    font-size: 11px;
+  }
+  small {
+    margin-left: auto;
+    color: var(--text-secondary);
+  }
+}
+.region {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  font-size: 11px;
+}
+.columns,
+.testItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px 75px 65px;
+  align-items: center;
+  gap: 8px;
+}
+.columns {
+  padding: 8px 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  border-bottom: 1px solid var(--border-color);
+}
+.testItem {
+  padding-block: 12px;
+  border-bottom-color: var(--border-color);
+  border-radius: 0;
+}
+.modelName {
+  font-weight: 550;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.state,
+.elapsed {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.state small,
+.testSuccess small,
+.testFailure small {
+  display: block;
+  font-size: 10px;
+}
+.testSuccess,
+.testFailure {
+  font-size: 11px;
+}
+.footerHint {
+  flex: 1;
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+@media (max-width: 540px) {
+  .columns,
+  .testItem {
+    grid-template-columns: minmax(0, 1fr) 70px 52px;
+  }
+  .columns > :nth-child(3),
+  .elapsed {
+    display: none;
+  }
 }
 
 .modelDisplayName {

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authFilesApi } from '@/services/api';
 import { useNotificationStore } from '@/stores';
@@ -7,6 +7,8 @@ import type { AuthFileModelItem } from '@/features/authFiles/constants';
 import { modelTestIdentity } from '../modelTesting';
 import { useAuthFileModelTests } from './useAuthFileModelTests';
 import { apiClient } from '@/services/api/client';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { enterpriseCollectionFiles } from '../enterpriseAccounts';
 
 type ModelsError = 'unsupported' | null;
 
@@ -17,6 +19,7 @@ export type UseAuthFilesModelsResult = {
   modelsFileName: string;
   modelsFileType: string;
   modelsError: ModelsError;
+  modelsFile: AuthFileItem | null;
   showModels: (item: AuthFileItem) => Promise<void>;
   closeModelsModal: () => void;
   /** Invalidate derived caches after credential changes. */
@@ -42,9 +45,11 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const modelsCacheVersionRef = useRef(0);
   const modelsFileVersionRef = useRef<Map<string, number>>(new Map());
   const activeModelsRequestIdRef = useRef(0);
+  const listRequest = useRef<AbortController | null>(null);
 
   const closeModelsModal = useCallback(() => {
     resetModelTests();
+    listRequest.current?.abort();
     modelsFileRef.current = null;
     setModelsFile(null);
     activeModelsRequestIdRef.current += 1;
@@ -55,7 +60,7 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const invalidateModels = useCallback(
     (names?: string[]) => {
       if (!names || (modelsFileRef.current && names.includes(modelsFileRef.current.name))) {
-        resetModelTests();
+        closeModelsModal();
       }
       if (!names) {
         modelsCacheRef.current.clear();
@@ -70,26 +75,33 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
         modelsFileVersionRef.current.set(name, (modelsFileVersionRef.current.get(name) ?? 0) + 1);
       });
     },
-    [resetModelTests]
+    [closeModelsModal]
   );
 
   const syncModelsFile = useCallback(
     (files: AuthFileItem[]) => {
       const selected = modelsFileRef.current;
       if (!selected) return;
-      const current = files.find(
+      const candidates = files.flatMap((file) =>
+        file.geminiEnterprise?.collections ? enterpriseCollectionFiles(file) : [file]
+      );
+      const current = candidates.find(
         (file) =>
           file.name === selected.name &&
           String(file.authIndex ?? '') === String(selected.authIndex ?? '')
       );
       if (!current || modelTestIdentity(current) !== modelTestIdentity(selected)) {
         resetModelTests();
+        listRequest.current?.abort();
         activeModelsRequestIdRef.current += 1;
         setModelsModalOpen(false);
         setModelsList([]);
         setModelsLoading(false);
         modelsFileRef.current = null;
         setModelsFile(null);
+      } else {
+        modelsFileRef.current = current;
+        setModelsFile(current);
       }
     },
     [resetModelTests]
@@ -98,6 +110,9 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const showModels = useCallback(
     async (item: AuthFileItem) => {
       resetModelTests();
+      listRequest.current?.abort();
+      const controller = new AbortController();
+      listRequest.current = controller;
       modelsFileRef.current = item;
       setModelsFile(item);
       const revision = apiClient.getConnectionRevision();
@@ -105,7 +120,7 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
       const requestId = ++activeModelsRequestIdRef.current;
 
       setModelsFileName(item.name);
-      setModelsFileType(item.type || '');
+      setModelsFileType(item.type || item.provider || '');
       setModelsList([]);
       setModelsError(null);
       setModelsModalOpen(true);
@@ -122,13 +137,18 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
       const isCacheCurrent = () =>
         cacheVersion === modelsCacheVersionRef.current &&
         fileVersion === (modelsFileVersionRef.current.get(item.name.trim()) ?? 0);
-      const isRequestCurrent = () => requestId === activeModelsRequestIdRef.current;
+      const isRequestCurrent = () =>
+        !controller.signal.aborted && requestId === activeModelsRequestIdRef.current;
       const isConnectionCurrent = () => revision === apiClient.getConnectionRevision();
 
       setModelsLoading(true);
       try {
-        const models = await authFilesApi.getModelsForAuthFile(item.name);
-        if (isCacheCurrent() && isConnectionCurrent()) {
+        const models = await authFilesApi.getModelsForAuthFile(item.name, {
+          authIndex: String(item.authIndex ?? ''),
+          bindingId: item.geminiEnterprise?.bindingId,
+          signal: controller.signal,
+        });
+        if (isRequestCurrent() && isCacheCurrent() && isConnectionCurrent()) {
           modelsCacheRef.current.set(cacheKey, models);
           if (isRequestCurrent()) setModelsList(models);
         }
@@ -151,6 +171,23 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     [showNotification, t, resetModelTests]
   );
 
+  useEffect(() => {
+    const unsubscribe = useAuthStore.subscribe((state, previous) => {
+      if (
+        !state.isAuthenticated ||
+        state.apiBase !== previous.apiBase ||
+        state.managementKey !== previous.managementKey
+      ) {
+        closeModelsModal();
+        invalidateModels();
+      }
+    });
+    return () => {
+      unsubscribe();
+      listRequest.current?.abort();
+    };
+  }, [closeModelsModal, invalidateModels]);
+
   return {
     modelsModalOpen,
     modelsLoading,
@@ -158,6 +195,7 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     modelsFileName,
     modelsFileType,
     modelsError,
+    modelsFile,
     showModels,
     closeModelsModal,
     invalidateModels,

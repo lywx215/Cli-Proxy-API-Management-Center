@@ -22,6 +22,7 @@ import {
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
 import { AuthFileCard } from '@/features/authFiles/components/AuthFileCard';
+import { GeminiEnterpriseAccount } from './components/GeminiEnterpriseAccount';
 import type { AuthFileItem } from '@/types';
 import { AuthFileDetailsSheet } from '@/features/authFiles/components/AuthFileDetailsSheet';
 import { getAuthFileRefreshKey } from '@/features/authFiles/manualRefresh';
@@ -108,6 +109,7 @@ export function AuthFilesPage() {
     modelsFileName,
     modelsFileType,
     modelsError,
+    modelsFile,
     showModels,
     closeModelsModal,
     invalidateModels,
@@ -718,32 +720,53 @@ export function AuthFilesPage() {
           />
         ) : (
           <div className={gridClasses}>
-            {pageItems.map((file, index) => (
-              <AuthFileCard
-                key={getQuotaCacheKey(file)}
-                file={file}
-                compact={compactMode}
-                selected={selectedFiles.has(file.name)}
-                resolvedTheme={resolvedTheme}
-                disableControls={disableControls}
-                deleting={deleting}
-                statusUpdating={statusUpdating}
-                manualRefreshing={manualRefreshing}
-                cooldownResetting={cooldownResetting}
-                quotaFilterType={activeQuotaFilter}
-                statusBarCache={statusBarCache}
-                entranceDelayMs={cardEntranceDelay(index)}
-                onShowModels={showModels}
-                onEnterpriseResourcesSaved={handleEnterpriseResourcesSaved}
-                onDownload={handleDownload}
-                onManualRefresh={handleManualRefresh}
-                onCooldownReset={handleCooldownReset}
-                onOpenPrefixProxyEditor={openPrefixProxyEditor}
-                onDelete={handleDelete}
-                onToggleStatus={handleStatusToggle}
-                onToggleSelect={toggleSelect}
-              />
-            ))}
+            {pageItems.map((file, index) =>
+              file.geminiEnterprise &&
+              normalizeProviderKey(String(file.type ?? file.provider)) === 'gemini-enterprise' ? (
+                <GeminiEnterpriseAccount
+                  key={getQuotaCacheKey(file)}
+                  file={file}
+                  selected={selectedFiles.has(file.name)}
+                  disableControls={disableControls}
+                  deleting={deleting}
+                  statusUpdating={statusUpdating}
+                  manualRefreshing={manualRefreshing}
+                  onShowModels={showModels}
+                  onEnterpriseResourcesSaved={handleEnterpriseResourcesSaved}
+                  onDownload={handleDownload}
+                  onManualRefresh={handleManualRefresh}
+                  onOpenPrefixProxyEditor={openPrefixProxyEditor}
+                  onDelete={handleDelete}
+                  onToggleStatus={handleStatusToggle}
+                  onToggleSelect={toggleSelect}
+                />
+              ) : (
+                <AuthFileCard
+                  key={getQuotaCacheKey(file)}
+                  file={file}
+                  compact={compactMode}
+                  selected={selectedFiles.has(file.name)}
+                  resolvedTheme={resolvedTheme}
+                  disableControls={disableControls}
+                  deleting={deleting}
+                  statusUpdating={statusUpdating}
+                  manualRefreshing={manualRefreshing}
+                  cooldownResetting={cooldownResetting}
+                  quotaFilterType={activeQuotaFilter}
+                  statusBarCache={statusBarCache}
+                  entranceDelayMs={cardEntranceDelay(index)}
+                  onShowModels={showModels}
+                  onEnterpriseResourcesSaved={handleEnterpriseResourcesSaved}
+                  onDownload={handleDownload}
+                  onManualRefresh={handleManualRefresh}
+                  onCooldownReset={handleCooldownReset}
+                  onOpenPrefixProxyEditor={openPrefixProxyEditor}
+                  onDelete={handleDelete}
+                  onToggleStatus={handleStatusToggle}
+                  onToggleSelect={toggleSelect}
+                />
+              )
+            )}
           </div>
         )}
 
@@ -810,6 +833,7 @@ export function AuthFilesPage() {
         open={modelsModalOpen}
         fileName={modelsFileName}
         fileType={modelsFileType}
+        file={modelsFile}
         loading={modelsLoading}
         error={modelsError}
         models={modelsList}

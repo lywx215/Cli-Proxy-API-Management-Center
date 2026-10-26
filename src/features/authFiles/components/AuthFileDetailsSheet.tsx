@@ -126,7 +126,7 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
       size="md"
       closeDisabled={editor?.saving === true}
       eyebrow={t('auth_files.prefix_proxy_button')}
-      title={editor?.fileName ?? ''}
+      title={editor?.scopeLabel || editor?.fileName || ''}
       footer={
         <>
           <Button

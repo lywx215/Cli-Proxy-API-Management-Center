@@ -34,7 +34,7 @@ export function validateGeminiEnterpriseConfig(
     'engineId',
     'assistantId',
   ] as const) {
-    if (discoverResources && ['projectId', 'location', 'collectionId'].includes(field)) continue;
+    if (discoverResources) continue;
     const text = field === 'assistantId' ? value[field] || 'default_assistant' : value[field];
     if (!RESOURCE.test(text)) errors[field] = 'resource';
   }
