@@ -1,3 +1,4 @@
+import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
 import { useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -68,14 +69,20 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
     cooldownClock.getSnapshot
   );
   const showTests = fileType === 'gemini-enterprise';
-  const isExcluded = (id: string) =>
-    isModelExcluded(id, fileType, excluded) || Boolean(file && isEnterpriseModelExcluded(file, id));
+  const isExcluded = (model: AuthFileModelItem) => {
+    const upstreamModel = model.upstream_model || model.id;
+    return (
+      model.policy_allowed === false ||
+      isModelExcluded(upstreamModel, fileType, excluded) ||
+      Boolean(file && isEnterpriseModelExcluded(file, upstreamModel))
+    );
+  };
   const cooling = (id: string) =>
     file
       ? enterpriseModelCooldown(file, id, testResults[id], now)
       : Math.max(0, Math.ceil(((testResults[id]?.cooldownUntilMs ?? 0) - now) / 1000));
   const testableModels = models.filter(
-    (model) => isEnterpriseTextModel(model) && !isExcluded(model.id) && !cooling(model.id)
+    (model) => isEnterpriseTextModel(model) && !isExcluded(model) && !cooling(model.id)
   );
   const binding = file?.geminiEnterprise;
 
@@ -98,6 +105,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
       {showTests && file && (
         <section className={styles.context} aria-label={t('gemini_enterprise.models.context')}>
           <p>{file.email || fileName}</p>
+          <EnterpriseModelPolicyStatus snapshot={binding?.modelPolicyState} />
           <div>
             <strong>{enterpriseCollectionName(file)}</strong>
             <span className={styles.region}>{binding?.location}</span>
@@ -172,7 +180,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
           )}
           <div className={styles.list}>
             {models.map((model) => {
-              const excludedModel = isExcluded(model.id);
+              const excludedModel = isExcluded(model);
               const textModel = isEnterpriseTextModel(model);
               const test = testResults[model.id];
               const result = test?.result;
@@ -198,6 +206,18 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
                     <span className={styles.modelName}>{model.display_name || model.id}</span>
                     <span className={styles.modelId}>
                       {model.id}
+                      {model.upstream_model && model.upstream_model !== model.id && (
+                        <small className={styles.policyBadge}>{model.upstream_model}</small>
+                      )}
+                      {showTests && (
+                        <small className={styles.policyBadge}>
+                          {t(
+                            excludedModel
+                              ? 'gemini_enterprise.policy.listed_blocked'
+                              : 'gemini_enterprise.policy.listed_allowed'
+                          )}
+                        </small>
+                      )}
                       <IconCopy size={12} />
                     </span>
                   </button>

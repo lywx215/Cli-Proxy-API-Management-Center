@@ -1,4 +1,12 @@
 import {
+  buildEnterprisePolicyPatch,
+  enterprisePolicyError,
+  enterprisePolicyHasChanges,
+  readEnterprisePolicy,
+  type EnterprisePolicyDraft,
+  type EnterprisePolicyField,
+} from '../enterpriseModelPolicy';
+import {
   applyCredentialPolicyPatch,
   buildCredentialPolicyPatch,
   credentialPolicyError,
@@ -45,6 +53,7 @@ type AuthFileWeightErrorKey = 'auth_files.weight_invalid_integer' | 'auth_files.
 type AuthFileEditorErrorKey = AuthFileHeadersErrorKey | AuthFileWeightErrorKey;
 
 export type PrefixProxyEditorField =
+  | EnterprisePolicyField
   | CredentialPolicyField
   | 'prefix'
   | 'proxyUrl'
@@ -60,6 +69,8 @@ export type PrefixProxyEditorField =
 export type PrefixProxyEditorFieldValue = string | boolean | CredentialPolicyValue;
 
 export type PrefixProxyEditorState = {
+  enterprisePolicy?: EnterprisePolicyDraft;
+  enterprisePolicySupported?: boolean;
   collectionTarget?: AuthFileItem;
   scopeLabel?: string;
   policy?: CredentialPolicyDraft;
@@ -393,6 +404,10 @@ export const buildAuthFileFieldsPatch = (
     }
   }
 
+  Object.assign(
+    patch,
+    buildEnterprisePolicyPatch(original, editor.enterprisePolicy, editor.enterprisePolicySupported)
+  );
   Object.assign(patch, buildCredentialPolicyPatch(original, editor.policy));
   return patch;
 };
@@ -457,6 +472,11 @@ const buildPrefixProxyUpdatedText = (
     next['excluded-models'] = patch['excluded-models'];
   }
 
+  if (patch.model_policy !== undefined) next.model_policy = patch.model_policy;
+  if (patch.allowed_models !== undefined) {
+    if (patch.allowed_models === null) delete next.allowed_models;
+    else next.allowed_models = patch.allowed_models;
+  }
   applyCredentialPolicyPatch(next, patch);
   applyHeadersPatch(next, patch.headers);
 
@@ -486,6 +506,8 @@ export function useAuthFilesPrefixProxyEditor(
   const hasBlockingValidationError = Boolean(
     (prefixProxyEditor?.headersTouched && prefixProxyEditor.headersError) ||
     prefixProxyEditor?.weightError ||
+    (prefixProxyEditor?.enterprisePolicySupported &&
+      enterprisePolicyError(prefixProxyEditor.enterprisePolicy)) ||
     credentialPolicyError(prefixProxyEditor?.policy)
   );
   const prefixProxyUpdatedText =
@@ -499,7 +521,13 @@ export function useAuthFilesPrefixProxyEditor(
       : null;
 
   const prefixProxyDirty =
-    hasKeys(prefixProxyPatch) || Boolean(credentialPolicyError(prefixProxyEditor?.policy));
+    hasKeys(prefixProxyPatch) ||
+    Boolean(credentialPolicyError(prefixProxyEditor?.policy)) ||
+    enterprisePolicyHasChanges(
+      prefixProxyEditor?.json ?? {},
+      prefixProxyEditor?.enterprisePolicy,
+      prefixProxyEditor?.enterprisePolicySupported
+    );
 
   const closePrefixProxyEditor = () => {
     collectionRequest.current?.abort();
@@ -541,6 +569,7 @@ export function useAuthFilesPrefixProxyEditor(
               .join(' / '),
           }
         : {}),
+      enterprisePolicySupported: file.geminiEnterprise?.modelPolicySupported === true,
       fileName: name,
       fileInfoText: JSON.stringify(file, null, 2),
       loading: true,
@@ -638,6 +667,7 @@ export function useAuthFilesPrefixProxyEditor(
           invalidContentPreview: '',
           json,
           policy: readCredentialPolicy(json),
+          enterprisePolicy: readEnterprisePolicy(json),
           providerKey,
           prefix,
           proxyUrl,
@@ -687,6 +717,27 @@ export function useAuthFilesPrefixProxyEditor(
             touched: { ...policy.touched, [field]: true },
           },
         };
+      }
+      if (
+        field === 'enterpriseModelPolicy' ||
+        field === 'enterpriseWhitelistEnabled' ||
+        field === 'enterpriseAllowedModelsText'
+      ) {
+        const draft = prev.enterprisePolicy ?? readEnterprisePolicy(prev.json ?? {});
+        const next = { ...draft, touched: { ...draft.touched } };
+        if (field === 'enterpriseModelPolicy') {
+          next.mode = String(value) as EnterprisePolicyDraft['mode'];
+          next.touched.mode = true;
+        }
+        if (field === 'enterpriseWhitelistEnabled') {
+          next.whitelistEnabled = Boolean(value);
+          next.touched.allowed = true;
+        }
+        if (field === 'enterpriseAllowedModelsText') {
+          next.allowedText = String(value);
+          next.touched.allowed = true;
+        }
+        return { ...prev, enterprisePolicy: next };
       }
       if (field === 'prefix') return { ...prev, prefix: String(value) };
       if (field === 'proxyUrl') return { ...prev, proxyUrl: String(value) };

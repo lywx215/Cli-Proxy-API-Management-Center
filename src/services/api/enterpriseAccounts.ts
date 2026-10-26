@@ -1,4 +1,8 @@
-import type { GeminiEnterpriseAccount, GeminiEnterpriseCollection } from '@/types/authFile';
+import type {
+  GeminiEnterpriseAccount,
+  GeminiEnterpriseCollection,
+  EnterpriseModelPolicyState,
+} from '@/types/authFile';
 import { isRecord } from '@/utils/helpers';
 import {
   normalizeRecentRequestAuthIndex,
@@ -34,6 +38,8 @@ const SETTING_KEYS = [
   'request_retry',
   'model_aliases',
   'request_scoped_errors',
+  'model_policy',
+  'allowed_models',
   'excluded_models',
   'excluded-models',
   'disable_cooling',
@@ -44,6 +50,50 @@ export function enterpriseSettings(value: unknown): Record<string, unknown> {
   return Object.fromEntries(
     SETTING_KEYS.filter((key) => key in source).map((key) => [key, source[key]])
   );
+}
+
+export function normalizeEnterpriseModelPolicy(
+  value: unknown
+): EnterpriseModelPolicyState | undefined {
+  if (!isRecord(value)) return undefined;
+  const list = (items: unknown): string[] =>
+    Array.isArray(items) ? items.filter((item): item is string => typeof item === 'string') : [];
+  const mode = ['auto', 'catalog', 'argon_only', 'exclude_argon', 'custom'].includes(
+    String(value.mode)
+  )
+    ? (value.mode as EnterpriseModelPolicyState['mode'])
+    : 'auto';
+  const sub = isRecord(value.subscription) ? value.subscription : {};
+  return {
+    mode,
+    effectiveMode: text(value.effective_mode) ?? 'auto',
+    status: text(value.status) ?? 'blocked',
+    reason: text(value.reason),
+    catalogKnown: value.catalog_known === true,
+    allowedModels: Array.isArray(value.allowed_models) ? list(value.allowed_models) : null,
+    excludedModels: list(value.excluded_models),
+    globalExcludedModels: list(value.global_excluded_models),
+    effectiveModels: list(value.effective_models),
+    catalogModels: (Array.isArray(value.catalog_models) ? value.catalog_models : [])
+      .filter(isRecord)
+      .filter((entry) => text(entry.id))
+      .map((entry) => ({
+        id: text(entry.id)!,
+        displayName: text(entry.display_name),
+        mediaKind: text(entry.media_kind),
+        allowed: entry.allowed === true,
+        reason: text(entry.reason),
+      })),
+    subscription: {
+      status: text(sub.status) ?? 'unknown',
+      edition: text(sub.edition),
+      freeTrial: typeof sub.free_trial === 'boolean' ? sub.free_trial : null,
+      state: text(sub.state),
+      checkedAt: text(sub.checked_at),
+      lastSuccessAt: text(sub.last_success_at),
+      reason: text(sub.reason),
+    },
+  };
 }
 
 export function normalizeEnterpriseAccount(
@@ -59,6 +109,7 @@ export function normalizeEnterpriseAccount(
         .map((entry) => ({
           ...resources(entry),
           bindingId: text(entry.binding_id)!,
+          modelPolicyState: normalizeEnterpriseModelPolicy(entry.model_policy_state),
           revision: enterpriseRevision(entry.revision),
           authIndex: normalizeRecentRequestAuthIndex(entry.auth_index) ?? undefined,
           projectName: text(entry.project_name),
@@ -79,6 +130,8 @@ export function normalizeEnterpriseAccount(
   return {
     ...resources(value),
     clientId: text(value.client_id),
+    modelPolicySupported: bool(value.model_policy_supported),
+    modelPolicyState: normalizeEnterpriseModelPolicy(value.model_policy_state),
     expiry: text(value.expiry),
     hasRefreshToken: bool(value.has_refresh_token),
     resourceEditSupported: bool(value.resource_edit_supported),

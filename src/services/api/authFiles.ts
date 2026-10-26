@@ -22,6 +22,8 @@ type AuthFileStatusResponse = { status: string; disabled: boolean };
 export type AuthFileLookup = { name: string; authIndex?: string };
 type AuthFileEntry = AuthFilesResponse['files'][number];
 export type AuthFileFieldsPatch = {
+  model_policy?: import('@/types/authFile').EnterpriseModelPolicyMode;
+  allowed_models?: string[] | null;
   request_retry?: number | null;
   model_aliases?: Array<{
     name: string;
@@ -682,7 +684,17 @@ export const authFilesApi = {
   async getModelsForAuthFile(
     name: string,
     target?: { authIndex?: string; bindingId?: string; signal?: AbortSignal }
-  ): Promise<{ id: string; display_name?: string; type?: string; owned_by?: string }[]> {
+  ): Promise<
+    {
+      id: string;
+      display_name?: string;
+      type?: string;
+      owned_by?: string;
+      upstream_model?: string;
+      policy_allowed?: boolean;
+      upstream_listed?: boolean;
+    }[]
+  > {
     const path = `/credentials/models?name=${encodeURIComponent(name)}`;
     const data = target
       ? await apiClient.get<Record<string, unknown>>(path, {
@@ -691,9 +703,42 @@ export const authFilesApi = {
         })
       : await apiClient.get<Record<string, unknown>>(path);
     const models = data.models ?? data['models'];
-    return Array.isArray(models)
-      ? (models as { id: string; display_name?: string; type?: string; owned_by?: string }[])
+    const result = Array.isArray(models)
+      ? models.filter(isRecord).filter((entry) => typeof entry.id === 'string')
       : [];
+    const seen = new Set(result.map((entry) => entry.id));
+    if (data.model_policy_supported === true && Array.isArray(data.catalog_models)) {
+      for (const entry of data.catalog_models) {
+        if (
+          !isRecord(entry) ||
+          typeof entry.id !== 'string' ||
+          seen.has(entry.id) ||
+          entry.allowed !== false
+        )
+          continue;
+        result.push({
+          id: entry.id,
+          display_name: entry.display_name,
+          type: 'gemini',
+          policy_allowed: false,
+          upstream_listed: true,
+        });
+        seen.add(entry.id);
+      }
+    }
+    return result.map((entry) => ({
+      id: String(entry.id),
+      ...(typeof entry.display_name === 'string' ? { display_name: entry.display_name } : {}),
+      ...(typeof entry.type === 'string' ? { type: entry.type } : {}),
+      ...(typeof entry.owned_by === 'string' ? { owned_by: entry.owned_by } : {}),
+      ...(typeof entry.upstream_model === 'string' ? { upstream_model: entry.upstream_model } : {}),
+      ...(typeof entry.policy_allowed === 'boolean'
+        ? { policy_allowed: entry.policy_allowed }
+        : {}),
+      ...(typeof entry.upstream_listed === 'boolean'
+        ? { upstream_listed: entry.upstream_listed }
+        : {}),
+    }));
   },
 
   // Get model definitions for a channel

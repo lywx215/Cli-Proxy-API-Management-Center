@@ -20,6 +20,9 @@ import { TYPE_COLORS } from '@/utils/quota';
 
 export type { ResolvedTheme, ThemeColors, TypeColorSet } from '@/types';
 export type AuthFileModelItem = {
+  upstream_model?: string;
+  policy_allowed?: boolean;
+  upstream_listed?: boolean;
   id: string;
   display_name?: string;
   type?: string;

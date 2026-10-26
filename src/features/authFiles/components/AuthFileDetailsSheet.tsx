@@ -1,3 +1,5 @@
+import { EnterpriseModelPolicyFields } from './EnterpriseModelPolicyFields';
+import { enterprisePolicyError, readEnterprisePolicy } from '../enterpriseModelPolicy';
 import { useCallback, useMemo, type MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
@@ -22,7 +24,7 @@ import { AuthFilePolicyFields } from './AuthFilePolicyFields';
 import { credentialPolicyError, readCredentialPolicy } from '../credentialPolicy';
 import styles from './AuthFileDetailsSheet.module.scss';
 
-/** API 边界归一化补写的派生字段——INFO 视图里只展示后端原始形状，避免重复噪音。 */
+/** Hide derived normalization fields from the raw information view. */
 const DERIVED_INFO_KEYS = [
   'successCount',
   'failureCount',
@@ -31,7 +33,7 @@ const DERIVED_INFO_KEYS = [
   'authIndex',
   'statusMessage',
   'modified',
-  // 'email' 不在此列：后端原始键名与 camelCase 同形，删掉会藏起真实数据。
+  // Keep email because its raw and normalized field names are identical.
   'projectId',
 ];
 
@@ -47,8 +49,7 @@ export type AuthFileDetailsSheetProps = {
 };
 
 /**
- * 凭证详情/编辑抽屉：替代旧的居中 Modal，与提供商工作台的 Sheet 模式一致。
- * 脏状态下关闭（Escape/遮罩/×/取消）先走确认对话框。
+ * Credential editor with confirmation before discarding unsaved changes.
  */
 export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
   const { t } = useTranslation();
@@ -113,7 +114,7 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
         return JSON.stringify(record, null, 2);
       }
     } catch {
-      /* 非 JSON 原样展示 */
+      /* Preserve non-JSON information. */
     }
     return fileInfoText;
   }, [fileInfoText]);
@@ -156,7 +157,10 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
               !editor?.json ||
               Boolean(editor?.headersTouched && editor.headersError) ||
               Boolean(editor?.weightError) ||
-              Boolean(credentialPolicyError(editor?.policy))
+              Boolean(credentialPolicyError(editor?.policy)) ||
+              Boolean(
+                editor?.enterprisePolicySupported && enterprisePolicyError(editor.enterprisePolicy)
+              )
             }
           >
             {t('common.save')}
@@ -272,6 +276,19 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                       <div className="hint">{t('auth_files.using_api_hint')}</div>
                     </div>
                   )}
+                  {editor.enterprisePolicySupported &&
+                    editor.providerKey === 'gemini-enterprise' && (
+                      <EnterpriseModelPolicyFields
+                        draft={editor.enterprisePolicy ?? readEnterprisePolicy(editor.json)}
+                        snapshot={editor.collectionTarget?.geminiEnterprise?.modelPolicyState}
+                        excluded={editor.excludedModelsText
+                          .split(/[\n,]+/)
+                          .map((entry) => entry.trim())
+                          .filter(Boolean)}
+                        disabled={disableControls || editor.saving}
+                        onChange={onChange}
+                      />
+                    )}
                   <AuthFileExcludedModelsField
                     fileName={editor.fileName}
                     value={editor.excludedModelsText}

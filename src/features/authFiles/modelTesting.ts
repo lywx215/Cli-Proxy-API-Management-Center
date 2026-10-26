@@ -1,3 +1,4 @@
+import { enterprisePolicyRoutingPaused } from './enterpriseModelPolicy';
 import type { AuthFileItem } from '@/types';
 import { isModelExcluded, type AuthFileModelItem } from './constants';
 import { enterpriseCollectionIdentity } from './enterpriseAccounts';
@@ -52,7 +53,7 @@ export function sanitizeModelTestMessage(value: string): string {
 
 export function isEnterpriseTextModel(model: AuthFileModelItem): boolean {
   return !/(?:image|video|audio|speech|tts|embedding|imagen|veo|lyria)/i.test(
-    `${model.id} ${model.type ?? ''}`
+    `${model.id} ${model.upstream_model ?? ''} ${model.type ?? ''}`
   );
 }
 
@@ -62,6 +63,7 @@ export function canTestEnterpriseFile(file: AuthFileItem | null): boolean {
     (file.type || file.provider) === 'gemini-enterprise' &&
     !file.disabled &&
     !file.geminiEnterprise?.effectiveDisabled &&
+    !enterprisePolicyRoutingPaused(file.geminiEnterprise?.modelPolicyState) &&
     !file.geminiEnterprise?.collections &&
     (!file.geminiEnterprise?.bindingId || file.geminiEnterprise.revision !== undefined) &&
     String(file.authIndex ?? '').trim() &&
@@ -72,6 +74,10 @@ export function canTestEnterpriseFile(file: AuthFileItem | null): boolean {
 export function modelTestIdentity(file: AuthFileItem): string {
   return JSON.stringify([
     enterpriseCollectionIdentity(file),
+    file.geminiEnterprise?.modelPolicyState?.effectiveMode,
+    file.geminiEnterprise?.modelPolicyState?.status,
+    file.geminiEnterprise?.modelPolicyState?.catalogKnown,
+    file.geminiEnterprise?.modelPolicyState?.effectiveModels,
     file.type || file.provider || '',
     Boolean(file.disabled),
     Boolean(file.geminiEnterprise?.effectiveDisabled),
@@ -85,6 +91,10 @@ export function cancelModelTest(state: ModelTestState): ModelTestState {
 }
 
 export function isEnterpriseModelExcluded(file: AuthFileItem, model: string): boolean {
+  const policy = file.geminiEnterprise?.modelPolicyState;
+  if (policy?.status === 'blocked') return true;
+  const entry = policy?.catalogModels.find((item) => item.id === model);
+  if (entry && !entry.allowed) return true;
   const settings = file.geminiEnterprise?.settings ?? file;
   const patterns = settings.excluded_models ?? settings['excluded-models'];
   return isModelExcluded(model, 'gemini-enterprise', {

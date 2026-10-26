@@ -115,6 +115,11 @@
   overflow-wrap: anywhere;
 }
 
+.policyBadge {
+  margin-inline: 8px;
+  font-size: 11px;
+}
+
 .context {
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);

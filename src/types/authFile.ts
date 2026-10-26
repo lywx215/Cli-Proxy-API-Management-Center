@@ -61,7 +61,38 @@ export interface GeminiEnterpriseResources {
   endpoint?: string;
 }
 
+export type EnterpriseModelPolicyMode =
+  'auto' | 'catalog' | 'argon_only' | 'exclude_argon' | 'custom';
+export type EnterpriseModelPolicyState = {
+  mode: EnterpriseModelPolicyMode;
+  effectiveMode: string;
+  status: string;
+  reason?: string;
+  catalogKnown: boolean;
+  allowedModels: string[] | null;
+  excludedModels: string[];
+  globalExcludedModels: string[];
+  effectiveModels: string[];
+  catalogModels: {
+    id: string;
+    displayName?: string;
+    mediaKind?: string;
+    allowed: boolean;
+    reason?: string;
+  }[];
+  subscription: {
+    status: string;
+    edition?: string;
+    freeTrial: boolean | null;
+    state?: string;
+    checkedAt?: string;
+    lastSuccessAt?: string;
+    reason?: string;
+  };
+};
+
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
+  modelPolicyState?: EnterpriseModelPolicyState;
   bindingId: string;
   revision?: number;
   authIndex?: string;
@@ -80,6 +111,8 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 }
 
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
+  modelPolicySupported?: boolean;
+  modelPolicyState?: EnterpriseModelPolicyState;
   clientId?: string;
   expiry?: string;
   hasRefreshToken?: boolean;

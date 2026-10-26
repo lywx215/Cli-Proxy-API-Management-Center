@@ -1,3 +1,5 @@
+import { enterprisePolicyRoutingPaused } from '../enterpriseModelPolicy';
+import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -106,6 +108,7 @@ function CollectionRows({
             {binding?.projectName && <span className={styles.mono}>{binding.projectId}</span>}
             <span className={styles.region}>{binding?.location || 'global'}</span>
           </div>
+          <EnterpriseModelPolicyStatus snapshot={binding?.modelPolicyState} compact />
         </td>
         <td>
           <GeminiEnterpriseQuota file={file} disableControls={props.disableControls} compact />
@@ -127,8 +130,19 @@ function CollectionRows({
                   region: binding?.location,
                 })}
               />
-              <span title={t('gemini_enterprise.collections.' + status)}>
-                {t('gemini_enterprise.collections.' + status)}
+              <span
+                title={
+                  enterprisePolicyRoutingPaused(binding?.modelPolicyState)
+                    ? t('gemini_enterprise.policy.paused')
+                    : t('gemini_enterprise.collections.' + status)
+                }
+              >
+                {!file.disabled &&
+                !parentDisabled &&
+                !unavailable &&
+                enterprisePolicyRoutingPaused(binding?.modelPolicyState)
+                  ? t('gemini_enterprise.policy.routing_paused')
+                  : t('gemini_enterprise.collections.' + status)}
               </span>
             </div>
             <div className={styles.rowButtons}>

@@ -78,9 +78,13 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
       if (!file || !canTestEnterpriseFile(file) || unsupported || request.current) return;
       const ids = [...new Set(requestedModels)].filter(
         (id) =>
-          models.some((model) => model.id === id && isEnterpriseTextModel(model)) &&
-          !isEnterpriseModelExcluded(file, id) &&
-          !enterpriseModelCooldown(file, id, resultsRef.current[id])
+          models.some(
+            (model) =>
+              model.id === id &&
+              model.policy_allowed !== false &&
+              isEnterpriseTextModel(model) &&
+              !isEnterpriseModelExcluded(file, model.upstream_model || model.id)
+          ) && !enterpriseModelCooldown(file, id, resultsRef.current[id])
       );
       if (!ids.length) return;
       const controller = new AbortController();
@@ -161,7 +165,10 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
           (model) =>
             Boolean(
               fileRef.current &&
-              (isEnterpriseModelExcluded(fileRef.current, model) ||
+              (isEnterpriseModelExcluded(
+                fileRef.current,
+                models.find((entry) => entry.id === model)?.upstream_model || model
+              ) ||
                 enterpriseModelCooldown(fileRef.current, model, resultsRef.current[model]))
             )
         );
