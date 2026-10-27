@@ -3096,7 +3096,7 @@
     },
     "access_expiry": "存取權杖到期時間",
     "backend_upgrade": "請升級配套後端，以支援獨立登入資源和自動資源辨識。",
-    "auto_resources_hint": "自動探索會檢查可見專案的 global、us、eu 區域。需要時可手動指定資源。",
+    "auto_resources_hint": "自動探索會檢查可見專案的 global、us、eu、ca、au、in 區域，僅新增已存在的應用程式，並依地區檢查模型和授權。需要時可手動指定資源。",
     "engine_hint": "填寫 Gemini Enterprise 應用程式 ID，例如 gemini-enterprise-…",
     "assistant_hint": "預設使用 default_assistant，可填寫其他助理 ID；留空時使用預設值。",
     "manual_resources": "手動指定資源綁定",

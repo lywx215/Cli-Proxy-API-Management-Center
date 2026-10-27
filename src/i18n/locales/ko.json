@@ -3188,7 +3188,7 @@
     },
     "access_expiry": "액세스 토큰 만료 시각",
     "backend_upgrade": "개별 로그인 리소스와 자동 리소스 확인을 지원하도록 서버를 업그레이드하세요.",
-    "auto_resources_hint": "자동 검색은 표시되는 프로젝트의 global, us, eu 리전을 확인합니다. 필요할 때 리소스를 직접 지정하세요.",
+    "auto_resources_hint": "자동 검색은 표시되는 프로젝트의 global, us, eu, ca, au, in 리전을 확인합니다. 기존 애플리케이션만 추가하며 모델과 라이선스는 리전별로 확인합니다. 필요할 때 리소스를 직접 지정하세요.",
     "engine_hint": "Gemini Enterprise 앱 ID를 입력하세요. 예: gemini-enterprise-…",
     "assistant_hint": "기본값은 default_assistant입니다. 다른 어시스턴트 ID를 입력하거나 비워 두어 기본값을 사용하세요.",
     "manual_resources": "리소스 바인딩 직접 지정",

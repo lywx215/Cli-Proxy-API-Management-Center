@@ -46,12 +46,18 @@ describe('Gemini Enterprise region editor', () => {
       'global',
       'us',
       'eu',
-    ]);
-    expect(enterpriseRegionOptions('ca').map((option) => option.value)).toEqual([
       'ca',
+      'au',
+      'in',
+    ]);
+    expect(enterpriseRegionOptions('sg').map((option) => option.value)).toEqual([
+      'sg',
       'global',
       'us',
       'eu',
+      'ca',
+      'au',
+      'in',
     ]);
     expect(enterpriseResources(undefined)).toMatchObject({
       location: 'global',
@@ -64,6 +70,9 @@ describe('Gemini Enterprise region editor', () => {
     expect(sameEnterpriseResources(expected, { ...expected, engineId: ' global-app ' })).toBe(true);
     expect(enterpriseRegionEndpoint('us')).toBe('https://us-discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('eu')).toBe('https://eu-discoveryengine.googleapis.com');
+    expect(enterpriseRegionEndpoint('ca')).toBe('https://ca-discoveryengine.googleapis.com');
+    expect(enterpriseRegionEndpoint('au')).toBe('https://au-discoveryengine.googleapis.com');
+    expect(enterpriseRegionEndpoint('in')).toBe('https://in-discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('global')).toBe('https://discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('evil.test')).toBe('https://discoveryengine.googleapis.com');
   });
@@ -91,6 +100,13 @@ describe('Gemini Enterprise region editor', () => {
       endpoint: enterpriseRegionEndpoint('eu'),
     });
     expect(enterpriseQuotaKey(normalized)).not.toBe(enterpriseQuotaKey(file));
+    const regionKeys = ['global', 'us', 'eu', 'ca', 'au', 'in'].map((location) =>
+      enterpriseQuotaKey({
+        ...file,
+        geminiEnterprise: { ...file.geminiEnterprise!, location },
+      })
+    );
+    expect(new Set(regionKeys).size).toBe(6);
     const older = normalizeAuthFilesResponse({
       files: [{ name: 'older.json', gemini_enterprise: { location: 'global' } }],
     }).files[0];
@@ -190,6 +206,20 @@ describe('Gemini Enterprise region editor', () => {
       expect(markup).toContain(enterpriseRegionEndpoint('global'));
       expect(markup).not.toContain('never-display-token');
       expect(markup).not.toContain('gemini_enterprise.');
+      for (const region of ['ca', 'au', 'in']) {
+        const regionalMarkup = renderToStaticMarkup(
+          createElement(
+            I18nextProvider,
+            { i18n },
+            createElement(GeminiEnterpriseRegionEditor, {
+              file: { ...file, geminiEnterprise: { ...file.geminiEnterprise!, location: region } },
+              disabled: false,
+            })
+          )
+        );
+        expect(regionalMarkup).toContain(enterpriseRegionEndpoint(region));
+        expect(translations.gemini_enterprise.auto_resources_hint).toContain(region);
+      }
       for (const key of [
         'region_hint',
         'resource_advanced',

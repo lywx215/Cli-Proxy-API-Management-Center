@@ -3186,7 +3186,7 @@
     },
     "access_expiry": "访问令牌到期时间",
     "backend_upgrade": "请升级配套后端，以支持独立登录资源和自动资源识别。",
-    "auto_resources_hint": "自动发现会检查可见项目的 global、us、eu 区域。需要时可手动指定资源。",
+    "auto_resources_hint": "自动发现会检查可见项目的 global、us、eu、ca、au、in 区域，只添加已存在的应用，并按地区检查模型和许可证。需要时可手动指定资源。",
     "engine_hint": "填写 Gemini Enterprise 应用的应用 ID，例如 gemini-enterprise-…",
     "assistant_hint": "默认使用 default_assistant，可填写其他助手 ID；留空时使用默认值。",
     "manual_resources": "手动指定资源绑定",

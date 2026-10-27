@@ -1,6 +1,6 @@
 import type { AuthFileItem } from '@/types';
 
-export const ENTERPRISE_REGIONS = ['global', 'us', 'eu'] as const;
+export const ENTERPRISE_REGIONS = ['global', 'us', 'eu', 'ca', 'au', 'in'] as const;
 export const ENTERPRISE_RESOURCE_FIELDS = [
   'projectId',
   'location',
@@ -32,9 +32,20 @@ export function enterpriseRegionOptions(current: string) {
 }
 
 export function enterpriseRegionEndpoint(region: string): string {
-  return region === 'us' || region === 'eu'
-    ? `https://${region}-discoveryengine.googleapis.com`
-    : 'https://discoveryengine.googleapis.com';
+  switch (region) {
+    case 'us':
+      return 'https://us-discoveryengine.googleapis.com';
+    case 'eu':
+      return 'https://eu-discoveryengine.googleapis.com';
+    case 'ca':
+      return 'https://ca-discoveryengine.googleapis.com';
+    case 'au':
+      return 'https://au-discoveryengine.googleapis.com';
+    case 'in':
+      return 'https://in-discoveryengine.googleapis.com';
+    default:
+      return 'https://discoveryengine.googleapis.com';
+  }
 }
 
 export function sameEnterpriseResources(a: EnterpriseResources, b: EnterpriseResources) {

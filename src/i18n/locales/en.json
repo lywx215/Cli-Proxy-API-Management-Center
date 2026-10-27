@@ -3188,7 +3188,7 @@
     },
     "access_expiry": "Access token expiry",
     "backend_upgrade": "Upgrade the backend to support session resource inputs and automatic resource identification.",
-    "auto_resources_hint": "Automatic discovery checks visible projects in global, us and eu. Use manual resource binding only when needed.",
+    "auto_resources_hint": "Automatic discovery checks visible projects in global, us, eu, ca, au and in. Only existing applications are added; models and licenses are checked per region. Use manual resource binding only when needed.",
     "engine_hint": "Enter the Gemini Enterprise app ID, for example gemini-enterprise-…",
     "assistant_hint": "Defaults to default_assistant. Enter another assistant ID if needed; leave blank to use the default.",
     "manual_resources": "Specify resource binding manually",

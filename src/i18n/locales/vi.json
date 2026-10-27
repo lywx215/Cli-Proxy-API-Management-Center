@@ -3193,7 +3193,7 @@
     },
     "access_expiry": "Thời điểm hết hạn token truy cập",
     "backend_upgrade": "Nâng cấp máy chủ để hỗ trợ tài nguyên cho từng lần đăng nhập và tự động xác định tài nguyên.",
-    "auto_resources_hint": "Tự động tìm trong các dự án hiển thị ở global, us và eu. Chỉ nhập tài nguyên thủ công khi cần.",
+    "auto_resources_hint": "Tự động tìm trong các dự án hiển thị ở global, us, eu, ca, au và in. Chỉ thêm ứng dụng hiện có; mô hình và giấy phép được kiểm tra theo từng khu vực. Chỉ nhập tài nguyên thủ công khi cần.",
     "engine_hint": "Nhập ID ứng dụng Gemini Enterprise, ví dụ gemini-enterprise-…",
     "assistant_hint": "Mặc định là default_assistant. Có thể nhập ID trợ lý khác; để trống để dùng mặc định.",
     "manual_resources": "Nhập liên kết tài nguyên thủ công",
