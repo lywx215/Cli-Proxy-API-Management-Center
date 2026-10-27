@@ -6,7 +6,9 @@ import type { EnterpriseModelPolicyState } from '@/types/authFile';
 import {
   ENTERPRISE_MODEL_POLICIES,
   enterprisePolicyError,
+  enterprisePolicyModelSelectable,
   enterprisePolicyPreview,
+  enterprisePolicyRoutingPaused,
   parseEnterpriseAllowedModels,
   type EnterprisePolicyDraft,
   type EnterprisePolicyField,
@@ -22,21 +24,34 @@ export function EnterpriseModelPolicyStatus({
   const { t } = useTranslation();
   if (!snapshot) return null;
   const subscription = snapshot.subscription;
+  const paidRestricted = snapshot.enforcedReason === 'paid_subscription_restricted';
+  const paused = enterprisePolicyRoutingPaused(snapshot);
+  const reason = snapshot.reason || (!paidRestricted ? snapshot.enforcedReason : undefined);
+  const showSubscription = snapshot.mode === 'auto' || snapshot.enforcedAllowedModels !== undefined;
   const timestamp = subscription.lastSuccessAt && Date.parse(subscription.lastSuccessAt);
   if (compact)
     return (
-      <div className="hint" role="status">
+      <div
+        className="hint"
+        role="status"
+        title={paidRestricted ? t('gemini_enterprise.policy.paid_restricted') : undefined}
+      >
         {[
           subscription.edition
             ? t('gemini_enterprise.policy.edition_' + subscription.edition, {
                 defaultValue: subscription.edition,
               })
             : null,
-          subscription.freeTrial === true ? t('gemini_enterprise.policy.trial') : null,
+          subscription.freeTrial === true
+            ? t('gemini_enterprise.policy.trial')
+            : subscription.freeTrial === false || paidRestricted
+              ? t('gemini_enterprise.policy.paid')
+              : null,
+          paidRestricted ? t('gemini_enterprise.policy.paid_restricted_short') : null,
           t('gemini_enterprise.policy.mode_' + snapshot.effectiveMode, {
             defaultValue: snapshot.effectiveMode,
           }),
-          snapshot.status === 'blocked'
+          paused
             ? t('gemini_enterprise.policy.paused')
             : snapshot.status === 'stale'
               ? t('gemini_enterprise.policy.stale')
@@ -54,7 +69,7 @@ export function EnterpriseModelPolicyStatus({
           defaultValue: snapshot.effectiveMode,
         })}
       </div>
-      {snapshot.mode === 'auto' && (
+      {showSubscription && (
         <>
           <div>
             {t('gemini_enterprise.policy.subscription')}:{' '}
@@ -64,7 +79,7 @@ export function EnterpriseModelPolicyStatus({
                 })
               : t('gemini_enterprise.policy.unknown')}
           </div>
-          {subscription.freeTrial !== null && (
+          {(subscription.freeTrial !== null || paidRestricted) && (
             <div>
               {t(
                 subscription.freeTrial
@@ -73,17 +88,18 @@ export function EnterpriseModelPolicyStatus({
               )}
             </div>
           )}
+          {paidRestricted && <div>{t('gemini_enterprise.policy.paid_restricted')}</div>}
           {timestamp && Number.isFinite(timestamp) ? (
             <div>
               {t('gemini_enterprise.policy.checked')}: {new Date(timestamp).toLocaleString()}
             </div>
           ) : null}
-          {snapshot.status === 'blocked' && <div>{t('gemini_enterprise.policy.paused')}</div>}
+          {paused && <div>{t('gemini_enterprise.policy.paused')}</div>}
           {snapshot.status === 'stale' && <div>{t('gemini_enterprise.policy.stale')}</div>}
-          {snapshot.reason && (
+          {reason && (
             <div>
-              {t('gemini_enterprise.policy.reason_' + snapshot.reason, {
-                defaultValue: snapshot.reason,
+              {t('gemini_enterprise.policy.reason_' + reason, {
+                defaultValue: reason,
               })}
             </div>
           )}
@@ -158,8 +174,9 @@ export function EnterpriseModelPolicyFields({
                     checked={selected.includes(entry.id)}
                     disabled={
                       disabled ||
-                      /^(?:auto|default)$|^auto-|-auto$/i.test(entry.id) ||
-                      entry.displayName?.toLowerCase() === 'auto'
+                      (!selected.includes(entry.id) &&
+                        (entry.displayName?.toLowerCase() === 'auto' ||
+                          !enterprisePolicyModelSelectable(entry.id, snapshot, excluded)))
                     }
                     onChange={(event) =>
                       onChange(

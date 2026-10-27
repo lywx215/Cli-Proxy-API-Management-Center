@@ -1,4 +1,5 @@
 import { enterprisePolicyRoutingPaused } from '../enterpriseModelPolicy';
+import { enterpriseSubscriptionTone } from '../enterpriseSubscriptionTone';
 import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +60,7 @@ function CollectionRows({
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   const binding = file.geminiEnterprise;
+  const subscriptionTone = enterpriseSubscriptionTone(binding?.modelPolicyState?.subscription);
   const identity = enterpriseCollectionIdentity(file);
   const statusData = statusBarDataFromRecentRequests(file.recentRequests ?? []);
   const hasRecent = statusData.totalSuccess + statusData.totalFailure > 0;
@@ -99,7 +101,11 @@ function CollectionRows({
   };
   return (
     <>
-      <tr className={styles.mainRow} data-binding-id={binding?.bindingId}>
+      <tr
+        className={styles.mainRow}
+        data-binding-id={binding?.bindingId}
+        data-subscription-tone={subscriptionTone}
+      >
         <td>
           <strong className={styles.resourceName} title={enterpriseCollectionName(file)}>
             {enterpriseCollectionName(file) || t('gemini_enterprise.collections.unnamed_project')}
@@ -167,7 +173,7 @@ function CollectionRows({
           </div>
         </td>
       </tr>
-      <tr className={styles.requestsRow}>
+      <tr className={styles.requestsRow} data-subscription-tone={subscriptionTone}>
         <td colSpan={3}>
           <div className={styles.requests}>
             <div className={styles.requestHeading}>

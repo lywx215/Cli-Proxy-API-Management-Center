@@ -69,6 +69,13 @@ export function normalizeEnterpriseModelPolicy(
     effectiveMode: text(value.effective_mode) ?? 'auto',
     status: text(value.status) ?? 'blocked',
     reason: text(value.reason),
+    enforcedAllowedModels:
+      value.enforced_allowed_models === undefined
+        ? undefined
+        : value.enforced_allowed_models === null
+          ? null
+          : list(value.enforced_allowed_models),
+    enforcedReason: text(value.enforced_reason),
     catalogKnown: value.catalog_known === true,
     allowedModels: Array.isArray(value.allowed_models) ? list(value.allowed_models) : null,
     excludedModels: list(value.excluded_models),

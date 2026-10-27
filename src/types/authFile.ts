@@ -68,6 +68,8 @@ export type EnterpriseModelPolicyState = {
   effectiveMode: string;
   status: string;
   reason?: string;
+  enforcedAllowedModels?: string[] | null;
+  enforcedReason?: string;
   catalogKnown: boolean;
   allowedModels: string[] | null;
   excludedModels: string[];

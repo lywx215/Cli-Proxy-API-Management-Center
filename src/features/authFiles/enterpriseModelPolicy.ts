@@ -34,12 +34,92 @@ export function readEnterprisePolicy(value: Record<string, unknown>): Enterprise
 }
 
 export function enterprisePolicyRoutingPaused(snapshot?: EnterpriseModelPolicyState): boolean {
-  return Boolean(
-    snapshot &&
-    (snapshot.status === 'blocked' ||
-      (snapshot.mode === 'custom' && snapshot.allowedModels?.length === 0) ||
-      (snapshot.catalogKnown && snapshot.effectiveModels.length === 0))
+  if (!snapshot) return false;
+  if (
+    snapshot.status === 'blocked' ||
+    (snapshot.mode === 'custom' && snapshot.allowedModels?.length === 0) ||
+    (snapshot.catalogKnown && snapshot.effectiveModels.length === 0)
+  )
+    return true;
+  if (snapshot.enforcedAllowedModels === undefined) return false;
+  const candidates = finitePolicyCandidates(
+    snapshot.effectiveMode,
+    snapshot.allowedModels,
+    snapshot.enforcedAllowedModels
   );
+  return Boolean(
+    candidates &&
+    !candidates.some((id) =>
+      policyAllowsModel(
+        id,
+        snapshot.effectiveMode,
+        snapshot.allowedModels,
+        [...snapshot.excludedModels, ...snapshot.globalExcludedModels],
+        snapshot
+      )
+    )
+  );
+}
+
+export function enterpriseEnforcedModelAllowed(
+  snapshot: EnterpriseModelPolicyState | undefined,
+  model: string
+): boolean {
+  return (
+    !Array.isArray(snapshot?.enforcedAllowedModels) ||
+    snapshot.enforcedAllowedModels.includes(model)
+  );
+}
+
+export function enterprisePolicyModelSelectable(
+  model: string,
+  snapshot: EnterpriseModelPolicyState | undefined,
+  excluded: string[]
+): boolean {
+  return (
+    !isAutoModel(model) &&
+    enterpriseEnforcedModelAllowed(snapshot, model) &&
+    !isModelExcluded(model, 'gemini-enterprise', {
+      'gemini-enterprise': [...excluded, ...(snapshot?.globalExcludedModels ?? [])],
+    })
+  );
+}
+
+function isAutoModel(model: string): boolean {
+  return /^(?:auto|default)$|^auto-|-auto$/i.test(model);
+}
+
+function finitePolicyCandidates(
+  mode: string,
+  allowed: string[] | null,
+  enforced: string[] | null
+): string[] | null {
+  if (enforced !== null) return enforced;
+  if (mode === 'argon_only') return ['gemini-4-argon'];
+  return mode === 'custom' ? allowed : null;
+}
+
+function policyAllowsModel(
+  id: string,
+  mode: string,
+  allowed: string[] | null,
+  excluded: string[],
+  snapshot: EnterpriseModelPolicyState
+): boolean {
+  if (!enterpriseEnforcedModelAllowed(snapshot, id)) return false;
+  if (mode === 'argon_only' && id !== 'gemini-4-argon') return false;
+  if (mode === 'exclude_argon' && id === 'gemini-4-argon') return false;
+  if (mode === 'custom' && allowed && !allowed.includes(id)) return false;
+  if (
+    (mode === 'argon_only' ||
+      mode === 'exclude_argon' ||
+      (mode === 'custom' && allowed) ||
+      excluded.length > 0 ||
+      Array.isArray(snapshot.enforcedAllowedModels)) &&
+    isAutoModel(id)
+  )
+    return false;
+  return !isModelExcluded(id, 'gemini-enterprise', { 'gemini-enterprise': excluded });
 }
 
 export function parseEnterpriseAllowedModels(text: string): string[] {
@@ -111,22 +191,12 @@ export function enterprisePolicyPreview(
       if (subscription.edition === 'enterprise_plus') effective = 'exclude_argon';
     }
   }
-  if (!snapshot.catalogKnown) return null;
   excluded = [...excluded, ...snapshot.globalExcludedModels];
-  return snapshot.catalogModels
-    .map((entry) => entry.id)
-    .filter((id) => {
-      if (effective === 'argon_only' && id !== 'gemini-4-argon') return false;
-      if (effective === 'exclude_argon' && id === 'gemini-4-argon') return false;
-      if (effective === 'custom' && allowed && !allowed.includes(id)) return false;
-      if (
-        (effective === 'argon_only' ||
-          effective === 'exclude_argon' ||
-          (effective === 'custom' && allowed) ||
-          excluded.length > 0) &&
-        /^(?:auto|default)$|^auto-|-auto$/i.test(id)
-      )
-        return false;
-      return !isModelExcluded(id, 'gemini-enterprise', { 'gemini-enterprise': excluded });
-    });
+  const allows = (id: string) => policyAllowsModel(id, effective, allowed, excluded, snapshot);
+  if (snapshot.enforcedAllowedModels !== undefined) {
+    const candidates = finitePolicyCandidates(effective, allowed, snapshot.enforcedAllowedModels);
+    if (candidates && !candidates.some(allows)) return [];
+  }
+  if (!snapshot.catalogKnown) return null;
+  return snapshot.catalogModels.map((entry) => entry.id).filter(allows);
 }

@@ -1,4 +1,7 @@
-import { enterprisePolicyRoutingPaused } from './enterpriseModelPolicy';
+import {
+  enterpriseEnforcedModelAllowed,
+  enterprisePolicyRoutingPaused,
+} from './enterpriseModelPolicy';
 import type { AuthFileItem } from '@/types';
 import { isModelExcluded, type AuthFileModelItem } from './constants';
 import { enterpriseCollectionIdentity } from './enterpriseAccounts';
@@ -78,6 +81,12 @@ export function modelTestIdentity(file: AuthFileItem): string {
     file.geminiEnterprise?.modelPolicyState?.status,
     file.geminiEnterprise?.modelPolicyState?.catalogKnown,
     file.geminiEnterprise?.modelPolicyState?.effectiveModels,
+    file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels !== undefined,
+    file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels,
+    file.geminiEnterprise?.modelPolicyState?.enforcedReason,
+    file.geminiEnterprise?.modelPolicyState?.allowedModels,
+    file.geminiEnterprise?.modelPolicyState?.excludedModels,
+    file.geminiEnterprise?.modelPolicyState?.globalExcludedModels,
     file.type || file.provider || '',
     Boolean(file.disabled),
     Boolean(file.geminiEnterprise?.effectiveDisabled),
@@ -92,7 +101,8 @@ export function cancelModelTest(state: ModelTestState): ModelTestState {
 
 export function isEnterpriseModelExcluded(file: AuthFileItem, model: string): boolean {
   const policy = file.geminiEnterprise?.modelPolicyState;
-  if (policy?.status === 'blocked') return true;
+  if (enterprisePolicyRoutingPaused(policy) || !enterpriseEnforcedModelAllowed(policy, model))
+    return true;
   const entry = policy?.catalogModels.find((item) => item.id === model);
   if (entry && !entry.allowed) return true;
   const settings = file.geminiEnterprise?.settings ?? file;

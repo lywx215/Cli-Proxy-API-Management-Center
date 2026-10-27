@@ -1,10 +1,34 @@
 .account {
+  --enterprise-subscription-tint: 8%;
+
   grid-column: 1 / -1;
   container: enterprise-account / inline-size;
   min-width: 0;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 10px;
+}
+:global([data-theme='dark']) .account {
+  --enterprise-subscription-tint: 18%;
+}
+.mainRow,
+.requestsRow {
+  &[data-subscription-tone='business-trial'] {
+    --enterprise-subscription-accent: #8b5cf6;
+  }
+  &[data-subscription-tone='plus-trial'] {
+    --enterprise-subscription-accent: #3b82f6;
+  }
+  &[data-subscription-tone='paid'] {
+    --enterprise-subscription-accent: var(--amber-color);
+  }
+  &[data-subscription-tone] > td {
+    background-color: color-mix(
+      in srgb,
+      var(--enterprise-subscription-accent) var(--enterprise-subscription-tint),
+      var(--bg-primary)
+    );
+  }
 }
 .header {
   display: flex;
