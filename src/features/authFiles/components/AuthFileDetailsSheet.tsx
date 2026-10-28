@@ -1,3 +1,5 @@
+import { EnterpriseCatalogFields } from './EnterpriseCatalogFields';
+import { readEnterpriseCatalog } from '../enterpriseCatalog';
 import { EnterpriseModelPolicyFields } from './EnterpriseModelPolicyFields';
 import { enterprisePolicyError, readEnterprisePolicy } from '../enterpriseModelPolicy';
 import { useCallback, useMemo, type MouseEvent } from 'react';
@@ -279,7 +281,22 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                   {editor.enterprisePolicySupported &&
                     editor.providerKey === 'gemini-enterprise' && (
                       <EnterpriseModelPolicyFields
+                        hidePreview={editor.enterpriseCatalogSupported}
                         draft={editor.enterprisePolicy ?? readEnterprisePolicy(editor.json)}
+                        snapshot={editor.collectionTarget?.geminiEnterprise?.modelPolicyState}
+                        excluded={editor.excludedModelsText
+                          .split(/[\n,]+/)
+                          .map((entry) => entry.trim())
+                          .filter(Boolean)}
+                        disabled={disableControls || editor.saving}
+                        onChange={onChange}
+                      />
+                    )}
+                  {editor.enterpriseCatalogSupported &&
+                    editor.providerKey === 'gemini-enterprise' && (
+                      <EnterpriseCatalogFields
+                        draft={editor.enterpriseCatalog ?? readEnterpriseCatalog(editor.json)}
+                        policy={editor.enterprisePolicy ?? readEnterprisePolicy(editor.json)}
                         snapshot={editor.collectionTarget?.geminiEnterprise?.modelPolicyState}
                         excluded={editor.excludedModelsText
                           .split(/[\n,]+/)

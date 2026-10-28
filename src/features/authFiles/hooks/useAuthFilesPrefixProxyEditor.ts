@@ -1,4 +1,11 @@
 import {
+  buildEnterpriseCatalogPatch,
+  enterpriseCatalogError,
+  readEnterpriseCatalog,
+  type EnterpriseCatalogDraft,
+  type EnterpriseCatalogField,
+} from '../enterpriseCatalog';
+import {
   buildEnterprisePolicyPatch,
   enterprisePolicyError,
   enterprisePolicyHasChanges,
@@ -53,6 +60,7 @@ type AuthFileWeightErrorKey = 'auth_files.weight_invalid_integer' | 'auth_files.
 type AuthFileEditorErrorKey = AuthFileHeadersErrorKey | AuthFileWeightErrorKey;
 
 export type PrefixProxyEditorField =
+  | EnterpriseCatalogField
   | EnterprisePolicyField
   | CredentialPolicyField
   | 'prefix'
@@ -69,6 +77,8 @@ export type PrefixProxyEditorField =
 export type PrefixProxyEditorFieldValue = string | boolean | CredentialPolicyValue;
 
 export type PrefixProxyEditorState = {
+  enterpriseCatalog?: EnterpriseCatalogDraft;
+  enterpriseCatalogSupported?: boolean;
   enterprisePolicy?: EnterprisePolicyDraft;
   enterprisePolicySupported?: boolean;
   collectionTarget?: AuthFileItem;
@@ -408,6 +418,14 @@ export const buildAuthFileFieldsPatch = (
     patch,
     buildEnterprisePolicyPatch(original, editor.enterprisePolicy, editor.enterprisePolicySupported)
   );
+  Object.assign(
+    patch,
+    buildEnterpriseCatalogPatch(
+      original,
+      editor.enterpriseCatalog,
+      editor.enterpriseCatalogSupported
+    )
+  );
   Object.assign(patch, buildCredentialPolicyPatch(original, editor.policy));
   return patch;
 };
@@ -472,6 +490,7 @@ const buildPrefixProxyUpdatedText = (
     next['excluded-models'] = patch['excluded-models'];
   }
 
+  if (patch.catalog_fallback !== undefined) next.catalog_fallback = patch.catalog_fallback;
   if (patch.model_policy !== undefined) next.model_policy = patch.model_policy;
   if (patch.allowed_models !== undefined) {
     if (patch.allowed_models === null) delete next.allowed_models;
@@ -508,6 +527,8 @@ export function useAuthFilesPrefixProxyEditor(
     prefixProxyEditor?.weightError ||
     (prefixProxyEditor?.enterprisePolicySupported &&
       enterprisePolicyError(prefixProxyEditor.enterprisePolicy)) ||
+    (prefixProxyEditor?.enterpriseCatalogSupported &&
+      enterpriseCatalogError(prefixProxyEditor.enterpriseCatalog)) ||
     credentialPolicyError(prefixProxyEditor?.policy)
   );
   const prefixProxyUpdatedText =
@@ -522,6 +543,10 @@ export function useAuthFilesPrefixProxyEditor(
 
   const prefixProxyDirty =
     hasKeys(prefixProxyPatch) ||
+    Boolean(
+      prefixProxyEditor?.enterpriseCatalogSupported &&
+      enterpriseCatalogError(prefixProxyEditor.enterpriseCatalog)
+    ) ||
     Boolean(credentialPolicyError(prefixProxyEditor?.policy)) ||
     enterprisePolicyHasChanges(
       prefixProxyEditor?.json ?? {},
@@ -569,6 +594,7 @@ export function useAuthFilesPrefixProxyEditor(
               .join(' / '),
           }
         : {}),
+      enterpriseCatalogSupported: file.geminiEnterprise?.catalogFallbackSupported === true,
       enterprisePolicySupported: file.geminiEnterprise?.modelPolicySupported === true,
       fileName: name,
       fileInfoText: JSON.stringify(file, null, 2),
@@ -667,6 +693,7 @@ export function useAuthFilesPrefixProxyEditor(
           invalidContentPreview: '',
           json,
           policy: readCredentialPolicy(json),
+          enterpriseCatalog: readEnterpriseCatalog(json),
           enterprisePolicy: readEnterprisePolicy(json),
           providerKey,
           prefix,
@@ -715,6 +742,19 @@ export function useAuthFilesPrefixProxyEditor(
             ...policy,
             [field]: value,
             touched: { ...policy.touched, [field]: true },
+          },
+        };
+      }
+      if (field === 'enterpriseCatalogMode' || field === 'enterpriseCatalogModels') {
+        const draft = prev.enterpriseCatalog ?? readEnterpriseCatalog(prev.json ?? {});
+        return {
+          ...prev,
+          enterpriseCatalog: {
+            ...draft,
+            touched: true,
+            ...(field === 'enterpriseCatalogMode'
+              ? { mode: String(value) as EnterpriseCatalogDraft['mode'] }
+              : { text: String(value) }),
           },
         };
       }

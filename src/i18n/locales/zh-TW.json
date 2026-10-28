@@ -3015,7 +3015,7 @@
       "unnamed_project": "未命名專案",
       "discovered": "新增 {{projects}} 個專案、{{collections}} 個集合。",
       "discovered_partial": "新增 {{projects}} 個專案、{{collections}} 個集合，部分資源未能完成檢查。",
-      "discovery_partial": "資源探索尚未完成，已保留先前儲存的資源與設定。",
+      "discovery_partial": "部分專案資源探索尚未完成，已保留既有集合與設定。各集合可用性依其訂閱與目錄狀態判定。",
       "discover_error": "無法重新整理資源。授權已保留，可以重試。",
       "update_error": "無法更新此集合，請重新載入並確認目前版本。"
     },
@@ -3140,6 +3140,43 @@
       "reason_subscription_refresh_failed": "正在更新訂閱，沿用最近確認的策略。",
       "reason_invalid_model_policy": "已儲存的模型策略無效。",
       "routing_paused": "暫停調度"
+    },
+    "catalog": {
+      "label": "模型目錄備援",
+      "mode_default": "依訂閱使用預設目錄",
+      "mode_custom": "自訂備援目錄",
+      "mode_disabled": "關閉目錄備援",
+      "hint": "僅在讀取上游目錄失敗且無成功快取時使用。上游成功目錄（含空目錄）優先；訂閱、付費限制與集合策略仍適用。",
+      "defaults": "目前訂閱預設目錄",
+      "models": "準確的上游模型 ID，每行一個",
+      "add_model": "新增 {{model}}",
+      "media_hint": "圖片與影片僅支援 gemini-3-pro-image、veo-3.1；本機功能開關及模型限制仍適用。空清單不提供備援模型。",
+      "invalid": "請輸入準確的 Gemini 或 Veo 模型 ID，不支援別名、前綴、萬用字元、Auto 或思考後綴。媒體僅支援列出的兩個 ID。",
+      "source": "目錄來源",
+      "source_upstream": "上游目錄",
+      "source_cached": "最近成功目錄（快取）",
+      "source_default": "訂閱預設備援",
+      "source_custom": "集合自訂備援",
+      "source_none": "暫無目錄",
+      "last_success": "目錄最近成功時間",
+      "unconfirmed": "備援模型尚未經上游目錄確認；本機允許不代表 Google 已開放或呼叫必定成功。",
+      "blocked": "備援候選 · 策略禁止"
+    },
+    "discovery": {
+      "label": "資源探索診斷",
+      "details": "依專案查看探索結果",
+      "account": "帳號層級專案列舉",
+      "ok": "探索正常",
+      "consumer": "實際配額使用專案",
+      "error_service_disabled": "所需 Google API 尚未啟用或已停用",
+      "error_billing_disabled": "Google 明確回報結算已停用",
+      "error_consumer_suspended": "Google 明確回報配額使用專案已暫停",
+      "error_permission_denied": "缺少讀取相關中繼資料的權限",
+      "error_unauthorized": "Google 授權驗證失敗",
+      "error_rate_limited": "中繼資料請求受到限流",
+      "error_connection_failed": "連線 Google 中繼資料服務失敗",
+      "error_catalog_unavailable": "暫時無法讀取上游模型目錄",
+      "error_discovery_failed": "部分資源中繼資料無法讀取；已保留原有集合"
     }
   }
 }

@@ -3105,7 +3105,7 @@
       "unnamed_project": "未命名项目",
       "discovered": "新增 {{projects}} 个项目、{{collections}} 个集合。",
       "discovered_partial": "新增 {{projects}} 个项目、{{collections}} 个集合，部分资源未能完成检查。",
-      "discovery_partial": "资源发现未完成，已保留之前保存的资源与设置。",
+      "discovery_partial": "部分项目资源发现未完成，已保留已有集合与设置。各集合是否可用以其订阅和模型目录状态为准。",
       "discover_error": "无法刷新资源。授权已保留，可重试。",
       "update_error": "无法更新此集合，请重新加载并核对当前版本。"
     },
@@ -3230,6 +3230,43 @@
       "reason_subscription_refresh_failed": "正在刷新订阅，沿用最近确认的策略。",
       "reason_invalid_model_policy": "已保存的模型策略无效。",
       "routing_paused": "暂停调度"
+    },
+    "catalog": {
+      "label": "模型目录兜底",
+      "mode_default": "按订阅使用默认目录",
+      "mode_custom": "自定义兜底目录",
+      "mode_disabled": "关闭目录兜底",
+      "hint": "仅在读取上游目录失败且没有成功缓存时使用。上游成功目录（包括空目录）优先；所有模型仍受订阅、付费限制和集合策略约束。",
+      "defaults": "当前订阅默认目录",
+      "models": "准确的上游模型 ID，每行一个",
+      "add_model": "添加 {{model}}",
+      "media_hint": "图片和视频仅支持 gemini-3-pro-image、veo-3.1；本地功能禁用和模型限制继续生效。空列表不提供任何兜底模型。",
+      "invalid": "请输入准确的 Gemini 或 Veo 模型 ID，不支持别名、前缀、通配符、Auto 或思考后缀。媒体仅支持列出的两个准确 ID。",
+      "source": "目录来源",
+      "source_upstream": "上游目录",
+      "source_cached": "最近成功目录（缓存）",
+      "source_default": "订阅默认兜底",
+      "source_custom": "集合自定义兜底",
+      "source_none": "暂无目录",
+      "last_success": "目录最近成功时间",
+      "unconfirmed": "兜底模型尚未获得上游目录确认；本地允许不代表 Google 已开放或调用必定成功。",
+      "blocked": "兜底候选 · 策略禁止"
+    },
+    "discovery": {
+      "label": "资源发现诊断",
+      "details": "按项目查看发现结果",
+      "account": "账号级项目枚举",
+      "ok": "发现正常",
+      "consumer": "实际配额使用项目",
+      "error_service_disabled": "所需 Google API 未启用或已停用",
+      "error_billing_disabled": "Google 明确返回结算已停用",
+      "error_consumer_suspended": "Google 明确返回配额使用项目已暂停",
+      "error_permission_denied": "没有读取相关元数据的权限",
+      "error_unauthorized": "Google 授权校验失败",
+      "error_rate_limited": "元数据请求受到限流",
+      "error_connection_failed": "连接 Google 元数据服务失败",
+      "error_catalog_unavailable": "上游模型目录暂时无法读取",
+      "error_discovery_failed": "部分资源元数据无法读取；已保留原有集合"
     }
   }
 }

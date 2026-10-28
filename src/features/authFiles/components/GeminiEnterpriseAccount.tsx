@@ -1,3 +1,5 @@
+import { EnterpriseDiscoveryStatus } from './EnterpriseDiscoveryStatus';
+import { EnterpriseCatalogStatus } from './EnterpriseCatalogFields';
 import { enterprisePolicyRoutingPaused } from '../enterpriseModelPolicy';
 import { enterpriseSubscriptionTone } from '../enterpriseSubscriptionTone';
 import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
@@ -216,6 +218,7 @@ function CollectionRows({
             <div id={detailId} className={styles.details}>
               {file.statusMessage && <p role="status">{file.statusMessage}</p>}
               <GeminiEnterpriseBinding binding={binding} />
+              <EnterpriseCatalogStatus snapshot={binding?.modelPolicyState} />
               {(binding?.accountManagementSupported || binding?.resourceEditSupported) && (
                 <GeminiEnterpriseRegionEditor
                   key={identity}
@@ -280,6 +283,7 @@ export function GeminiEnterpriseAccount(props: Props) {
         useNotificationStore
           .getState()
           .showNotification(t('gemini_enterprise.collections.discover_error'), 'error');
+      if (current()) await props.onEnterpriseResourcesSaved?.(file);
     } finally {
       if (current()) setDiscovering(false);
     }
@@ -414,11 +418,7 @@ export function GeminiEnterpriseAccount(props: Props) {
           ) : (
             <p className={styles.empty}>{t('gemini_enterprise.collections.empty')}</p>
           )}
-          {account?.discovery?.status === 'partial' && (
-            <p className={styles.notice} role="status">
-              {t('gemini_enterprise.collections.discovery_partial')}
-            </p>
-          )}
+          <EnterpriseDiscoveryStatus account={account} />
         </div>
       )}
     </article>

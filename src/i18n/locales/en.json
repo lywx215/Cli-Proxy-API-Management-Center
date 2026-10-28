@@ -3107,7 +3107,7 @@
       "unnamed_project": "Unnamed project",
       "discovered": "Added {{projects}} projects and {{collections}} collections.",
       "discovered_partial": "Added {{projects}} projects and {{collections}} collections. Some resources could not be checked.",
-      "discovery_partial": "Discovery is incomplete. Previously saved resources and settings were preserved.",
+      "discovery_partial": "Discovery is incomplete for some projects. Saved collections and settings were retained. Availability follows each collection’s subscription and catalog state.",
       "discover_error": "Could not refresh resources. Authorization remains saved; try again.",
       "update_error": "Could not update this collection. Reload and check its current revision."
     },
@@ -3232,6 +3232,43 @@
       "reason_subscription_refresh_failed": "Refreshing the subscription; retaining the last confirmed policy.",
       "reason_invalid_model_policy": "The saved model policy is invalid.",
       "routing_paused": "Routing paused"
+    },
+    "catalog": {
+      "label": "Model catalog fallback",
+      "mode_default": "Subscription defaults",
+      "mode_custom": "Custom fallback catalog",
+      "mode_disabled": "Disable catalog fallback",
+      "hint": "Used only after an upstream catalog read fails and no successful cache exists. Successful upstream catalogs, including empty ones, take priority. Subscription, paid and collection restrictions still apply.",
+      "defaults": "Defaults for this subscription",
+      "models": "Exact upstream model IDs, one per line",
+      "add_model": "Add {{model}}",
+      "media_hint": "Media supports only gemini-3-pro-image and veo-3.1. Local feature switches and model restrictions still apply. An empty list supplies no fallback models.",
+      "invalid": "Enter exact Gemini or Veo model IDs. Aliases, prefixes, wildcards, Auto and thinking suffixes are unsupported. Media supports only the two listed IDs.",
+      "source": "Catalog source",
+      "source_upstream": "Upstream catalog",
+      "source_cached": "Last successful catalog (cached)",
+      "source_default": "Subscription default fallback",
+      "source_custom": "Collection custom fallback",
+      "source_none": "No catalog yet",
+      "last_success": "Last successful catalog read",
+      "unconfirmed": "Fallback models are unconfirmed by the upstream catalog. Local permission does not guarantee Google availability or a successful call.",
+      "blocked": "Fallback candidate · Blocked by policy"
+    },
+    "discovery": {
+      "label": "Resource discovery diagnostics",
+      "details": "View discovery results by project",
+      "account": "Account project enumeration",
+      "ok": "Discovery succeeded",
+      "consumer": "Quota consumer project",
+      "error_service_disabled": "Required Google API is not enabled or is disabled",
+      "error_billing_disabled": "Google explicitly reports disabled billing",
+      "error_consumer_suspended": "Google explicitly reports a suspended consumer project",
+      "error_permission_denied": "Permission to read this metadata is missing",
+      "error_unauthorized": "Google authorization verification failed",
+      "error_rate_limited": "Metadata requests are rate limited",
+      "error_connection_failed": "Could not connect to Google metadata services",
+      "error_catalog_unavailable": "Upstream model catalog is temporarily unavailable",
+      "error_discovery_failed": "Some resource metadata could not be read; saved collections were retained"
     }
   }
 }

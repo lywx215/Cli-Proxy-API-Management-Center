@@ -1,3 +1,4 @@
+import { EnterpriseCatalogStatus } from './EnterpriseCatalogFields';
 import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
 import { useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -106,6 +107,10 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
         <section className={styles.context} aria-label={t('gemini_enterprise.models.context')}>
           <p>{file.email || fileName}</p>
           <EnterpriseModelPolicyStatus snapshot={binding?.modelPolicyState} />
+          <EnterpriseCatalogStatus
+            snapshot={binding?.modelPolicyState}
+            source={models.find((entry) => entry.catalog_source)?.catalog_source}
+          />
           <div>
             <strong>{enterpriseCollectionName(file)}</strong>
             <span className={styles.region}>{binding?.location}</span>
@@ -213,9 +218,18 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
                         <small className={styles.policyBadge}>
                           {t(
                             excludedModel
-                              ? 'gemini_enterprise.policy.listed_blocked'
+                              ? model.upstream_listed === false
+                                ? 'gemini_enterprise.catalog.blocked'
+                                : 'gemini_enterprise.policy.listed_blocked'
                               : 'gemini_enterprise.policy.listed_allowed'
                           )}
+                        </small>
+                      )}
+                      {model.catalog_source && (
+                        <small className={styles.policyBadge}>
+                          {t('gemini_enterprise.catalog.source_' + model.catalog_source, {
+                            defaultValue: model.catalog_source,
+                          })}
                         </small>
                       )}
                       <IconCopy size={12} />

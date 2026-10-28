@@ -38,6 +38,7 @@ const SETTING_KEYS = [
   'request_retry',
   'model_aliases',
   'request_scoped_errors',
+  'catalog_fallback',
   'model_policy',
   'allowed_models',
   'excluded_models',
@@ -76,6 +77,28 @@ export function normalizeEnterpriseModelPolicy(
           ? null
           : list(value.enforced_allowed_models),
     enforcedReason: text(value.enforced_reason),
+    ...(isRecord(value.catalog_state)
+      ? {
+          catalogState: {
+            source: text(value.catalog_state.source) ?? 'none',
+            status: text(value.catalog_state.status) ?? 'pending',
+            checkedAt: text(value.catalog_state.checked_at),
+            lastSuccessAt: text(value.catalog_state.last_success_at),
+            ...(isRecord(value.catalog_state.last_error)
+              ? {
+                  lastError: {
+                    code: text(value.catalog_state.last_error.code) ?? 'catalog_unavailable',
+                    httpStatus: enterpriseRevision(value.catalog_state.last_error.http_status),
+                    reason: text(value.catalog_state.last_error.reason),
+                    service: text(value.catalog_state.last_error.service),
+                    consumerProject: text(value.catalog_state.last_error.consumer_project),
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
+    imageGenerationDisabled: bool(value.image_generation_disabled),
     catalogKnown: value.catalog_known === true,
     allowedModels: Array.isArray(value.allowed_models) ? list(value.allowed_models) : null,
     excludedModels: list(value.excluded_models),
@@ -138,6 +161,7 @@ export function normalizeEnterpriseAccount(
     ...resources(value),
     clientId: text(value.client_id),
     modelPolicySupported: bool(value.model_policy_supported),
+    catalogFallbackSupported: bool(value.catalog_fallback_supported),
     modelPolicyState: normalizeEnterpriseModelPolicy(value.model_policy_state),
     expiry: text(value.expiry),
     hasRefreshToken: bool(value.has_refresh_token),
@@ -151,13 +175,32 @@ export function normalizeEnterpriseAccount(
           discovery: {
             status: text(discovery.status),
             checkedAt: text(discovery.checked_at),
+            projects: (Array.isArray(discovery.projects) ? discovery.projects : [])
+              .filter(isRecord)
+              .filter((project) => text(project.project_id))
+              .map((project) => ({
+                id: text(project.project_id)!,
+                name: text(project.project_name),
+              })),
+            coverage: (Array.isArray(discovery.coverage) ? discovery.coverage : [])
+              .filter(isRecord)
+              .map((entry) => ({
+                project: text(entry.project_id),
+                location: text(entry.location),
+                status: text(entry.status),
+                code: text(entry.code),
+              })),
             warnings: (Array.isArray(discovery.warnings) ? discovery.warnings : [])
               .filter(isRecord)
               .map((warning) => ({
-                project: text(warning.project),
+                project: text(warning.project_id) ?? text(warning.project),
                 location: text(warning.location),
                 code: text(warning.code),
                 message: text(warning.message),
+                httpStatus: enterpriseRevision(warning.http_status),
+                reason: text(warning.reason),
+                service: text(warning.service),
+                consumerProject: text(warning.consumer_project),
               })),
           },
         }

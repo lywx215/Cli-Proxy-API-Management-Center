@@ -115,7 +115,9 @@ export function EnterpriseModelPolicyFields({
   excluded,
   disabled,
   onChange,
+  hidePreview = false,
 }: {
+  hidePreview?: boolean;
   draft: EnterprisePolicyDraft;
   snapshot?: EnterpriseModelPolicyState;
   excluded: string[];
@@ -197,14 +199,16 @@ export function EnterpriseModelPolicyFields({
           )}
         </>
       )}
-      <p className="hint">
-        {t('gemini_enterprise.policy.preview')}:{' '}
-        {preview === null
-          ? t('gemini_enterprise.policy.catalog_pending')
-          : preview.length
-            ? preview.join(', ')
-            : t('gemini_enterprise.policy.empty')}
-      </p>
+      {!hidePreview && (
+        <p className="hint">
+          {t('gemini_enterprise.policy.preview')}:{' '}
+          {preview === null
+            ? t('gemini_enterprise.policy.catalog_pending')
+            : preview.length
+              ? preview.join(', ')
+              : t('gemini_enterprise.policy.empty')}
+        </p>
+      )}
     </fieldset>
   );
 }

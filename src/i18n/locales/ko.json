@@ -3107,7 +3107,7 @@
       "unnamed_project": "이름 없는 프로젝트",
       "discovered": "프로젝트 {{projects}}개와 컬렉션 {{collections}}개를 추가했습니다.",
       "discovered_partial": "프로젝트 {{projects}}개와 컬렉션 {{collections}}개를 추가했습니다. 일부 리소스를 확인하지 못했습니다.",
-      "discovery_partial": "검색이 일부만 완료되었습니다. 기존 리소스와 설정은 유지됩니다.",
+      "discovery_partial": "일부 프로젝트의 리소스 검색이 완료되지 않았습니다. 기존 컬렉션과 설정은 유지되며, 각 컬렉션의 구독과 카탈로그 상태에 따라 사용 가능 여부가 결정됩니다.",
       "discover_error": "리소스를 새로고침할 수 없습니다. 승인은 저장되어 있으니 다시 시도하세요.",
       "update_error": "컬렉션을 업데이트할 수 없습니다. 다시 로드하고 현재 버전을 확인하세요."
     },
@@ -3232,6 +3232,43 @@
       "reason_subscription_refresh_failed": "구독을 갱신하며 마지막으로 확인된 정책을 유지합니다.",
       "reason_invalid_model_policy": "저장된 모델 정책이 올바르지 않습니다.",
       "routing_paused": "라우팅 일시 중지"
+    },
+    "catalog": {
+      "label": "모델 카탈로그 대체 설정",
+      "mode_default": "구독별 기본 목록",
+      "mode_custom": "사용자 지정 대체 목록",
+      "mode_disabled": "카탈로그 대체 사용 안 함",
+      "hint": "상위 카탈로그 조회에 실패하고 성공 캐시가 없을 때만 사용합니다. 빈 목록을 포함한 정상 응답이 우선하며 구독, 유료 및 컬렉션 제한은 계속 적용됩니다.",
+      "defaults": "현재 구독의 기본 목록",
+      "models": "정확한 상위 모델 ID, 한 줄에 하나",
+      "add_model": "{{model}} 추가",
+      "media_hint": "미디어는 gemini-3-pro-image와 veo-3.1만 지원합니다. 로컬 기능 차단과 모델 제한은 계속 적용됩니다. 빈 목록은 대체 모델을 제공하지 않습니다.",
+      "invalid": "정확한 Gemini 또는 Veo 모델 ID를 입력하세요. 별칭, 접두사, 와일드카드, Auto, 사고 접미사는 지원하지 않습니다. 미디어는 나열된 두 ID만 지원합니다.",
+      "source": "카탈로그 출처",
+      "source_upstream": "상위 카탈로그",
+      "source_cached": "최근 성공 카탈로그 (캐시)",
+      "source_default": "구독 기본 대체 목록",
+      "source_custom": "컬렉션 사용자 지정 대체 목록",
+      "source_none": "카탈로그 없음",
+      "last_success": "최근 성공 조회 시간",
+      "unconfirmed": "대체 모델은 상위 카탈로그에서 확인되지 않았습니다. 로컬 허용은 Google의 제공이나 호출 성공을 보장하지 않습니다.",
+      "blocked": "대체 후보 · 정책으로 차단됨"
+    },
+    "discovery": {
+      "label": "리소스 검색 진단",
+      "details": "프로젝트별 검색 결과 보기",
+      "account": "계정 프로젝트 목록 조회",
+      "ok": "검색 성공",
+      "consumer": "할당량 사용 프로젝트",
+      "error_service_disabled": "필요한 Google API가 활성화되지 않았거나 비활성화됨",
+      "error_billing_disabled": "Google에서 결제 비활성화를 명시적으로 반환함",
+      "error_consumer_suspended": "Google에서 사용 프로젝트 중지를 명시적으로 반환함",
+      "error_permission_denied": "이 메타데이터를 읽을 권한이 없음",
+      "error_unauthorized": "Google 인증 확인 실패",
+      "error_rate_limited": "메타데이터 요청 빈도 제한",
+      "error_connection_failed": "Google 메타데이터 서비스 연결 실패",
+      "error_catalog_unavailable": "상위 모델 카탈로그를 일시적으로 읽을 수 없음",
+      "error_discovery_failed": "일부 메타데이터를 읽지 못했습니다. 저장된 컬렉션은 유지됩니다."
     }
   }
 }

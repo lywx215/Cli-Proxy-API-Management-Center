@@ -3112,7 +3112,7 @@
       "unnamed_project": "Dự án chưa đặt tên",
       "discovered": "Đã thêm {{projects}} dự án và {{collections}} bộ sưu tập.",
       "discovered_partial": "Đã thêm {{projects}} dự án và {{collections}} bộ sưu tập. Một số tài nguyên chưa được kiểm tra.",
-      "discovery_partial": "Chưa tìm kiếm đầy đủ. Tài nguyên và cài đặt đã lưu được giữ lại.",
+      "discovery_partial": "Một số dự án chưa tìm tài nguyên đầy đủ. Các bộ sưu tập và cài đặt đã lưu được giữ lại. Tính khả dụng phụ thuộc trạng thái gói đăng ký và danh mục từng bộ sưu tập.",
       "discover_error": "Không thể làm mới tài nguyên. Ủy quyền đã được lưu; hãy thử lại.",
       "update_error": "Không thể cập nhật bộ sưu tập này. Tải lại và kiểm tra phiên bản hiện tại."
     },
@@ -3237,6 +3237,43 @@
       "reason_subscription_refresh_failed": "Đang làm mới gói đăng ký; giữ chính sách đã xác nhận gần nhất.",
       "reason_invalid_model_policy": "Chính sách mô hình đã lưu không hợp lệ.",
       "routing_paused": "Tạm dừng định tuyến"
+    },
+    "catalog": {
+      "label": "Danh mục mô hình dự phòng",
+      "mode_default": "Mặc định theo gói đăng ký",
+      "mode_custom": "Danh mục dự phòng tùy chỉnh",
+      "mode_disabled": "Tắt danh mục dự phòng",
+      "hint": "Chỉ dùng sau khi đọc danh mục thượng nguồn thất bại và chưa có bộ nhớ đệm thành công. Danh mục thành công, kể cả rỗng, được ưu tiên. Các giới hạn gói đăng ký, trả phí và bộ sưu tập vẫn áp dụng.",
+      "defaults": "Mặc định cho gói đăng ký",
+      "models": "ID mô hình thượng nguồn chính xác, mỗi dòng một ID",
+      "add_model": "Thêm {{model}}",
+      "media_hint": "Chỉ hỗ trợ gemini-3-pro-image và veo-3.1 cho đa phương tiện. Các giới hạn và công tắc cục bộ vẫn áp dụng. Danh sách rỗng không cung cấp mô hình dự phòng.",
+      "invalid": "Nhập ID Gemini hoặc Veo chính xác. Không hỗ trợ bí danh, tiền tố, ký tự đại diện, Auto hay hậu tố suy nghĩ. Đa phương tiện chỉ hỗ trợ hai ID đã nêu.",
+      "source": "Nguồn danh mục",
+      "source_upstream": "Danh mục thượng nguồn",
+      "source_cached": "Danh mục thành công gần nhất (bộ nhớ đệm)",
+      "source_default": "Dự phòng mặc định theo gói",
+      "source_custom": "Dự phòng tùy chỉnh của bộ sưu tập",
+      "source_none": "Chưa có danh mục",
+      "last_success": "Lần đọc thành công gần nhất",
+      "unconfirmed": "Mô hình dự phòng chưa được danh mục thượng nguồn xác nhận. Cho phép cục bộ không đảm bảo Google cung cấp hay gọi thành công.",
+      "blocked": "Mô hình dự phòng · Chính sách chặn"
+    },
+    "discovery": {
+      "label": "Chẩn đoán tìm tài nguyên",
+      "details": "Xem kết quả theo dự án",
+      "account": "Liệt kê dự án của tài khoản",
+      "ok": "Tìm tài nguyên thành công",
+      "consumer": "Dự án sử dụng hạn mức",
+      "error_service_disabled": "API Google cần thiết chưa bật hoặc đã tắt",
+      "error_billing_disabled": "Google xác nhận thanh toán đã tắt",
+      "error_consumer_suspended": "Google xác nhận dự án sử dụng hạn mức bị tạm ngưng",
+      "error_permission_denied": "Thiếu quyền đọc siêu dữ liệu này",
+      "error_unauthorized": "Xác minh ủy quyền Google thất bại",
+      "error_rate_limited": "Yêu cầu siêu dữ liệu bị giới hạn tần suất",
+      "error_connection_failed": "Không kết nối được dịch vụ siêu dữ liệu Google",
+      "error_catalog_unavailable": "Danh mục mô hình thượng nguồn tạm thời không khả dụng",
+      "error_discovery_failed": "Không đọc được một số siêu dữ liệu; các bộ sưu tập đã lưu được giữ lại"
     }
   }
 }

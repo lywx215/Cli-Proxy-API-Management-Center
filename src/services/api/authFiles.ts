@@ -22,6 +22,8 @@ type AuthFileStatusResponse = { status: string; disabled: boolean };
 export type AuthFileLookup = { name: string; authIndex?: string };
 type AuthFileEntry = AuthFilesResponse['files'][number];
 export type AuthFileFieldsPatch = {
+  catalog_fallback?:
+    import('@/features/authFiles/enterpriseCatalog').EnterpriseCatalogFallback | null;
   model_policy?: import('@/types/authFile').EnterpriseModelPolicyMode;
   allowed_models?: string[] | null;
   request_retry?: number | null;
@@ -693,6 +695,7 @@ export const authFilesApi = {
       upstream_model?: string;
       policy_allowed?: boolean;
       upstream_listed?: boolean;
+      catalog_source?: string;
     }[]
   > {
     const path = `/credentials/models?name=${encodeURIComponent(name)}`;
@@ -721,7 +724,8 @@ export const authFilesApi = {
           display_name: entry.display_name,
           type: 'gemini',
           policy_allowed: false,
-          upstream_listed: true,
+          upstream_listed: entry.upstream_listed !== false,
+          catalog_source: entry.catalog_source,
         });
         seen.add(entry.id);
       }
@@ -735,6 +739,7 @@ export const authFilesApi = {
       ...(typeof entry.policy_allowed === 'boolean'
         ? { policy_allowed: entry.policy_allowed }
         : {}),
+      ...(typeof entry.catalog_source === 'string' ? { catalog_source: entry.catalog_source } : {}),
       ...(typeof entry.upstream_listed === 'boolean'
         ? { upstream_listed: entry.upstream_listed }
         : {}),

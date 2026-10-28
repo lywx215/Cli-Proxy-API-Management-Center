@@ -70,6 +70,20 @@ export type EnterpriseModelPolicyState = {
   reason?: string;
   enforcedAllowedModels?: string[] | null;
   enforcedReason?: string;
+  catalogState?: {
+    source: string;
+    status: string;
+    checkedAt?: string;
+    lastSuccessAt?: string;
+    lastError?: {
+      code: string;
+      httpStatus?: number;
+      reason?: string;
+      service?: string;
+      consumerProject?: string;
+    };
+  };
+  imageGenerationDisabled?: boolean;
   catalogKnown: boolean;
   allowedModels: string[] | null;
   excludedModels: string[];
@@ -114,6 +128,7 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   modelPolicySupported?: boolean;
+  catalogFallbackSupported?: boolean;
   modelPolicyState?: EnterpriseModelPolicyState;
   clientId?: string;
   expiry?: string;
@@ -125,7 +140,18 @@ export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   discovery?: {
     status?: string;
     checkedAt?: string;
-    warnings: { project?: string; location?: string; code?: string; message?: string }[];
+    projects?: { id: string; name?: string }[];
+    coverage?: { project?: string; location?: string; status?: string; code?: string }[];
+    warnings: {
+      project?: string;
+      location?: string;
+      code?: string;
+      message?: string;
+      httpStatus?: number;
+      reason?: string;
+      service?: string;
+      consumerProject?: string;
+    }[];
   };
   collections?: GeminiEnterpriseCollection[];
   /** Present only on a derived collection view; the saved file remains the parent. */
