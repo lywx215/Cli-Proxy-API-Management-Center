@@ -139,7 +139,8 @@ export function RequestEventsDetailsCard({
       const sourceInfo = resolveSourceDisplay(sourceRaw, authIndexRaw, sourceInfoMap, authFileMap);
       const source = sourceInfo.displayName;
       const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
-      const sourceType = sourceInfo.type;
+      const sourceType =
+        detail.provider === 'gemini-enterprise' ? detail.provider : sourceInfo.type;
       const model = String(detail.__modelName ?? '').trim() || '-';
       const tokens = normalizeRequestTokenCounts({ ...detail.tokens }, sourceType, sourceRaw);
       const inputTokens = tokens.input_tokens;

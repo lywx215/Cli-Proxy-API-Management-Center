@@ -2691,7 +2691,7 @@
   },
   "usage_stats": {
     "tokens_unavailable": "未提供",
-    "enterprise_tokens_unavailable_hint": "Gemini Enterprise 输入与输出 Token 按本地分词统计，可能与 Google 计费不同。缺失分项显示“未提供”；总量、TPM 和费用按已有计数计算，请求数、结果和延迟正常记录。",
+    "enterprise_tokens_unavailable_hint": "Gemini Enterprise 正文输出与思考分列统计。思考优先采用上游用量，缺失时对已返回的摘要本地分词，不代表完整内部思考消耗。输入与正文按本地分词统计，已知思考计入总量、TPM 和输出费用；缺失分项显示“未提供”，可能与 Google 计费不同。",
     "title": "使用统计",
     "total_requests": "总请求数",
     "success_requests": "成功请求",

@@ -2693,7 +2693,7 @@
   },
   "usage_stats": {
     "tokens_unavailable": "Not reported",
-    "enterprise_tokens_unavailable_hint": "Gemini Enterprise input/output tokens are counted locally and may differ from Google billing. Missing fields show “Not reported”. Totals, TPM and costs use available counts; request counts, results and latency remain recorded.",
+    "enterprise_tokens_unavailable_hint": "Gemini Enterprise counts answer output and reasoning separately. Reasoning uses reported usage when available, otherwise local token counts of returned summaries, which do not represent full internal reasoning. Input and answer tokens are counted locally. Known reasoning is included once in totals, TPM and output costs. Missing fields show “Not reported”; counts may differ from Google billing.",
     "title": "Usage Statistics",
     "total_requests": "Total Requests",
     "success_requests": "Success Requests",

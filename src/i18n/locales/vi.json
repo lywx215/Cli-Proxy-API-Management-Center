@@ -2622,7 +2622,7 @@
   },
   "usage_stats": {
     "tokens_unavailable": "Chưa cung cấp",
-    "enterprise_tokens_unavailable_hint": "Token đầu vào/đầu ra của Gemini Enterprise được đếm cục bộ và có thể khác số liệu tính phí của Google. Trường thiếu hiển thị “Chưa cung cấp”. Tổng, TPM và chi phí dùng số liệu có sẵn; số yêu cầu, kết quả và độ trễ vẫn được ghi nhận.",
+    "enterprise_tokens_unavailable_hint": "Gemini Enterprise đếm riêng phần trả lời và suy luận. Ưu tiên số liệu suy luận từ dịch vụ; nếu thiếu, đếm token cục bộ của bản tóm tắt đã nhận, không đại diện cho toàn bộ suy luận nội bộ. Token đầu vào và câu trả lời được đếm cục bộ. Suy luận đã biết được tính một lần vào tổng, TPM và chi phí đầu ra. Trường thiếu hiển thị “Chưa cung cấp”; số liệu có thể khác Google.",
     "total_time": "Tổng thời gian",
     "title": "Usage Statistics",
     "total_requests": "Total Requests",

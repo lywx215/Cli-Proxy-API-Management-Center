@@ -55,6 +55,7 @@ export interface ModelPrice {
 }
 
 export interface UsageDetail {
+  provider?: string;
   timestamp: string;
   source: string;
   auth_index: string | number | null;
@@ -546,6 +547,10 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
         const latencyMs = extractLatencyMs(detailRaw);
         details.push({
           timestamp,
+          provider:
+            typeof detailRaw.provider === 'string'
+              ? detailRaw.provider.trim().toLowerCase()
+              : undefined,
           source: normalizeSource(detailRaw.source),
           auth_index: (detailRaw?.auth_index ??
             detailRaw?.authIndex ??
@@ -624,6 +629,10 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
         const latencyMs = extractLatencyMs(detailRaw);
         details.push({
           timestamp,
+          provider:
+            typeof detailRaw.provider === 'string'
+              ? detailRaw.provider.trim().toLowerCase()
+              : undefined,
           source: normalizeSource(detailRaw.source),
           auth_index: (detailRaw?.auth_index ??
             detailRaw?.authIndex ??
@@ -784,9 +793,17 @@ export function calculateCost(
   const rawCachedTokensAlternate = Number(tokens.cache_tokens);
 
   const inputTokens = Number.isFinite(rawInputTokens) ? Math.max(rawInputTokens, 0) : 0;
-  const completionTokens = Number.isFinite(rawCompletionTokens)
+  let completionTokens = Number.isFinite(rawCompletionTokens)
     ? Math.max(rawCompletionTokens, 0)
     : 0;
+  if (
+    typeof detail.provider === 'string' &&
+    detail.provider.trim().toLowerCase() === 'gemini-enterprise' &&
+    typeof tokens.reasoning_tokens === 'number' &&
+    Number.isFinite(tokens.reasoning_tokens)
+  ) {
+    completionTokens += Math.max(tokens.reasoning_tokens, 0);
+  }
   const cachedTokens = Math.max(
     Number.isFinite(rawCachedTokensPrimary) ? Math.max(rawCachedTokensPrimary, 0) : 0,
     Number.isFinite(rawCachedTokensAlternate) ? Math.max(rawCachedTokensAlternate, 0) : 0
