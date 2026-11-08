@@ -125,7 +125,8 @@ export class GeminiEnterpriseConfigConflict extends Error {}
 export type EnterpriseCollectionPatch = {
   disabled?: boolean;
   resources?: EnterpriseResources;
-  fields?: AuthFileFieldsPatch;
+  fields?: AuthFileFieldsPatch & { carbon_enabled?: boolean };
+  carbonTestId?: string;
 };
 
 function accountResponse(value: unknown, file: Pick<AuthFileItem, 'geminiEnterprise'>) {
@@ -198,6 +199,7 @@ export const geminiEnterpriseApi = {
         ...(patch.disabled !== undefined ? { disabled: patch.disabled } : {}),
         ...(patch.resources ? { resources: serializeEnterpriseResources(patch.resources) } : {}),
         ...(patch.fields ? { fields: patch.fields } : {}),
+        ...(patch.carbonTestId ? { carbon_test_id: patch.carbonTestId } : {}),
       },
       { signal, timeout: 0 }
     );

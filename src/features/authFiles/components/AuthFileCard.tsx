@@ -17,6 +17,7 @@ import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
 import type { AuthFileItem } from '@/types';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
 import { formatFileSize } from '@/utils/format';
+import { EnterpriseWebCredentialStatus } from '../enterpriseWeb/EnterpriseWebCredentialStatus';
 import {
   formatModified,
   getAuthFileStatusMessage,
@@ -187,7 +188,11 @@ export function AuthFileCard(props: AuthFileCardProps) {
           {noteValue}
         </p>
       )}
-
+      {providerKey === 'gemini-enterprise-web' && (
+        <div className={styles.note}>
+          <EnterpriseWebCredentialStatus summary={file.geminiEnterpriseWeb} compact={compact} />
+        </div>
+      )}
       {providerKey === 'gemini-enterprise' && !compact && (
         <>
           <GeminiEnterpriseBinding binding={file.geminiEnterprise} />
@@ -314,7 +319,11 @@ export function AuthFileCard(props: AuthFileCardProps) {
                   size="sm"
                   onClick={() => onManualRefresh(file)}
                   className={styles.iconButton}
-                  title={t('auth_files.manual_refresh_button')}
+                  title={t(
+                    providerKey === 'gemini-enterprise-web'
+                      ? 'enterprise_web.verify_cookie'
+                      : 'auth_files.manual_refresh_button'
+                  )}
                   disabled={
                     disableControls ||
                     file.disabled ||
@@ -340,7 +349,11 @@ export function AuthFileCard(props: AuthFileCardProps) {
                 size="sm"
                 onClick={() => onOpenPrefixProxyEditor(file)}
                 className={styles.iconButton}
-                title={t('auth_files.prefix_proxy_button')}
+                title={t(
+                  providerKey === 'gemini-enterprise-web'
+                    ? 'enterprise_web.edit_cookie'
+                    : 'auth_files.prefix_proxy_button'
+                )}
                 disabled={disableControls || isManualRefreshing}
               >
                 <IconSettings size={15} />

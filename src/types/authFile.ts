@@ -10,12 +10,14 @@ export type AuthFileType =
   | 'gemini'
   | 'gemini-cli'
   | 'gemini-enterprise'
+  | 'gemini-enterprise-web'
   | 'aistudio'
   | 'claude'
   | 'codex'
   | 'devin'
   | 'meta'
   | 'antigravity'
+  | 'antigravity-enterprise'
   | 'xai'
   | 'iflow'
   | 'vertex'
@@ -38,6 +40,8 @@ export interface AuthFileCooldown {
   modelKey?: string;
   reason: string;
   retryAt: string;
+  /** Metadata recheck time; it does not assert that quota resets at this instant. */
+  nextCheckAt?: string;
   remainingSeconds: number;
   backoffLevel?: number;
   httpStatus?: number;
@@ -63,12 +67,32 @@ export interface GeminiEnterpriseResources {
 
 export type EnterpriseModelPolicyMode =
   'auto' | 'catalog' | 'argon_only' | 'exclude_argon' | 'custom';
+export type EnterpriseCarbonTestEvidence = {
+  testId: string;
+  status: string;
+  checkedAt: string;
+  upstreamModel: string;
+  httpStatus?: number;
+  reason?: string;
+};
+export type EnterpriseCarbonAdmission = {
+  enabled: boolean;
+  available: boolean;
+  canTest: boolean;
+  canEnable: boolean;
+  verificationRequired?: boolean;
+  reason?: string;
+  test?: EnterpriseCarbonTestEvidence;
+};
 export type EnterpriseModelPolicyState = {
+  carbonAdmissionSupported?: boolean;
+  carbonAdmission?: EnterpriseCarbonAdmission;
   mode: EnterpriseModelPolicyMode;
   effectiveMode: string;
   status: string;
   reason?: string;
   enforcedAllowedModels?: string[] | null;
+  enforcedExcludedModels?: string[];
   enforcedReason?: string;
   catalogState?: {
     source: string;
@@ -108,6 +132,8 @@ export type EnterpriseModelPolicyState = {
 };
 
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
+  carbonAdmissionSupported?: boolean;
+  carbonAdmission?: EnterpriseCarbonAdmission;
   modelPolicyState?: EnterpriseModelPolicyState;
   bindingId: string;
   revision?: number;
@@ -127,6 +153,11 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 }
 
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
+  carbonAuthorizationRevision?: number;
+  carbonRegistrationEpoch?: number;
+  googleCarbonConfigureSupported?: boolean;
+  carbonAdmissionSupported?: boolean;
+  carbonAdmission?: EnterpriseCarbonAdmission;
   modelPolicySupported?: boolean;
   catalogFallbackSupported?: boolean;
   modelPolicyState?: EnterpriseModelPolicyState;
@@ -177,6 +208,8 @@ export interface AuthFileItem {
   /** GCP / Vertex project ID, used when the email is absent. */
   projectId?: string;
   geminiEnterprise?: GeminiEnterpriseAccount;
+  antigravityEnterprise?: import('./antigravityEnterprise').AntigravityEnterpriseAccount;
+  geminiEnterpriseWeb?: import('@/services/api/geminiEnterpriseWeb').EnterpriseWebSummary;
   size?: number;
   authIndex?: string | number | null;
   /** Generic plugin quota capability advertised by CPA's auth-files API. */

@@ -12,6 +12,7 @@ import { validateGeminiEnterpriseCallback } from '../geminiEnterprise';
 import { resolveCallbackUrl } from '../callbackUrl';
 import {
   buildPluginOAuthProviderCards,
+  getOAuthProviderTextKey,
   type OAuthProviderCard,
   type PluginOAuthProviderCard,
 } from '../providers';
@@ -45,9 +46,6 @@ interface UseOAuthFlowsOptions {
 
 const SUCCESS_RESET_DELAY_MS = 5000;
 const POLL_INTERVAL_MS = 3000;
-
-const getAuthKey = (provider: string, suffix: string) =>
-  `auth_login.${provider.replace('-', '_')}_${suffix}`;
 
 function getErrorStatus(error: unknown): number | undefined {
   if (!isRecord(error)) return undefined;
@@ -123,7 +121,7 @@ export function useOAuthFlows({ providerCards, isFocused }: UseOAuthFlowsOptions
     const card = providerCards.find((item) => item.id === provider);
     return card?.kind === 'plugin'
       ? t(`auth_login.plugin_${suffix}`, { name: card.title })
-      : t(getAuthKey(provider, suffix));
+      : t(getOAuthProviderTextKey(provider, suffix));
   };
 
   /** 对话框没开时，toast 是唯一的结果反馈。 */

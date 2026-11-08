@@ -73,6 +73,9 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
   {
     connectivity: ['port', 'trustedProxies', 'discoveryServiceType'],
     network: [
+      'geminiEnterpriseWebHistoryMode',
+      'geminiEnterpriseWebMaxConcurrent',
+      'geminiEnterpriseWebMaxInflightBytes',
       'requestRetry',
       'maxRetryCredentials',
       'maxRetryInterval',
@@ -107,6 +110,10 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
  * 增删字段时漏改任何一边（索引 / 本表 / 分区 JSX）都会红。
  */
 export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
+  geminiEnterpriseWebEnabled: ['geminiEnterpriseWebEnabled'],
+  geminiEnterpriseWebHistoryMode: ['geminiEnterpriseWebHistoryMode'],
+  geminiEnterpriseWebMaxConcurrent: ['geminiEnterpriseWebMaxConcurrent'],
+  geminiEnterpriseWebMaxInflightBytes: ['geminiEnterpriseWebMaxInflightBytes'],
   routingSessionAffinitySubagents: ['routingSessionAffinitySubagents'],
   saveCooldownStatus: ['saveCooldownStatus'],
   transientErrorCooldownSeconds: ['transientErrorCooldownSeconds'],

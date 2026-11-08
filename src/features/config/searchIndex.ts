@@ -38,6 +38,34 @@ const L = (key: string) => `config_management.visual.${key}`;
 
 export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
   {
+    fieldId: 'geminiEnterpriseWebHistoryMode',
+    sectionId: 'network',
+    labelKey: 'enterprise_web.history_mode',
+    hintKey: 'enterprise_web.history_hint',
+    yamlKeys: ['upstream', 'gemini-enterprise-web', 'history-mode'],
+  },
+  {
+    fieldId: 'geminiEnterpriseWebEnabled',
+    sectionId: 'network',
+    labelKey: 'enterprise_web.enabled',
+    hintKey: 'enterprise_web.scope',
+    yamlKeys: ['upstream', 'gemini-enterprise-web', 'enabled'],
+  },
+  {
+    fieldId: 'geminiEnterpriseWebMaxConcurrent',
+    sectionId: 'network',
+    labelKey: 'enterprise_web.concurrency',
+    hintKey: 'enterprise_web.limits_hint',
+    yamlKeys: ['upstream', 'gemini-enterprise-web', 'max-concurrent'],
+  },
+  {
+    fieldId: 'geminiEnterpriseWebMaxInflightBytes',
+    sectionId: 'network',
+    labelKey: 'enterprise_web.memory_bytes',
+    hintKey: 'enterprise_web.limits_hint',
+    yamlKeys: ['upstream', 'gemini-enterprise-web', 'max-inflight-bytes'],
+  },
+  {
     fieldId: 'routingSessionAffinitySubagents',
     sectionId: 'network',
     labelKey: L('additions.routingSessionAffinitySubagents.label'),

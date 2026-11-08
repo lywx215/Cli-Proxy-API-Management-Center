@@ -1,3 +1,4 @@
+import antigravityLogo from '@/assets/icons/antigravity.svg';
 import code0Logo from '@/assets/icons/code0.png';
 import claudeLogo from '@/assets/icons/claude.svg';
 import codexLogo from '@/assets/icons/codex.svg';
@@ -25,11 +26,18 @@ export interface ProviderBrandLogo {
   invertOnDark?: boolean;
 }
 
-export type ProviderBrandLogoKey = ProviderBrand | 'devin' | 'gemini-enterprise';
+export type ProviderBrandLogoKey =
+  | ProviderBrand
+  | 'devin'
+  | 'gemini-enterprise'
+  | 'gemini-enterprise-web'
+  | 'antigravity-enterprise';
 
 export const PROVIDER_LOGOS: Record<ProviderBrandLogoKey, ProviderBrandLogo> = {
   gemini: { src: geminiLogo },
   'gemini-enterprise': { src: geminiLogo },
+  'antigravity-enterprise': { src: antigravityLogo },
+  'gemini-enterprise-web': { src: geminiLogo },
   interactions: { src: geminiLogo },
   claude: { src: claudeLogo },
   codex: { src: codexLogo },

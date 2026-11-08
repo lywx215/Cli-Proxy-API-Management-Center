@@ -19,6 +19,7 @@ import {
 } from '@/utils/usage';
 import { downloadBlob } from '@/utils/download';
 import { normalizeRequestTokenCounts, reportedRequestTokenValue } from './requestTokenAvailability';
+import type { TokenEstimate } from '@/utils/usage/tokenAvailability';
 import styles from '@/pages/UsagePage.module.scss';
 
 const ALL_FILTER = '__all__';
@@ -44,6 +45,7 @@ type RequestEventRow = {
   reasoningTokens: number | null;
   cachedTokens: number | null;
   totalTokens: number | null;
+  estimate?: TokenEstimate;
 };
 
 export interface RequestEventsDetailsCardProps {
@@ -139,8 +141,11 @@ export function RequestEventsDetailsCard({
       const sourceInfo = resolveSourceDisplay(sourceRaw, authIndexRaw, sourceInfoMap, authFileMap);
       const source = sourceInfo.displayName;
       const sourceKey = sourceInfo.identityKey ?? `source:${sourceRaw || source}`;
-      const sourceType =
-        detail.provider === 'gemini-enterprise' ? detail.provider : sourceInfo.type;
+      const sourceType = ['gemini-enterprise', 'gemini-enterprise-web'].includes(
+        detail.provider ?? ''
+      )
+        ? (detail.provider ?? sourceInfo.type)
+        : sourceInfo.type;
       const model = String(detail.__modelName ?? '').trim() || '-';
       const tokens = normalizeRequestTokenCounts({ ...detail.tokens }, sourceType, sourceRaw);
       const inputTokens = tokens.input_tokens;
@@ -177,6 +182,7 @@ export function RequestEventsDetailsCard({
         reasoningTokens,
         cachedTokens,
         totalTokens,
+        estimate: tokens.estimate,
       };
     });
 
@@ -300,9 +306,31 @@ export function RequestEventsDetailsCard({
       row.totalTokens,
     ].some((value) => value === null)
   );
+  const hasWebRows = filteredRows.some((row) => row.sourceType === 'gemini-enterprise-web');
+  const hasOtherUnreportedTokens = filteredRows.some(
+    (row) =>
+      row.sourceType !== 'gemini-enterprise-web' &&
+      [
+        row.inputTokens,
+        row.outputTokens,
+        row.reasoningTokens,
+        row.cachedTokens,
+        row.totalTokens,
+      ].some((value) => value === null)
+  );
   const formatTokens = (value: number | null, available: boolean) =>
     reportedRequestTokenValue(value, available)?.toLocaleString() ??
     t('usage_stats.tokens_unavailable');
+
+  const formatEstimate = (value: number | null, hint?: string) => {
+    if (value === null) return t('usage_stats.tokens_unavailable');
+    const label = t('usage_stats.web_tokens_estimated_value', { value: value.toLocaleString() });
+    return (
+      <span title={hint ?? label} aria-label={hint ? `${label}. ${hint}` : label}>
+        ≈ {value.toLocaleString()}
+      </span>
+    );
+  };
 
   const hasActiveFilters =
     effectiveModelFilter !== ALL_FILTER ||
@@ -332,6 +360,9 @@ export function RequestEventsDetailsCard({
       'reasoning_tokens',
       'cached_tokens',
       'total_tokens',
+      ...(hasWebRows
+        ? ['input_text_tokens', 'counting_source', 'estimate_incomplete', 'response_complete']
+        : []),
     ];
 
     const csvRows = filteredRows.map((row) =>
@@ -349,6 +380,14 @@ export function RequestEventsDetailsCard({
         reportedRequestTokenValue(row.reasoningTokens, row.tokensAvailable) ?? '',
         reportedRequestTokenValue(row.cachedTokens, row.tokensAvailable) ?? '',
         reportedRequestTokenValue(row.totalTokens, row.tokensAvailable) ?? '',
+        ...(hasWebRows
+          ? [
+              row.estimate?.input_text_tokens ?? '',
+              row.estimate?.source ?? '',
+              row.estimate ? String(row.estimate.incomplete) : '',
+              row.estimate ? String(row.estimate.response_complete) : '',
+            ]
+          : []),
       ]
         .map((value) => encodeCsv(value))
         .join(',')
@@ -381,6 +420,7 @@ export function RequestEventsDetailsCard({
         reasoning_tokens: reportedRequestTokenValue(row.reasoningTokens, row.tokensAvailable),
         cached_tokens: reportedRequestTokenValue(row.cachedTokens, row.tokensAvailable),
         total_tokens: reportedRequestTokenValue(row.totalTokens, row.tokensAvailable),
+        ...(row.estimate ? { estimate: row.estimate } : {}),
       },
     }));
 
@@ -493,8 +533,11 @@ export function RequestEventsDetailsCard({
             )}
           </div>
 
-          {hasUnreportedTokens && (
+          {hasUnreportedTokens && hasOtherUnreportedTokens && (
             <div className={styles.hint}>{t('usage_stats.enterprise_tokens_unavailable_hint')}</div>
+          )}
+          {hasWebRows && (
+            <div className={styles.hint}>{t('usage_stats.web_tokens_unavailable_hint')}</div>
           )}
 
           <div className={styles.requestEventsTableWrapper}>
@@ -508,10 +551,16 @@ export function RequestEventsDetailsCard({
                   <th>{t('usage_stats.request_events_result')}</th>
                   {hasLatencyData && <th title={latencyHint}>{t('usage_stats.time')}</th>}
                   <th>{t('usage_stats.input_tokens')}</th>
+                  {hasWebRows && (
+                    <th title={t('usage_stats.web_tokens_input_text_hint')}>
+                      {t('usage_stats.web_input_text_tokens')}
+                    </th>
+                  )}
                   <th>{t('usage_stats.output_tokens')}</th>
                   <th>{t('usage_stats.reasoning_tokens')}</th>
                   <th>{t('usage_stats.cached_tokens')}</th>
                   <th>{t('usage_stats.total_tokens')}</th>
+                  {hasWebRows && <th>{t('usage_stats.web_token_source')}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -546,10 +595,54 @@ export function RequestEventsDetailsCard({
                       <td className={styles.durationCell}>{formatDurationMs(row.latencyMs)}</td>
                     )}
                     <td>{formatTokens(row.inputTokens, row.tokensAvailable)}</td>
-                    <td>{formatTokens(row.outputTokens, row.tokensAvailable)}</td>
-                    <td>{formatTokens(row.reasoningTokens, row.tokensAvailable)}</td>
+                    {hasWebRows && (
+                      <td>
+                        {row.sourceType === 'gemini-enterprise-web'
+                          ? formatEstimate(
+                              row.estimate?.input_text_tokens ?? null,
+                              t('usage_stats.web_tokens_input_text_hint')
+                            )
+                          : '—'}
+                      </td>
+                    )}
+                    <td>
+                      {row.estimate
+                        ? formatEstimate(row.outputTokens)
+                        : formatTokens(row.outputTokens, row.tokensAvailable)}
+                    </td>
+                    <td>
+                      {row.estimate
+                        ? formatEstimate(
+                            row.reasoningTokens,
+                            t('usage_stats.web_tokens_summary_hint')
+                          )
+                        : formatTokens(row.reasoningTokens, row.tokensAvailable)}
+                    </td>
                     <td>{formatTokens(row.cachedTokens, row.tokensAvailable)}</td>
                     <td>{formatTokens(row.totalTokens, row.tokensAvailable)}</td>
+                    {hasWebRows && (
+                      <td>
+                        {row.estimate ? (
+                          <>
+                            <span>{t('usage_stats.web_tokens_estimated_source')}</span>
+                            {row.estimate.incomplete && (
+                              <div className={styles.hint}>
+                                {t('usage_stats.web_tokens_incomplete')}
+                              </div>
+                            )}
+                            {!row.estimate.response_complete && (
+                              <div className={styles.hint}>
+                                {t('usage_stats.web_tokens_partial_response')}
+                              </div>
+                            )}
+                          </>
+                        ) : row.sourceType === 'gemini-enterprise-web' ? (
+                          t('usage_stats.tokens_unavailable')
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

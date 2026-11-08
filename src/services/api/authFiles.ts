@@ -3,6 +3,8 @@
  */
 
 import { apiClient } from './client';
+import { normalizeAntigravityEnterpriseAccount } from './antigravityEnterprise';
+import { normalizeEnterpriseWebSummary } from './geminiEnterpriseWeb';
 import { getConfigValue, guardConfigConnection } from './configValue';
 import { isRecord } from '@/utils/helpers';
 import type { AuthFilesResponse } from '@/types/authFile';
@@ -16,7 +18,15 @@ import {
 } from '@/utils/recentRequests';
 import { parseTimestampMs } from '@/utils/timestamp';
 import { normalizeAuthFileCooldowns, normalizeCooldownTimestamp } from './authFileCooldowns';
-import { normalizeEnterpriseAccount } from './enterpriseAccounts';
+import {
+  enterpriseRevision,
+  normalizeEnterpriseAccount,
+  normalizeEnterpriseCarbonAdmission,
+  normalizeEnterpriseModelPolicy,
+} from './enterpriseAccounts';
+import { requireManagementObject } from './managementResponse';
+import type { EnterpriseCarbonAdmission, EnterpriseModelPolicyState } from '@/types/authFile';
+import type { AuthFileModelItem } from '@/features/authFiles/constants';
 
 type AuthFileStatusResponse = { status: string; disabled: boolean };
 export type AuthFileLookup = { name: string; authIndex?: string };
@@ -293,8 +303,9 @@ const normalizeAuthFileEntry = (
   const quotaProvider =
     readTextField(entry, 'quota_provider') || readTextField(entry, 'quotaProvider');
 
+  const { gemini_enterprise_web: webSummary, ...safeEntry } = entry;
   return {
-    ...entry,
+    ...safeEntry,
     cooldownSnapshot: normalizeAuthFileCooldowns(entry.cooldowns, observedAt, receivedAtMs),
     runtimeOnly: readRuntimeOnlyField(entry),
     authIndex: normalizeRecentRequestAuthIndex(entry['auth_index'] ?? entry.authIndex),
@@ -311,6 +322,12 @@ const normalizeAuthFileEntry = (
     ...(email ? { email } : {}),
     ...(projectId ? { projectId } : {}),
     ...(geminiEnterprise ? { geminiEnterprise } : {}),
+    antigravityEnterprise: normalizeAntigravityEnterpriseAccount(
+      entry.antigravity_enterprise,
+      observedAt,
+      receivedAtMs
+    ),
+    geminiEnterpriseWeb: normalizeEnterpriseWebSummary(webSummary),
   };
 };
 
@@ -545,6 +562,106 @@ export interface AuthFileCooldownResetResponse {
   models: string[];
 }
 
+export type AuthFileModelsSnapshot = {
+  models: AuthFileModelItem[];
+  testCandidates: AuthFileModelItem[];
+  carbonAdmissionSupported: boolean;
+  carbonAdmission?: EnterpriseCarbonAdmission;
+  modelPolicyState?: EnterpriseModelPolicyState;
+  revision?: number;
+};
+
+export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSnapshot {
+  requireManagementObject(data);
+  const carbonAdmissionSupported = data.carbon_admission_supported === true;
+  const carbonAdmission = normalizeEnterpriseCarbonAdmission(data.carbon_admission);
+  const models = data.models ?? data['models'];
+  const result = Array.isArray(models)
+    ? models
+        .filter(isRecord)
+        .filter((entry) => typeof entry.id === 'string')
+        .filter(
+          (entry) =>
+            !carbonAdmissionSupported ||
+            (entry.upstream_model || entry.id) !== 'gemini-4-carbon' ||
+            (carbonAdmission?.available === true &&
+              entry.test_candidate !== true &&
+              entry.business_registered !== false)
+        )
+    : [];
+  const seen = new Set(result.map((entry) => entry.id));
+  if (data.model_policy_supported === true && Array.isArray(data.catalog_models)) {
+    for (const entry of data.catalog_models) {
+      if (
+        !isRecord(entry) ||
+        typeof entry.id !== 'string' ||
+        seen.has(entry.id) ||
+        (carbonAdmissionSupported && entry.id === 'gemini-4-carbon') ||
+        entry.allowed !== false
+      )
+        continue;
+      result.push({
+        id: entry.id,
+        display_name: entry.display_name,
+        type: 'gemini',
+        policy_allowed: false,
+        upstream_listed: entry.upstream_listed !== false,
+        catalog_source: entry.catalog_source,
+      });
+      seen.add(entry.id);
+    }
+  }
+  const businessModels = result.map((entry) => ({
+    id: String(entry.id),
+    ...(typeof entry.display_name === 'string' ? { display_name: entry.display_name } : {}),
+    ...(typeof entry.type === 'string' ? { type: entry.type } : {}),
+    ...(typeof entry.owned_by === 'string' ? { owned_by: entry.owned_by } : {}),
+    ...(typeof entry.upstream_model === 'string' ? { upstream_model: entry.upstream_model } : {}),
+    ...(typeof entry.native_model === 'string' ? { native_model: entry.native_model } : {}),
+    ...(typeof entry.policy_allowed === 'boolean' ? { policy_allowed: entry.policy_allowed } : {}),
+    ...(typeof entry.catalog_source === 'string' ? { catalog_source: entry.catalog_source } : {}),
+    ...(typeof entry.upstream_listed === 'boolean'
+      ? { upstream_listed: entry.upstream_listed }
+      : {}),
+  }));
+  const testCandidates: AuthFileModelItem[] =
+    carbonAdmissionSupported && Array.isArray(data.test_candidates)
+      ? data.test_candidates
+          .filter(isRecord)
+          .filter((entry) => entry.id === 'gemini-4-carbon' && entry.test_candidate === true)
+          .slice(0, 1)
+          .map((entry) => ({
+            id: 'gemini-4-carbon',
+            type: 'gemini',
+            upstream_model: 'gemini-4-carbon',
+            test_candidate: true,
+            business_registered: entry.business_registered === true,
+          }))
+      : [];
+  return {
+    models: businessModels,
+    testCandidates,
+    carbonAdmissionSupported,
+    carbonAdmission,
+    modelPolicyState: normalizeEnterpriseModelPolicy(data.model_policy_state),
+    revision: enterpriseRevision(data.revision),
+  };
+}
+
+async function fetchAuthFileModelsSnapshot(
+  name: string,
+  target?: { authIndex?: string; bindingId?: string; signal?: AbortSignal }
+): Promise<AuthFileModelsSnapshot> {
+  const path = `/credentials/models?name=${encodeURIComponent(name)}`;
+  const data = target
+    ? await apiClient.get<Record<string, unknown>>(path, {
+        params: { auth_index: target.authIndex, binding_id: target.bindingId },
+        signal: target.signal,
+      })
+    : await apiClient.get<Record<string, unknown>>(path);
+  return normalizeAuthFileModelsSnapshot(data);
+}
+
 export const authFilesApi = {
   list: async (lookup?: AuthFileLookup) =>
     normalizeAuthFilesResponse(
@@ -682,68 +799,13 @@ export const authFilesApi = {
   deleteOauthModelAlias: (channel: string) =>
     updateOauthProviderMap(OAUTH_MODEL_ALIAS_ENDPOINT, channel),
 
-  // Get models supported by a credential
+  // Business models and administrative test candidates stay separate.
+  getModelsForAuthFileSnapshot: fetchAuthFileModelsSnapshot,
   async getModelsForAuthFile(
     name: string,
     target?: { authIndex?: string; bindingId?: string; signal?: AbortSignal }
-  ): Promise<
-    {
-      id: string;
-      display_name?: string;
-      type?: string;
-      owned_by?: string;
-      upstream_model?: string;
-      policy_allowed?: boolean;
-      upstream_listed?: boolean;
-      catalog_source?: string;
-    }[]
-  > {
-    const path = `/credentials/models?name=${encodeURIComponent(name)}`;
-    const data = target
-      ? await apiClient.get<Record<string, unknown>>(path, {
-          params: { auth_index: target.authIndex, binding_id: target.bindingId },
-          signal: target.signal,
-        })
-      : await apiClient.get<Record<string, unknown>>(path);
-    const models = data.models ?? data['models'];
-    const result = Array.isArray(models)
-      ? models.filter(isRecord).filter((entry) => typeof entry.id === 'string')
-      : [];
-    const seen = new Set(result.map((entry) => entry.id));
-    if (data.model_policy_supported === true && Array.isArray(data.catalog_models)) {
-      for (const entry of data.catalog_models) {
-        if (
-          !isRecord(entry) ||
-          typeof entry.id !== 'string' ||
-          seen.has(entry.id) ||
-          entry.allowed !== false
-        )
-          continue;
-        result.push({
-          id: entry.id,
-          display_name: entry.display_name,
-          type: 'gemini',
-          policy_allowed: false,
-          upstream_listed: entry.upstream_listed !== false,
-          catalog_source: entry.catalog_source,
-        });
-        seen.add(entry.id);
-      }
-    }
-    return result.map((entry) => ({
-      id: String(entry.id),
-      ...(typeof entry.display_name === 'string' ? { display_name: entry.display_name } : {}),
-      ...(typeof entry.type === 'string' ? { type: entry.type } : {}),
-      ...(typeof entry.owned_by === 'string' ? { owned_by: entry.owned_by } : {}),
-      ...(typeof entry.upstream_model === 'string' ? { upstream_model: entry.upstream_model } : {}),
-      ...(typeof entry.policy_allowed === 'boolean'
-        ? { policy_allowed: entry.policy_allowed }
-        : {}),
-      ...(typeof entry.catalog_source === 'string' ? { catalog_source: entry.catalog_source } : {}),
-      ...(typeof entry.upstream_listed === 'boolean'
-        ? { upstream_listed: entry.upstream_listed }
-        : {}),
-    }));
+  ): Promise<AuthFileModelItem[]> {
+    return (await fetchAuthFileModelsSnapshot(name, target)).models;
   },
 
   // Get model definitions for a channel

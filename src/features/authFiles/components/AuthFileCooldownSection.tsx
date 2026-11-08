@@ -61,11 +61,13 @@ function CooldownDetails({
   const elapsed = earliestSeconds === 0;
   const sharedRows = rows.filter(({ record }) => record.origin === 'shared_pool');
   const sharedTitle = (record: AuthFileCooldown) =>
-    record.restrictionScope === 'user'
-      ? 'auth_files.shared_quota_user_title'
-      : record.feature === 'technical_requests'
-        ? 'auth_files.shared_quota_technical_title'
-        : 'auth_files.shared_quota_title';
+    record.feature === 'ai_developer_tools'
+      ? 'antigravity_enterprise.weekly_quota'
+      : record.restrictionScope === 'user'
+        ? 'auth_files.shared_quota_user_title'
+        : record.feature === 'technical_requests'
+          ? 'auth_files.shared_quota_technical_title'
+          : 'auth_files.shared_quota_title';
   const sharedPhase = sharedRows.some(({ record }) => record.phase === 'probing')
     ? 'probing'
     : sharedRows.some(
@@ -156,8 +158,22 @@ function CooldownDetails({
                   </time>
                 </div>
               )}
+              {record.feature === 'ai_developer_tools' && record.nextCheckAt && (
+                <div className={styles.deadline}>
+                  {t('antigravity_enterprise.next_check_at')}{' '}
+                  <time dateTime={record.nextCheckAt}>
+                    {formatDateTimeValue(record.nextCheckAt, i18n.language)}
+                  </time>
+                </div>
+              )}
               {record.origin === 'shared_pool' && (
-                <p className={styles.note}>{t('auth_files.shared_quota_note')}</p>
+                <p className={styles.note}>
+                  {t(
+                    record.feature === 'ai_developer_tools'
+                      ? 'antigravity_enterprise.cooldown_hint'
+                      : 'auth_files.shared_quota_note'
+                  )}
+                </p>
               )}
               {record.reason === 'model_not_enabled' && (
                 <p className={styles.note}>{t('auth_files.model_test_cooldown_note')}</p>
@@ -170,7 +186,11 @@ function CooldownDetails({
                   loading={resetting}
                   disabled={resetDisabled || record.phase === 'probing'}
                 >
-                  {t('auth_files.shared_quota_retry_button')}
+                  {t(
+                    record.feature === 'ai_developer_tools'
+                      ? 'antigravity_enterprise.refresh_quota'
+                      : 'auth_files.shared_quota_retry_button'
+                  )}
                 </Button>
               )}
             </li>
@@ -185,21 +205,25 @@ function CooldownDetails({
           </p>
         )}
         <p className={styles.note}>{t('auth_files.cooldown_note')}</p>
-        {onReset && rows.some(({ record }) => record.reason !== 'model_not_enabled') && (
-          <div className={styles.actionRow}>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onReset()}
-              loading={resetting}
-              disabled={resetDisabled}
-              title={t('auth_files.cooldown_reset_hint')}
-            >
-              {!resetting && <IconRefreshCw size={14} />}
-              {t('auth_files.cooldown_reset_button')}
-            </Button>
-          </div>
-        )}
+        {onReset &&
+          rows.some(
+            ({ record }) =>
+              record.reason !== 'model_not_enabled' && record.feature !== 'ai_developer_tools'
+          ) && (
+            <div className={styles.actionRow}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onReset()}
+                loading={resetting}
+                disabled={resetDisabled}
+                title={t('auth_files.cooldown_reset_hint')}
+              >
+                {!resetting && <IconRefreshCw size={14} />}
+                {t('auth_files.cooldown_reset_button')}
+              </Button>
+            </div>
+          )}
       </div>
     </details>
   );

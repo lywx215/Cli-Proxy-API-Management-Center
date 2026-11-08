@@ -80,14 +80,22 @@ export interface ApiStats {
   successCount: number;
   failureCount: number;
   totalTokens: number;
+  tokensIncomplete?: boolean;
   totalCost: number;
   models: Record<
     string,
-    { requests: number; successCount: number; failureCount: number; tokens: number }
+    {
+      requests: number;
+      successCount: number;
+      failureCount: number;
+      tokens: number;
+      tokensIncomplete?: boolean;
+    }
   >;
 }
 
 export interface ModelStatsSummary {
+  tokensIncomplete?: boolean;
   model: string;
   requests: number;
   successCount: number;
@@ -558,7 +566,10 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
             null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
           // Consumers resolve credential types before applying legacy filename fallbacks.
-          tokens: normalizeRequestTokenCounts(tokensRaw),
+          tokens: normalizeRequestTokenCounts(
+            tokensRaw,
+            typeof detailRaw.provider === 'string' ? detailRaw.provider : ''
+          ),
           failed: detailRaw.failed === true,
           credits_used: detailRaw.credits_used === true,
           __modelName: modelName,
@@ -639,7 +650,10 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
             detailRaw?.AuthIndex ??
             null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
-          tokens: normalizeRequestTokenCounts(tokensRaw),
+          tokens: normalizeRequestTokenCounts(
+            tokensRaw,
+            typeof detailRaw.provider === 'string' ? detailRaw.provider : ''
+          ),
           failed: detailRaw.failed === true,
           __modelName: modelName,
           __endpoint: endpoint,
@@ -798,7 +812,7 @@ export function calculateCost(
     : 0;
   if (
     typeof detail.provider === 'string' &&
-    detail.provider.trim().toLowerCase() === 'gemini-enterprise' &&
+    ['gemini-enterprise', 'gemini-enterprise-web'].includes(detail.provider.trim().toLowerCase()) &&
     typeof tokens.reasoning_tokens === 'number' &&
     Number.isFinite(tokens.reasoning_tokens)
   ) {
@@ -902,6 +916,22 @@ export function saveModelPrices(prices: Record<string, ModelPrice>): void {
 /**
  * 获取 API 统计数据
  */
+// Missing Web measurements must not become known zeroes in aggregate cards.
+export function hasUnreportedWebTokens(detail: unknown): boolean {
+  if (
+    !isRecord(detail) ||
+    typeof detail.provider !== 'string' ||
+    detail.provider.trim().toLowerCase().replace(/_/g, '-') !== 'gemini-enterprise-web'
+  )
+    return false;
+  return (
+    normalizeRequestTokenCounts(
+      isRecord(detail.tokens) ? detail.tokens : {},
+      'gemini-enterprise-web'
+    ).total_tokens === null
+  );
+}
+
 export function getApiStats(
   usageData: unknown,
   modelPrices: Record<string, ModelPrice>
@@ -914,7 +944,13 @@ export function getApiStats(
     if (!isRecord(apiData)) return;
     const models: Record<
       string,
-      { requests: number; successCount: number; failureCount: number; tokens: number }
+      {
+        requests: number;
+        successCount: number;
+        failureCount: number;
+        tokens: number;
+        tokensIncomplete?: boolean;
+      }
     > = {};
     let derivedSuccessCount = 0;
     let derivedFailureCount = 0;
@@ -960,6 +996,7 @@ export function getApiStats(
         successCount,
         failureCount,
         tokens: Number(modelData.total_tokens) || 0,
+        ...(details.some(hasUnreportedWebTokens) ? { tokensIncomplete: true } : {}),
       };
       derivedSuccessCount += successCount;
       derivedFailureCount += failureCount;
@@ -981,6 +1018,9 @@ export function getApiStats(
       failureCount,
       totalTokens: Number(apiData.total_tokens) || 0,
       totalCost,
+      ...(Object.values(models).some((model) => model.tokensIncomplete)
+        ? { tokensIncomplete: true }
+        : {}),
       models,
     });
   });
@@ -1005,6 +1045,7 @@ export function getModelStats(
       successCount: number;
       failureCount: number;
       tokens: number;
+      tokensIncomplete: boolean;
       cost: number;
       latency: LatencyAccumulator;
     }
@@ -1023,6 +1064,7 @@ export function getModelStats(
         successCount: 0,
         failureCount: 0,
         tokens: 0,
+        tokensIncomplete: false,
         cost: 0,
         latency: createLatencyAccumulator(),
       };
@@ -1030,6 +1072,7 @@ export function getModelStats(
       existing.tokens += Number(modelData.total_tokens) || 0;
 
       const details = Array.isArray(modelData.details) ? modelData.details : [];
+      existing.tokensIncomplete ||= details.some(hasUnreportedWebTokens);
 
       const price = modelPrices[modelName];
 
@@ -1075,6 +1118,7 @@ export function getModelStats(
         successCount: stats.successCount,
         failureCount: stats.failureCount,
         tokens: stats.tokens,
+        ...(stats.tokensIncomplete ? { tokensIncomplete: true } : {}),
         cost: stats.cost,
         averageLatencyMs: latencyStats.averageMs,
         totalLatencyMs: latencyStats.totalMs,

@@ -3,6 +3,8 @@ import type { AuthFileCooldown, AuthFileCooldownSnapshot } from '@/types/authFil
 const REASON_KEYS: Record<string, string> = {
   quota: 'auth_files.cooldown_reason_quota',
   credential_quota: 'auth_files.cooldown_reason_credential_quota',
+  weekly_quota: 'antigravity_enterprise.weekly_quota',
+  permission_denied: 'antigravity_enterprise.permission_denied',
   cloudflare_challenge: 'auth_files.cooldown_reason_cloudflare_challenge',
   invalid_grant: 'auth_files.cooldown_reason_invalid_grant',
   unauthorized: 'auth_files.cooldown_reason_unauthorized',
@@ -23,7 +25,9 @@ export function canRetrySharedQuota(record: AuthFileCooldown): boolean {
   return (
     record.origin === 'shared_pool' &&
     record.scope === 'credential' &&
-    (record.feature === 'assistant_search' || record.feature === 'technical_requests') &&
+    (record.feature === 'assistant_search' ||
+      record.feature === 'technical_requests' ||
+      record.feature === 'ai_developer_tools') &&
     (record.phase === 'cooling' || record.phase === 'probe_pending') &&
     record.sharedResetSupported === true &&
     typeof record.poolId === 'string' &&

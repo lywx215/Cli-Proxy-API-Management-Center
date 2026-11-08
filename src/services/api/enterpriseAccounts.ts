@@ -2,6 +2,7 @@ import type {
   GeminiEnterpriseAccount,
   GeminiEnterpriseCollection,
   EnterpriseModelPolicyState,
+  EnterpriseCarbonAdmission,
 } from '@/types/authFile';
 import { isRecord } from '@/utils/helpers';
 import {
@@ -17,6 +18,44 @@ const bool = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
 export const enterpriseRevision = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+
+export function normalizeEnterpriseCarbonAdmission(
+  value: unknown
+): EnterpriseCarbonAdmission | undefined {
+  if (!isRecord(value)) return undefined;
+  const raw = isRecord(value.test) ? value.test : undefined;
+  const checkedAt = raw && text(raw.checked_at);
+  const test =
+    raw &&
+    text(raw.test_id) &&
+    text(raw.status) &&
+    checkedAt &&
+    Number.isFinite(Date.parse(checkedAt))
+      ? {
+          testId: text(raw.test_id)!,
+          status: text(raw.status)!,
+          checkedAt,
+          upstreamModel: text(raw.upstream_model) ?? '',
+          httpStatus: enterpriseRevision(raw.http_status),
+          reason: text(raw.reason),
+        }
+      : undefined;
+  const verified =
+    test?.status === 'verified' &&
+    test.upstreamModel === 'gemini-4-carbon' &&
+    test.httpStatus === 200;
+  const verificationRequired = bool(value.verification_required);
+  const canEnable = value.can_enable === true && (verificationRequired === false || verified);
+  return {
+    enabled: value.enabled === true,
+    available: value.available === true && value.enabled === true && canEnable,
+    canTest: value.can_test === true,
+    canEnable,
+    ...(verificationRequired !== undefined ? { verificationRequired } : {}),
+    reason: text(value.reason),
+    ...(test ? { test } : {}),
+  };
+}
 
 const resources = (value: Record<string, unknown>) => ({
   projectId: text(value.project_id),
@@ -67,6 +106,8 @@ export function normalizeEnterpriseModelPolicy(
   const sub = isRecord(value.subscription) ? value.subscription : {};
   return {
     mode,
+    carbonAdmissionSupported: bool(value.carbon_admission_supported),
+    carbonAdmission: normalizeEnterpriseCarbonAdmission(value.carbon_admission),
     effectiveMode: text(value.effective_mode) ?? 'auto',
     status: text(value.status) ?? 'blocked',
     reason: text(value.reason),
@@ -76,6 +117,10 @@ export function normalizeEnterpriseModelPolicy(
         : value.enforced_allowed_models === null
           ? null
           : list(value.enforced_allowed_models),
+    enforcedExcludedModels:
+      value.enforced_excluded_models === undefined
+        ? undefined
+        : list(value.enforced_excluded_models),
     enforcedReason: text(value.enforced_reason),
     ...(isRecord(value.catalog_state)
       ? {
@@ -139,6 +184,9 @@ export function normalizeEnterpriseAccount(
         .map((entry) => ({
           ...resources(entry),
           bindingId: text(entry.binding_id)!,
+          carbonAdmissionSupported:
+            bool(entry.carbon_admission_supported) ?? bool(value.carbon_admission_supported),
+          carbonAdmission: normalizeEnterpriseCarbonAdmission(entry.carbon_admission),
           modelPolicyState: normalizeEnterpriseModelPolicy(entry.model_policy_state),
           revision: enterpriseRevision(entry.revision),
           authIndex: normalizeRecentRequestAuthIndex(entry.auth_index) ?? undefined,
@@ -159,6 +207,11 @@ export function normalizeEnterpriseAccount(
   const discovery = isRecord(value.discovery) ? value.discovery : undefined;
   return {
     ...resources(value),
+    carbonAuthorizationRevision: enterpriseRevision(value.carbon_authorization_revision),
+    carbonRegistrationEpoch: enterpriseRevision(value.carbon_registration_epoch),
+    googleCarbonConfigureSupported: value.google_carbon_configure_supported === true,
+    carbonAdmissionSupported: bool(value.carbon_admission_supported),
+    carbonAdmission: normalizeEnterpriseCarbonAdmission(value.carbon_admission),
     clientId: text(value.client_id),
     modelPolicySupported: bool(value.model_policy_supported),
     catalogFallbackSupported: bool(value.catalog_fallback_supported),

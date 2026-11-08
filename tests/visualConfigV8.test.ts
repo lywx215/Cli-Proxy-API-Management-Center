@@ -170,6 +170,8 @@ routing:
 
 describe('v8 scalar read/write path parity', () => {
   const numericFields = new Set([
+    'geminiEnterpriseWebMaxConcurrent',
+    'geminiEnterpriseWebMaxInflightBytes',
     'port',
     'errorLogsMaxFiles',
     'logsMaxTotalSizeMb',
@@ -196,7 +198,9 @@ describe('v8 scalar read/write path parity', () => {
         typeof baseline === 'boolean'
           ? !baseline
           : numericFields.has(field)
-            ? '1'
+            ? field === 'geminiEnterpriseWebMaxInflightBytes'
+              ? '268435456'
+              : '1'
             : field === 'routingStrategy'
               ? 'fill-first'
               : field === 'disableImageGeneration'

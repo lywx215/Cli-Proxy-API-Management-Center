@@ -1,0 +1,39 @@
+.badge {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.quota {
+  min-width: 0;
+  font-size: 11px;
+}
+.quotaHeading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  :global(.btn.btn-sm) {
+    padding: 2px;
+    min-height: 20px;
+  }
+}
+.quotaBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-wrap: anywhere;
+  > strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+  > time,
+  > span {
+    font-size: 10px;
+  }
+}
+.warning {
+  color: var(--warning-color);
+}
+.observation {
+  color: var(--text-secondary);
+}

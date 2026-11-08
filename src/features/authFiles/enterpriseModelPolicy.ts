@@ -1,6 +1,8 @@
 import type { EnterpriseModelPolicyMode, EnterpriseModelPolicyState } from '@/types/authFile';
 import { isModelExcluded } from './constants';
 
+const ARGON_FAMILY_MODELS = ['gemini-4-argon'];
+
 export const ENTERPRISE_MODEL_POLICIES = [
   'auto',
   'catalog',
@@ -45,7 +47,8 @@ export function enterprisePolicyRoutingPaused(snapshot?: EnterpriseModelPolicySt
   const candidates = finitePolicyCandidates(
     snapshot.effectiveMode,
     snapshot.allowedModels,
-    snapshot.enforcedAllowedModels
+    snapshot.enforcedAllowedModels,
+    snapshot.carbonAdmissionSupported === true && snapshot.carbonAdmission?.available === true
   );
   return Boolean(
     candidates &&
@@ -65,6 +68,7 @@ export function enterpriseEnforcedModelAllowed(
   snapshot: EnterpriseModelPolicyState | undefined,
   model: string
 ): boolean {
+  if (snapshot?.enforcedExcludedModels?.includes(model)) return false;
   return (
     !Array.isArray(snapshot?.enforcedAllowedModels) ||
     snapshot.enforcedAllowedModels.includes(model)
@@ -92,10 +96,12 @@ function isAutoModel(model: string): boolean {
 function finitePolicyCandidates(
   mode: string,
   allowed: string[] | null,
-  enforced: string[] | null
+  enforced: string[] | null,
+  carbonAvailable = false
 ): string[] | null {
   if (enforced !== null) return enforced;
-  if (mode === 'argon_only') return ['gemini-4-argon'];
+  if (mode === 'argon_only')
+    return carbonAvailable ? [...ARGON_FAMILY_MODELS, 'gemini-4-carbon'] : ARGON_FAMILY_MODELS;
   return mode === 'custom' ? allowed : null;
 }
 
@@ -107,8 +113,13 @@ function policyAllowsModel(
   snapshot: EnterpriseModelPolicyState
 ): boolean {
   if (!enterpriseEnforcedModelAllowed(snapshot, id)) return false;
-  if (mode === 'argon_only' && id !== 'gemini-4-argon') return false;
-  if (mode === 'exclude_argon' && id === 'gemini-4-argon') return false;
+  if (id === 'gemini-4-carbon' && snapshot.carbonAdmissionSupported === true) {
+    if (snapshot.carbonAdmission?.available !== true) return false;
+    if (mode === 'custom' && allowed && !allowed.includes(id)) return false;
+    return !isModelExcluded(id, 'gemini-enterprise', { 'gemini-enterprise': excluded });
+  }
+  if (mode === 'argon_only' && !ARGON_FAMILY_MODELS.includes(id)) return false;
+  if (mode === 'exclude_argon' && ARGON_FAMILY_MODELS.includes(id)) return false;
   if (mode === 'custom' && allowed && !allowed.includes(id)) return false;
   if (
     (mode === 'argon_only' ||
@@ -194,7 +205,12 @@ export function enterprisePolicyPreview(
   excluded = [...excluded, ...snapshot.globalExcludedModels];
   const allows = (id: string) => policyAllowsModel(id, effective, allowed, excluded, snapshot);
   if (snapshot.enforcedAllowedModels !== undefined) {
-    const candidates = finitePolicyCandidates(effective, allowed, snapshot.enforcedAllowedModels);
+    const candidates = finitePolicyCandidates(
+      effective,
+      allowed,
+      snapshot.enforcedAllowedModels,
+      snapshot.carbonAdmissionSupported === true && snapshot.carbonAdmission?.available === true
+    );
     if (candidates && !candidates.some(allows)) return [];
   }
   if (!snapshot.catalogKnown) return null;

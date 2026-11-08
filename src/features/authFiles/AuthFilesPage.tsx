@@ -6,6 +6,12 @@ import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useRevealOnScroll } from '@/hooks/motion';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
 import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
+import {
+  ENTERPRISE_WEB_PROVIDER,
+  WEB_MODEL_POLICIES,
+  type WebModelPolicyFilter,
+} from '@/services/api/geminiEnterpriseWeb';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -22,6 +28,7 @@ import {
   type ResolvedTheme,
 } from '@/features/authFiles/constants';
 import { AuthFileCard } from '@/features/authFiles/components/AuthFileCard';
+import { AntigravityEnterpriseAccount } from './components/AntigravityEnterpriseAccount';
 import { GeminiEnterpriseAccount } from './components/GeminiEnterpriseAccount';
 import type { AuthFileItem } from '@/types';
 import { AuthFileDetailsSheet } from '@/features/authFiles/components/AuthFileDetailsSheet';
@@ -34,11 +41,13 @@ import { OAuthExcludedCard } from '@/features/authFiles/components/OAuthExcluded
 import { OAuthModelAliasCard } from '@/features/authFiles/components/OAuthModelAliasCard';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { VaultHeader } from '@/features/authFiles/components/VaultHeader';
+import { EnterpriseWebCredentialDialog } from './enterpriseWeb/EnterpriseWebCredentialDialog';
 import { VaultPulse } from '@/features/authFiles/components/VaultPulse';
 import { invalidateAuthFileDerivedCaches } from '@/features/authFiles/cacheInvalidation';
 import {
   buildWildcardSearch,
   matchesAuthFileSearch,
+  matchesWebModelPolicyFilter,
   sortAuthFiles,
 } from '@/features/authFiles/logic';
 import { useAuthFilesData } from '@/features/authFiles/hooks/useAuthFilesData';
@@ -88,7 +97,9 @@ export function AuthFilesPage() {
   const isCurrentLayer = pageTransitionLayer ? pageTransitionLayer.status === 'current' : true;
   const navigate = useNavigate();
 
+  const [webEditing, setWebEditing] = useState<AuthFileItem | null>(null);
   const [filter, setFilter] = useState<'all' | string>('all');
+  const [webPolicyFilter, setWebPolicyFilter] = useState<WebModelPolicyFilter>('all');
   const [statusFilterMode, setStatusFilterMode] = useState<AuthFilesStatusFilterMode>('all');
   const [compactMode, setCompactMode] = useState(false);
   const [search, setSearch] = useState('');
@@ -106,6 +117,7 @@ export function AuthFilesPage() {
     modelsModalOpen,
     modelsLoading,
     modelsList,
+    modelsTestCandidates,
     modelsFileName,
     modelsFileType,
     modelsError,
@@ -121,6 +133,10 @@ export function AuthFilesPage() {
     modelTestProgress,
     runModelTests,
     cancelModelTests,
+    carbonSaving,
+    carbonError,
+    changeCarbonEnabled,
+    enterpriseMutationVersion,
   } = useAuthFilesModels();
 
   const invalidateDerivedCaches = useCallback(
@@ -166,7 +182,17 @@ export function AuthFilesPage() {
   } = useAuthFilesData({ onFilesMutated: invalidateDerivedCaches });
 
   useEffect(() => syncModelsFile(files), [files, syncModelsFile]);
+  const carbonMutationSeen = useRef(0);
+  useEffect(() => {
+    if (carbonMutationSeen.current === enterpriseMutationVersion) return;
+    carbonMutationSeen.current = enterpriseMutationVersion;
+    void loadFiles({ background: true });
+  }, [enterpriseMutationVersion, loadFiles]);
 
+  const handleWebSaved = useCallback(async () => {
+    invalidateDerivedCaches();
+    await loadFiles({ background: true });
+  }, [invalidateDerivedCaches, loadFiles]);
   const statusBarCache = useAuthFilesStatusBarCache(files);
 
   const handleEnterpriseResourcesSaved = useCallback(
@@ -400,11 +426,18 @@ export function AuthFilesPage() {
     loadModelAlias();
   }, [isCurrentLayer, loadFiles, loadExcluded, loadModelAlias]);
 
+  const hasWebCredentials = files.some(
+    (file) => normalizeProviderKey(file.type ?? file.provider ?? '') === ENTERPRISE_WEB_PROVIDER
+  );
   useInterval(
     () => {
       void loadFiles({ background: true }).catch(() => {});
     },
-    isCurrentLayer ? 240_000 : null
+    isCurrentLayer && connectionStatus === 'connected'
+      ? hasWebCredentials
+        ? 30_000
+        : 240_000
+      : null
   );
 
   /* Filter, sort and pagination memos. */
@@ -467,9 +500,29 @@ export function AuthFilesPage() {
       filesMatchingStatusFilters.filter((item) => {
         const type = normalizeProviderKey(String(item.type ?? item.provider ?? ''));
         const matchType = normalizedFilter === 'all' || type === normalizedFilter;
-        return matchType && matchesAuthFileSearch(item, normalizedSearch, wildcardSearch);
+        const policyLabel =
+          type === 'gemini-enterprise-web'
+            ? [
+                t(
+                  'enterprise_web.policy_' +
+                    (item.geminiEnterpriseWeb?.modelPolicy ?? 'unclassified')
+                ),
+              ]
+            : [];
+        return (
+          matchType &&
+          matchesWebModelPolicyFilter(item, webPolicyFilter) &&
+          matchesAuthFileSearch(item, normalizedSearch, wildcardSearch, policyLabel)
+        );
       }),
-    [filesMatchingStatusFilters, normalizedFilter, normalizedSearch, wildcardSearch]
+    [
+      filesMatchingStatusFilters,
+      normalizedFilter,
+      normalizedSearch,
+      wildcardSearch,
+      webPolicyFilter,
+      t,
+    ]
   );
 
   const sorted = useMemo(() => sortAuthFiles(filtered, sortMode), [filtered, sortMode]);
@@ -571,11 +624,12 @@ export function AuthFilesPage() {
     setFilter('all');
     setStatusFilterMode('all');
     setSearch('');
+    setWebPolicyFilter('all');
     setPage(1);
   }, []);
 
   const deleteAllButtonLabel = (() => {
-    if (enabledOnly || disabledOnly) {
+    if (enabledOnly || disabledOnly || webPolicyFilter !== 'all') {
       return t('auth_files.delete_filtered_result_button');
     }
     if (problemOnly) {
@@ -601,8 +655,9 @@ export function AuthFilesPage() {
     activeQuotaFilter ? styles.gridQuota : '',
     pageItems.some(
       (file) =>
-        file.geminiEnterprise &&
-        normalizeProviderKey(String(file.type ?? file.provider)) === 'gemini-enterprise'
+        Boolean(file.antigravityEnterprise) ||
+        (file.geminiEnterprise &&
+          normalizeProviderKey(String(file.type ?? file.provider)) === 'gemini-enterprise')
     )
       ? styles.gridAccounts
       : '',
@@ -636,6 +691,14 @@ export function AuthFilesPage() {
         onChange={handleFileChange}
       />
 
+      {webEditing && (
+        <EnterpriseWebCredentialDialog
+          key={webEditing.name}
+          editing={webEditing}
+          onClose={() => setWebEditing(null)}
+          onSaved={handleWebSaved}
+        />
+      )}
       <VaultPulse files={files} statusBarCache={statusBarCache} />
 
       <section className={styles.workbench} aria-label={t('auth_files.title_section')}>
@@ -646,6 +709,7 @@ export function AuthFilesPage() {
           resolvedTheme={resolvedTheme}
           onChange={(type) => {
             setFilter(type);
+            setWebPolicyFilter('all');
             setPage(1);
           }}
         />
@@ -673,6 +737,7 @@ export function AuthFilesPage() {
           onDelete={() =>
             handleDeleteAll({
               filter,
+              visibleNames: webPolicyFilter !== 'all' ? sorted.map((file) => file.name) : undefined,
               problemOnly,
               disabledOnly,
               enabledOnly,
@@ -683,6 +748,28 @@ export function AuthFilesPage() {
             })
           }
         />
+
+        {(existingTypes.includes('gemini-enterprise-web') || webPolicyFilter !== 'all') && (
+          <div className="form-group">
+            <label id="web-policy-filter-label">{t('enterprise_web.policy_filter')}</label>
+            <Select
+              value={webPolicyFilter}
+              options={[
+                { value: 'all', label: t('enterprise_web.policy_filter_all') },
+                ...WEB_MODEL_POLICIES.map((policy) => ({
+                  value: policy,
+                  label: t('enterprise_web.policy_' + policy),
+                })),
+              ]}
+              onChange={(value) => {
+                setWebPolicyFilter(value as WebModelPolicyFilter);
+                setPage(1);
+              }}
+              ariaLabelledBy="web-policy-filter-label"
+              size="sm"
+            />
+          </div>
+        )}
 
         {error && (
           <div className={styles.errorBanner} role="alert">
@@ -728,8 +815,29 @@ export function AuthFilesPage() {
         ) : (
           <div className={gridClasses}>
             {pageItems.map((file, index) =>
-              file.geminiEnterprise &&
-              normalizeProviderKey(String(file.type ?? file.provider)) === 'gemini-enterprise' ? (
+              file.antigravityEnterprise &&
+              normalizeProviderKey(String(file.type ?? file.provider)) ===
+                'antigravity-enterprise' ? (
+                <AntigravityEnterpriseAccount
+                  key={getQuotaCacheKey(file)}
+                  file={file}
+                  selected={selectedFiles.has(file.name)}
+                  disableControls={disableControls}
+                  deleting={deleting}
+                  statusUpdating={statusUpdating}
+                  manualRefreshing={manualRefreshing}
+                  onShowModels={showModels}
+                  onEnterpriseResourcesSaved={handleEnterpriseResourcesSaved}
+                  onDownload={handleDownload}
+                  onManualRefresh={handleManualRefresh}
+                  onOpenPrefixProxyEditor={(target) => void openPrefixProxyEditor(target)}
+                  onDelete={handleDelete}
+                  onToggleStatus={handleStatusToggle}
+                  onToggleSelect={toggleSelect}
+                  onCooldownReset={handleCooldownReset}
+                />
+              ) : file.geminiEnterprise &&
+                normalizeProviderKey(String(file.type ?? file.provider)) === 'gemini-enterprise' ? (
                 <GeminiEnterpriseAccount
                   key={getQuotaCacheKey(file)}
                   file={file}
@@ -742,7 +850,11 @@ export function AuthFilesPage() {
                   onEnterpriseResourcesSaved={handleEnterpriseResourcesSaved}
                   onDownload={handleDownload}
                   onManualRefresh={handleManualRefresh}
-                  onOpenPrefixProxyEditor={openPrefixProxyEditor}
+                  onOpenPrefixProxyEditor={(file) => {
+                    if ((file.type || file.provider) === 'gemini-enterprise-web')
+                      setWebEditing(file);
+                    else void openPrefixProxyEditor(file);
+                  }}
                   onDelete={handleDelete}
                   onToggleStatus={handleStatusToggle}
                   onToggleSelect={toggleSelect}
@@ -767,7 +879,11 @@ export function AuthFilesPage() {
                   onDownload={handleDownload}
                   onManualRefresh={handleManualRefresh}
                   onCooldownReset={handleCooldownReset}
-                  onOpenPrefixProxyEditor={openPrefixProxyEditor}
+                  onOpenPrefixProxyEditor={(file) => {
+                    if ((file.type || file.provider) === 'gemini-enterprise-web')
+                      setWebEditing(file);
+                    else void openPrefixProxyEditor(file);
+                  }}
                   onDelete={handleDelete}
                   onToggleStatus={handleStatusToggle}
                   onToggleSelect={toggleSelect}
@@ -844,6 +960,7 @@ export function AuthFilesPage() {
         loading={modelsLoading}
         error={modelsError}
         models={modelsList}
+        testCandidates={modelsTestCandidates}
         excluded={excluded}
         onClose={closeModelsModal}
         onCopyText={copyTextWithNotification}
@@ -854,6 +971,10 @@ export function AuthFilesPage() {
         testProgress={modelTestProgress}
         onTestModels={(models) => void runModelTests(models)}
         onCancelTests={cancelModelTests}
+        controlsDisabled={disableControls}
+        carbonSaving={carbonSaving}
+        carbonError={carbonError}
+        onCarbonChange={(enabled) => void changeCarbonEnabled(enabled)}
       />
 
       <AuthFileDetailsSheet

@@ -1,3 +1,29 @@
+export interface TokenEstimate {
+  source: 'local_gemma3_sentencepiece';
+  input_text_tokens: number | null;
+  incomplete: boolean;
+  response_complete: boolean;
+}
+
+export function normalizeTokenEstimate(value: unknown): TokenEstimate | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const estimate = value as Record<string, unknown>;
+  if (
+    estimate.source !== 'local_gemma3_sentencepiece' ||
+    typeof estimate.incomplete !== 'boolean' ||
+    typeof estimate.response_complete !== 'boolean'
+  )
+    return undefined;
+  const input = estimate.input_text_tokens;
+  return {
+    source: estimate.source,
+    input_text_tokens:
+      typeof input === 'number' && Number.isSafeInteger(input) && input >= 0 ? input : null,
+    incomplete: estimate.incomplete,
+    response_complete: estimate.response_complete,
+  };
+}
+
 export interface RequestTokenCounts {
   input_tokens: number | null;
   output_tokens: number | null;
@@ -5,6 +31,7 @@ export interface RequestTokenCounts {
   cached_tokens: number | null;
   cache_tokens?: number | null;
   total_tokens: number | null;
+  estimate?: TokenEstimate;
 }
 
 export function isRequestTokenUsageAvailable(
@@ -21,7 +48,7 @@ export function isRequestTokenUsageAvailable(
     return true;
   const normalizedProvider = provider.trim().toLowerCase().replace(/_/g, '-');
   const isEnterprise = normalizedProvider
-    ? normalizedProvider === 'gemini-enterprise'
+    ? ['gemini-enterprise', 'gemini-enterprise-web'].includes(normalizedProvider)
     : /^(?:t:)?gemini-enterprise-.+\.json$/i.test(source.trim());
   return !isEnterprise;
 }
@@ -38,6 +65,7 @@ export function normalizeRequestTokenCounts(
   provider = '',
   source = ''
 ): RequestTokenCounts {
+  const estimate = normalizeTokenEstimate(tokens.estimate);
   const fields = [
     'input_tokens',
     'output_tokens',
@@ -57,7 +85,10 @@ export function normalizeRequestTokenCounts(
     .filter((value): value is number => value !== null);
   const cached = caches.length ? Math.max(...caches) : null;
   let total = reportedRequestTokenValue(tokens.total_tokens, available);
-  if (tokens.total_tokens === undefined && available) {
+  const partialWeb =
+    provider.trim().toLowerCase().replace(/_/g, '-') === 'gemini-enterprise-web' &&
+    (input === null || output === null);
+  if (tokens.total_tokens === undefined && available && !partialWeb && !estimate?.incomplete) {
     const known = [input, output, reasoning, cached].filter(
       (value): value is number => value !== null
     );
@@ -68,6 +99,7 @@ export function normalizeRequestTokenCounts(
     output_tokens: output,
     reasoning_tokens: reasoning,
     cached_tokens: cached,
-    total_tokens: total,
+    total_tokens: estimate?.incomplete ? null : total,
+    ...(estimate ? { estimate } : {}),
   };
 }

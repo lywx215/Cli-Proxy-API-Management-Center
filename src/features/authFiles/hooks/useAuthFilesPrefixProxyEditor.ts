@@ -29,6 +29,10 @@ import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
 import type { AuthFileItem } from '@/types';
 import { useNotificationStore } from '@/stores';
 import { useAuthStore } from '@/stores/useAuthStore';
+import {
+  antigravityEnterpriseApi,
+  antigravityEnterpriseIdentity,
+} from '@/services/api/antigravityEnterprise';
 import { geminiEnterpriseApi } from '@/services/api/geminiEnterprise';
 import { enterpriseCollectionIdentity, enterpriseCollectionName } from '../enterpriseAccounts';
 import {
@@ -568,9 +572,12 @@ export function useAuthFilesPrefixProxyEditor(
     if (
       prefixProxyEditor?.fileName === name &&
       (prefixProxyEditor.collectionTarget
-        ? enterpriseCollectionIdentity(prefixProxyEditor.collectionTarget) ===
-          enterpriseCollectionIdentity(file)
-        : !file.geminiEnterprise?.bindingId)
+        ? file.antigravityEnterprise
+          ? antigravityEnterpriseIdentity(prefixProxyEditor.collectionTarget) ===
+            antigravityEnterpriseIdentity(file)
+          : enterpriseCollectionIdentity(prefixProxyEditor.collectionTarget) ===
+            enterpriseCollectionIdentity(file)
+        : !file.geminiEnterprise?.bindingId && !file.antigravityEnterprise?.bindingId)
     ) {
       closePrefixProxyEditor();
       return;
@@ -582,6 +589,17 @@ export function useAuthFilesPrefixProxyEditor(
       revision === apiClient.getConnectionRevision() && requestId === editorRequestRef.current;
 
     setPrefixProxyEditor({
+      ...(file.antigravityEnterprise?.bindingId
+        ? {
+            collectionTarget: file,
+            scopeLabel: [
+              file.antigravityEnterprise.license?.projectId,
+              file.antigravityEnterprise.license?.location,
+            ]
+              .filter(Boolean)
+              .join(' / '),
+          }
+        : {}),
       ...(file.geminiEnterprise?.bindingId
         ? {
             collectionTarget: file,
@@ -627,9 +645,11 @@ export function useAuthFilesPrefixProxyEditor(
     });
 
     try {
-      const rawText = file.geminiEnterprise?.bindingId
-        ? JSON.stringify(file.geminiEnterprise.settings ?? {})
-        : await authFilesApi.downloadText(name);
+      const rawText = file.antigravityEnterprise?.bindingId
+        ? JSON.stringify(file.antigravityEnterprise.settings ?? {})
+        : file.geminiEnterprise?.bindingId
+          ? JSON.stringify(file.geminiEnterprise.settings ?? {})
+          : await authFilesApi.downloadText(name);
       if (!isCurrentEditor()) return;
       const trimmed = rawText.trim();
 
@@ -855,11 +875,19 @@ export function useAuthFilesPrefixProxyEditor(
       if (prefixProxyEditor.collectionTarget) {
         const controller = new AbortController();
         collectionRequest.current = controller;
-        await geminiEnterpriseApi.updateCollection(
-          prefixProxyEditor.collectionTarget,
-          { fields: payload },
-          controller.signal
-        );
+        if (prefixProxyEditor.collectionTarget.antigravityEnterprise) {
+          await antigravityEnterpriseApi.updateBinding(
+            prefixProxyEditor.collectionTarget,
+            payload,
+            controller.signal
+          );
+        } else {
+          await geminiEnterpriseApi.updateCollection(
+            prefixProxyEditor.collectionTarget,
+            { fields: payload },
+            controller.signal
+          );
+        }
       } else {
         await authFilesApi.patchFields(name, payload);
       }

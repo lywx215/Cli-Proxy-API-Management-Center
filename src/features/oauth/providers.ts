@@ -47,6 +47,9 @@ export interface PluginOAuthProviderCard {
 
 export type OAuthProviderCard = BuiltInOAuthProviderCard | PluginOAuthProviderCard;
 
+export const getOAuthProviderTextKey = (provider: string, suffix: string): string =>
+  `auth_login.${provider.replace('-', '_')}_${suffix}`;
+
 /** 展示顺序即数组顺序：赞助商（Kimi 两站）置首，其余沿用原有次序。 */
 export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
   {
@@ -111,6 +114,14 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
   },
   {
     kind: 'builtin',
+    id: 'antigravity-enterprise',
+    label: 'Antigravity Enterprise',
+    titleKey: 'antigravity_enterprise.oauth_title',
+    icon: iconAntigravity,
+    flow: 'browser',
+  },
+  {
+    kind: 'builtin',
     id: 'antigravity',
     label: 'Antigravity',
     titleKey: 'auth_login.antigravity_oauth_title',
@@ -135,7 +146,10 @@ export const OAUTH_PROVIDERS: BuiltInOAuthProviderCard[] = [
   },
 ];
 
-const BUILTIN_PROVIDER_IDS = new Set<string>(OAUTH_PROVIDERS.map((provider) => provider.id));
+const BUILTIN_PROVIDER_IDS = new Set<string>([
+  ...OAUTH_PROVIDERS.map((provider) => provider.id),
+  'gemini-enterprise-web',
+]);
 
 /** 后端接受手动回调提交的内置提供商；插件提供商一律允许。 */
 export const CALLBACK_SUPPORTED = new Set<string>([
@@ -144,6 +158,7 @@ export const CALLBACK_SUPPORTED = new Set<string>([
   'codex',
   'anthropic',
   'antigravity',
+  'antigravity-enterprise',
   'xai',
   'devin',
 ]);

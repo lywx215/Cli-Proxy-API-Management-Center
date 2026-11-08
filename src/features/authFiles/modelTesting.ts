@@ -2,10 +2,12 @@ import {
   enterpriseEnforcedModelAllowed,
   enterprisePolicyRoutingPaused,
 } from './enterpriseModelPolicy';
-import type { AuthFileItem } from '@/types';
+import type { AuthFileItem, EnterpriseCarbonAdmission } from '@/types';
 import { isModelExcluded, type AuthFileModelItem } from './constants';
 import { enterpriseCollectionIdentity } from './enterpriseAccounts';
 import { cooldownRemainingSeconds } from './cooldowns';
+import { antigravityEnterpriseIdentity } from '@/services/api/antigravityEnterprise';
+import { isClassifiedWebPolicy } from '@/services/api/geminiEnterpriseWeb';
 import {
   enterpriseResources,
   serializeEnterpriseResources,
@@ -15,10 +17,16 @@ import type { EnterpriseResources } from './enterpriseResources';
 
 export type ModelTestStatus = 'ok' | 'failed' | 'cooling' | 'unavailable';
 export type ModelTestResult = {
+  carbonAdmissionSupported?: boolean;
+  carbonAdmission?: EnterpriseCarbonAdmission;
+  carbonTestId?: string;
+  expectedRevision?: number;
   status: ModelTestStatus;
   model: string;
   authIndex: string;
-  resources: EnterpriseResources;
+  resources?: EnterpriseResources;
+  upstreamModel?: string;
+  testKind?: string;
   checkedAt: string;
   elapsedMs: number;
   httpStatus: number;
@@ -61,6 +69,31 @@ export function isEnterpriseTextModel(model: AuthFileModelItem): boolean {
 }
 
 export function canTestEnterpriseFile(file: AuthFileItem | null): boolean {
+  if (file?.antigravityEnterprise) {
+    const binding = file.antigravityEnterprise;
+    return Boolean(
+      binding.bindingId &&
+      binding.revision &&
+      binding.license &&
+      !binding.bindings &&
+      !binding.effectiveDisabled &&
+      !file.disabled &&
+      !file.unavailable &&
+      String(file.authIndex ?? '').trim()
+    );
+  }
+  if (file && (file.type || file.provider) === 'gemini-enterprise-web') {
+    return Boolean(
+      !file.disabled &&
+      String(file.authIndex ?? '').trim() &&
+      file.geminiEnterpriseWeb &&
+      file.geminiEnterpriseWeb.modelPolicySupported &&
+      isClassifiedWebPolicy(file.geminiEnterpriseWeb.modelPolicy) &&
+      Number.isSafeInteger(file.geminiEnterpriseWeb.revision) &&
+      file.geminiEnterpriseWeb.revision > 0 &&
+      file.geminiEnterpriseWeb.effectiveModelIds.length
+    );
+  }
   return Boolean(
     file &&
     (file.type || file.provider) === 'gemini-enterprise' &&
@@ -75,15 +108,38 @@ export function canTestEnterpriseFile(file: AuthFileItem | null): boolean {
 }
 
 export function modelTestIdentity(file: AuthFileItem): string {
+  if (file.antigravityEnterprise) return antigravityEnterpriseIdentity(file);
+  if ((file.type || file.provider) === 'gemini-enterprise-web')
+    return JSON.stringify([
+      file.name,
+      file.authIndex,
+      file.disabled,
+      file.geminiEnterpriseWeb?.revision,
+      file.geminiEnterpriseWeb?.modelPolicy,
+      file.geminiEnterpriseWeb?.effectiveModelIds,
+      file.geminiEnterpriseWeb?.catalogUpdatedAt,
+      file.geminiEnterpriseWeb?.availableModels,
+    ]);
   return JSON.stringify([
     enterpriseCollectionIdentity(file),
+    ...((file.type || file.provider) === 'gemini-enterprise' &&
+    (file.geminiEnterprise?.carbonAuthorizationRevision !== undefined ||
+      file.geminiEnterprise?.carbonRegistrationEpoch !== undefined)
+      ? [
+          file.geminiEnterprise?.carbonAuthorizationRevision,
+          file.geminiEnterprise?.carbonRegistrationEpoch,
+        ]
+      : []),
     file.geminiEnterprise?.modelPolicyState?.effectiveMode,
     file.geminiEnterprise?.modelPolicyState?.status,
     file.geminiEnterprise?.modelPolicyState?.catalogKnown,
     file.geminiEnterprise?.modelPolicyState?.effectiveModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels !== undefined,
     file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels,
+    file.geminiEnterprise?.modelPolicyState?.enforcedExcludedModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedReason,
+    file.geminiEnterprise?.carbonAdmissionSupported,
+    file.geminiEnterprise?.carbonAdmission,
     file.geminiEnterprise?.modelPolicyState?.allowedModels,
     file.geminiEnterprise?.modelPolicyState?.excludedModels,
     file.geminiEnterprise?.modelPolicyState?.globalExcludedModels,
@@ -100,6 +156,14 @@ export function cancelModelTest(state: ModelTestState): ModelTestState {
 }
 
 export function isEnterpriseModelExcluded(file: AuthFileItem, model: string): boolean {
+  if (file.antigravityEnterprise) {
+    const patterns = file.antigravityEnterprise.settings?.excluded_models;
+    return isModelExcluded(model, 'antigravity-enterprise', {
+      'antigravity-enterprise': Array.isArray(patterns)
+        ? patterns.filter((value): value is string => typeof value === 'string')
+        : [],
+    });
+  }
   const policy = file.geminiEnterprise?.modelPolicyState;
   if (enterprisePolicyRoutingPaused(policy) || !enterpriseEnforcedModelAllowed(policy, model))
     return true;

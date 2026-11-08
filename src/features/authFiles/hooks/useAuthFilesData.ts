@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent, type RefObj
 import { useTranslation } from 'react-i18next';
 import { apiClient, authFilesApi } from '@/services/api';
 import type { AuthFileRefreshResult } from '@/services/api/authFiles';
+import { ENTERPRISE_WEB_PROVIDER } from '@/services/api/geminiEnterpriseWeb';
 import { getAuthFileRefreshKey } from '@/features/authFiles/manualRefresh';
 import { canRetrySharedQuota } from '@/features/authFiles/cooldowns';
 import { notifyAuthFilesChanged } from '@/features/authFiles/authFilesEvents';
@@ -20,6 +21,7 @@ import {
 
 type DeleteAllOptions = {
   filter: string;
+  visibleNames?: string[];
   problemOnly: boolean;
   disabledOnly: boolean;
   enabledOnly: boolean;
@@ -359,6 +361,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
     (deleteAllOptions: DeleteAllOptions) => {
       const {
         filter,
+        visibleNames,
         problemOnly,
         disabledOnly,
         enabledOnly,
@@ -367,13 +370,14 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         onResetDisabledOnly,
         onResetEnabledOnly,
       } = deleteAllOptions;
+      const targetNames = visibleNames ? new Set(visibleNames) : null;
       const isFiltered = filter !== 'all';
       const isProblemOnly = problemOnly === true;
       const isDisabledOnly = disabledOnly === true;
       const isEnabledOnly = enabledOnly === true;
       const typeLabel = isFiltered ? getTypeLabel(t, filter) : t('auth_files.filter_all');
       let confirmMessage = t('auth_files.delete_all_confirm');
-      if (isDisabledOnly || isEnabledOnly) {
+      if (isDisabledOnly || isEnabledOnly || targetNames) {
         confirmMessage = t('auth_files.delete_filtered_result_confirm');
       } else if (isProblemOnly) {
         confirmMessage = isFiltered
@@ -391,7 +395,13 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         onConfirm: async () => {
           setDeletingAll(true);
           try {
-            if (!isFiltered && !isProblemOnly && !isDisabledOnly && !isEnabledOnly) {
+            if (
+              !isFiltered &&
+              !isProblemOnly &&
+              !isDisabledOnly &&
+              !isEnabledOnly &&
+              !targetNames
+            ) {
               await authFilesApi.deleteAll();
               showNotification(t('auth_files.delete_all_success'), 'success');
               invalidateInFlightLoads();
@@ -401,6 +411,7 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
               notifyAuthFilesChanged();
             } else {
               const filesToDelete = files.filter((file) => {
+                if (targetNames && !targetNames.has(file.name)) return false;
                 if (isRuntimeOnlyAuthFile(file)) return false;
                 if (
                   isFiltered &&
@@ -560,6 +571,9 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
         if (connectionRevision !== apiClient.getConnectionRevision()) return;
         const message = err instanceof Error ? err.message : t('notification.update_failed');
         showNotification(t('auth_files.manual_refresh_failed', { name, message }), 'error');
+        if (normalizeProviderKey(provider ?? '') === ENTERPRISE_WEB_PROVIDER) {
+          await loadFiles({ background: true });
+        }
       } finally {
         manualRefreshPendingRef.current.delete(key);
         setManualRefreshing((prev) => {
@@ -761,7 +775,10 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
           'success'
         );
         // Child effective_disabled includes the parent's switch; re-read after account changes.
-        if (item.geminiEnterprise?.collections && revision === apiClient.getConnectionRevision()) {
+        if (
+          (item.geminiEnterprise?.collections || item.antigravityEnterprise?.bindings) &&
+          revision === apiClient.getConnectionRevision()
+        ) {
           await loadFiles({ background: true });
         }
       } catch (err: unknown) {
@@ -893,7 +910,9 @@ export function useAuthFilesData(options?: UseAuthFilesDataOptions): UseAuthFile
 
         deselectAll();
         if (
-          [...targets.values()].some((file) => file.geminiEnterprise?.collections) &&
+          [...targets.values()].some(
+            (file) => file.geminiEnterprise?.collections || file.antigravityEnterprise?.bindings
+          ) &&
           revision === apiClient.getConnectionRevision()
         ) {
           await loadFiles({ background: true });

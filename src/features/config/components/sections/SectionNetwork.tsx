@@ -1,3 +1,5 @@
+import { useEnterpriseWebRuntime } from '@/features/authFiles/enterpriseWeb/useEnterpriseWebRuntime';
+import { EnterpriseWebStatus } from '@/features/authFiles/enterpriseWeb/EnterpriseWebStatus';
 import { useTranslation } from 'react-i18next';
 import type { VisualConfigValues } from '@/types/visualConfig';
 import { CONFIG_TAB_ICONS, SECTION_INDEX_LABELS } from '../../constants';
@@ -12,7 +14,7 @@ const Icon = CONFIG_TAB_ICONS.network;
 type RoutingStrategy = VisualConfigValues['routingStrategy'];
 type DisableImageGeneration = VisualConfigValues['disableImageGeneration'];
 
-/** 02 网络配置：代理、重试、路由策略、图像生成开关与网络行为开关。 */
+/** Network, routing, retries and media input settings. */
 export function SectionNetwork({
   values,
   validationErrors,
@@ -21,6 +23,7 @@ export function SectionNetwork({
   onChange,
 }: ConfigSectionProps) {
   const { t } = useTranslation();
+  const web = useEnterpriseWebRuntime();
 
   const routingStrategyOptions: Array<{ value: RoutingStrategy; label: string }> = [
     {
@@ -64,6 +67,81 @@ export function SectionNetwork({
       description={t('config_management.visual.sections.network.description')}
       animateIn={animateIn}
     >
+      <h3>{t('enterprise_web.title')}</h3>
+      <EnterpriseWebStatus status={web.status} unsupported={web.unsupported} error={web.error} />
+      <SettingList>
+        <ToggleSetting
+          fieldId="geminiEnterpriseWebEnabled"
+          label={t('enterprise_web.enabled')}
+          description={t('enterprise_web.scope')}
+          checked={values.geminiEnterpriseWebEnabled}
+          disabled={disabled || web.unsupported || !web.status}
+          onChange={(geminiEnterpriseWebEnabled) => onChange({ geminiEnterpriseWebEnabled })}
+        />
+        <TextSetting
+          fieldId="geminiEnterpriseWebMaxConcurrent"
+          label={t('enterprise_web.concurrency')}
+          description={t('enterprise_web.limits_hint')}
+          type="number"
+          placeholder="2"
+          value={values.geminiEnterpriseWebMaxConcurrent}
+          disabled={disabled || web.unsupported || !web.status}
+          error={
+            validationErrors?.geminiEnterpriseWebMaxConcurrent
+              ? t('enterprise_web.limits_hint')
+              : undefined
+          }
+          onChange={(geminiEnterpriseWebMaxConcurrent) =>
+            onChange({ geminiEnterpriseWebMaxConcurrent })
+          }
+        />
+        <SelectSetting
+          fieldId="geminiEnterpriseWebHistoryMode"
+          label={t('enterprise_web.history_mode')}
+          description={
+            web.status?.historyMode &&
+            web.status.supportedHistoryModes?.includes('serialized-context')
+              ? t('enterprise_web.history_hint')
+              : t('enterprise_web.history_unsupported')
+          }
+          value={values.geminiEnterpriseWebHistoryMode}
+          options={[
+            { value: 'single-turn', label: t('enterprise_web.history_single') },
+            { value: 'serialized-context', label: t('enterprise_web.history_serialized') },
+          ]}
+          disabled={
+            disabled ||
+            web.error ||
+            !web.status?.historyMode ||
+            !web.status.supportedHistoryModes?.includes('serialized-context')
+          }
+          error={
+            validationErrors?.geminiEnterpriseWebHistoryMode
+              ? t('enterprise_web.history_invalid')
+              : undefined
+          }
+          onChange={(geminiEnterpriseWebHistoryMode) =>
+            onChange({ geminiEnterpriseWebHistoryMode })
+          }
+        />
+        <TextSetting
+          fieldId="geminiEnterpriseWebMaxInflightBytes"
+          label={t('enterprise_web.memory_bytes')}
+          description={t('enterprise_web.limits_hint')}
+          type="number"
+          placeholder="268435456"
+          value={values.geminiEnterpriseWebMaxInflightBytes}
+          disabled={disabled || web.unsupported || !web.status}
+          error={
+            validationErrors?.geminiEnterpriseWebMaxInflightBytes
+              ? t('enterprise_web.limits_hint')
+              : undefined
+          }
+          onChange={(geminiEnterpriseWebMaxInflightBytes) =>
+            onChange({ geminiEnterpriseWebMaxInflightBytes })
+          }
+        />
+      </SettingList>
       <SettingList>
         <ProxyUrlField values={values} disabled={disabled} onChange={onChange} wide />
         <TextSetting

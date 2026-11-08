@@ -22,6 +22,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#e0e8ff', text: '#1e4fa3' },
     dark: { bg: '#1c3f73', text: '#a8c7ff' },
   },
+  'gemini-enterprise-web': {
+    light: { bg: '#e0e8ff', text: '#1e4fa3' },
+    dark: { bg: '#1c3f73', text: '#a8c7ff' },
+  },
   aistudio: {
     light: { bg: '#f0f2f5', text: '#2f343c' },
     dark: { bg: '#373c42', text: '#cfd3db' },
@@ -45,6 +49,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
   kimi: {
     light: { bg: '#dce8ff', text: '#0560cf' },
     dark: { bg: '#003880', text: '#70b5ff' },
+  },
+  'antigravity-enterprise': {
+    light: { bg: '#e0f7fa', text: '#006064' },
+    dark: { bg: '#004d40', text: '#80deea' },
   },
   antigravity: {
     light: { bg: '#e0f7fa', text: '#006064' },

@@ -15,6 +15,7 @@ import {
 } from './hooks/useOAuthFlows';
 import { useVertexImport } from './hooks/useVertexImport';
 import { useGeminiEnterpriseConfig } from './hooks/useGeminiEnterpriseConfig';
+import { GeminiEnterpriseWebImport } from './components/GeminiEnterpriseWebImport';
 import { GeminiEnterpriseSettings } from './components/GeminiEnterpriseSettings';
 import {
   isSponsor,
@@ -189,6 +190,10 @@ export function OAuthPage() {
             icon={iconVertex}
             index={providerCount}
             onOpen={openVertex}
+          />
+          <GeminiEnterpriseWebImport
+            index={providerCount + 1}
+            onCredentialAdded={flows.recordCredentialAdded}
           />
         </div>
       </section>

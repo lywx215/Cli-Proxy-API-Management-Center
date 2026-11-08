@@ -12,6 +12,26 @@ import { readConfigBoolean } from './visualConfigBoolean';
 // under upstream.*/client.codex; only OAuth-only provider paths keep oauth.providers.*.
 export const ADDITION_FIELDS = [
   {
+    key: 'geminiEnterpriseWebHistoryMode',
+    path: ['upstream', 'gemini-enterprise-web', 'history-mode'],
+    kind: 'string',
+  },
+  {
+    key: 'geminiEnterpriseWebEnabled',
+    path: ['upstream', 'gemini-enterprise-web', 'enabled'],
+    kind: 'boolean',
+  },
+  {
+    key: 'geminiEnterpriseWebMaxConcurrent',
+    path: ['upstream', 'gemini-enterprise-web', 'max-concurrent'],
+    kind: 'integer',
+  },
+  {
+    key: 'geminiEnterpriseWebMaxInflightBytes',
+    path: ['upstream', 'gemini-enterprise-web', 'max-inflight-bytes'],
+    kind: 'integer',
+  },
+  {
     key: 'routingSessionAffinitySubagents',
     path: 'routing.session-affinity-subagents'.split('.'),
     kind: 'boolean',
@@ -149,7 +169,9 @@ export function readVisualAdditions(doc: Doc) {
     const raw = doc.getIn(path);
     Object.assign(values, {
       [key]:
-        kind === 'boolean' ? readConfigBoolean(raw, DEFAULT_VISUAL_VALUES[key]) : String(raw ?? ''),
+        kind === 'boolean'
+          ? readConfigBoolean(raw, DEFAULT_VISUAL_VALUES[key])
+          : String(raw ?? (key === 'geminiEnterpriseWebHistoryMode' ? 'single-turn' : '')),
     });
   }
   const raw = doc.getIn(ICE_PATH, true);
@@ -166,7 +188,7 @@ export function readVisualAdditions(doc: Doc) {
     : [];
   return values;
 }
-function parents(doc: Doc, path: string[]) {
+function parents(doc: Doc, path: readonly string[]) {
   for (let i = 1; i < path.length; i++) {
     const parent = path.slice(0, i);
     if (!isMap(doc.getIn(parent, true))) doc.setIn(parent, doc.createNode({}));
@@ -295,6 +317,9 @@ export function validateVisualAdditions(
   dirtyFields?: ReadonlySet<string>
 ): VisualConfigValidationErrors {
   const errors: VisualConfigValidationErrors = {
+    geminiEnterpriseWebHistoryMode: undefined,
+    geminiEnterpriseWebMaxConcurrent: undefined,
+    geminiEnterpriseWebMaxInflightBytes: undefined,
     transientErrorCooldownSeconds: undefined,
     videoResultAuthCacheTTL: undefined,
     claudeHeaderTimezone: undefined,
@@ -307,6 +332,11 @@ export function validateVisualAdditions(
     codexLiveMediaRelayUDPPortMax: undefined,
     codexLiveMediaRelayICEServers: undefined,
   };
+  if (
+    (!dirtyFields || dirtyFields.has('geminiEnterpriseWebHistoryMode')) &&
+    !['single-turn', 'serialized-context'].includes(values.geminiEnterpriseWebHistoryMode)
+  )
+    errors.geminiEnterpriseWebHistoryMode = 'invalid_history_mode';
   for (const { key, kind } of ADDITION_FIELDS) {
     const value = String(values[key]).trim();
     if (!value || kind !== 'integer') continue;
@@ -321,6 +351,13 @@ export function validateVisualAdditions(
     ) {
       Object.assign(errors, { [key]: signed ? 'integer' : 'non_negative_integer' });
     }
+  }
+  for (const [key, min, max] of [
+    ['geminiEnterpriseWebMaxConcurrent', 1, 16],
+    ['geminiEnterpriseWebMaxInflightBytes', 64 * 1048576, 4096 * 1048576],
+  ] as const) {
+    const value = values[key].trim();
+    if (value && (Number(value) < min || Number(value) > max)) errors[key] = 'non_negative_integer';
   }
   for (const key of [
     'videoResultAuthCacheTTL',

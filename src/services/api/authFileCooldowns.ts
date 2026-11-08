@@ -48,10 +48,13 @@ function normalizeRecord(value: unknown): AuthFileCooldown | null {
       !validPhase ||
       !poolId ||
       !poolVersion ||
-      (entry.feature !== 'assistant_search' && entry.feature !== 'technical_requests') ||
+      (entry.feature !== 'assistant_search' &&
+        entry.feature !== 'technical_requests' &&
+        entry.feature !== 'ai_developer_tools') ||
       (entry.restriction_kind !== undefined &&
         entry.restriction_kind !== 'daily' &&
-        entry.restriction_kind !== 'minute') ||
+        entry.restriction_kind !== 'minute' &&
+        !(entry.restriction_kind === 'weekly' && entry.feature === 'ai_developer_tools')) ||
       (entry.restriction_scope !== undefined &&
         !['edition', 'project', 'user', 'credential'].includes(String(entry.restriction_scope))))
   ) {
@@ -83,6 +86,9 @@ function normalizeRecord(value: unknown): AuthFileCooldown | null {
     ...(scope === 'model' ? { modelKey } : {}),
     reason: reason || 'unknown',
     retryAt,
+    ...(normalizeCooldownTimestamp(entry.next_check_at)
+      ? { nextCheckAt: normalizeCooldownTimestamp(entry.next_check_at) }
+      : {}),
     remainingSeconds,
     ...(typeof backoffLevel === 'number' && Number.isSafeInteger(backoffLevel) && backoffLevel >= 0
       ? { backoffLevel }

@@ -4,6 +4,7 @@
  */
 
 import type { AuthFileItem } from '@/types';
+import type { WebModelPolicyFilter } from '@/services/api/geminiEnterpriseWeb';
 import { isPluginQuotaFile, resolveAuthProvider } from '@/utils/quota';
 import {
   QUOTA_PROVIDER_TYPES,
@@ -51,7 +52,8 @@ export const resolveAuthFileQuotaType = (
 export const matchesAuthFileSearch = (
   file: AuthFileItem,
   term: string,
-  wildcard: RegExp | null
+  wildcard: RegExp | null,
+  extraTerms: string[] = []
 ): boolean => {
   if (!term) return true;
   const needle = term.toLowerCase();
@@ -61,6 +63,23 @@ export const matchesAuthFileSearch = (
     file.provider,
     file.email,
     file.projectId,
+    ...extraTerms,
+    ...((file.type || file.provider) === 'gemini-enterprise-web'
+      ? [
+          file.label,
+          file.geminiEnterpriseWeb?.modelPolicy ?? 'unclassified',
+          ...(file.geminiEnterpriseWeb?.availableModels ?? []).flatMap((row) => [
+            row.displayName,
+            row.id,
+          ]),
+        ]
+      : []),
+    ...(file.antigravityEnterprise?.bindings ?? []).flatMap((binding) => [
+      binding.license.projectId,
+      binding.license.location,
+      binding.license.tierDisplayName,
+      binding.statusMessage,
+    ]),
     file.geminiEnterprise?.projectId,
     file.geminiEnterprise?.engineId,
     file.geminiEnterprise?.assistantId,
@@ -79,6 +98,11 @@ export const matchesAuthFileSearch = (
     return wildcard ? wildcard.test(content) : content.toLowerCase().includes(needle);
   });
 };
+
+export const matchesWebModelPolicyFilter = (file: AuthFileItem, policy: WebModelPolicyFilter) =>
+  policy === 'all' ||
+  ((file.type || file.provider) === 'gemini-enterprise-web' &&
+    (file.geminiEnterpriseWeb?.modelPolicy ?? 'unclassified') === policy);
 
 /** 返回新数组，不改动入参。未知 mode 原序返回拷贝。 */
 export const sortAuthFiles = (files: AuthFileItem[], mode: AuthFilesSortMode): AuthFileItem[] => {

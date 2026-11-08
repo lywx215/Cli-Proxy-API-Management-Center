@@ -45,18 +45,22 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
     const dir = sortDir === 'asc' ? 1 : -1;
     list.sort((a, b) => {
       switch (sortKey) {
-        case 'endpoint': return dir * a.endpoint.localeCompare(b.endpoint);
-        case 'requests': return dir * (a.totalRequests - b.totalRequests);
-        case 'tokens': return dir * (a.totalTokens - b.totalTokens);
-        case 'cost': return dir * (a.totalCost - b.totalCost);
-        default: return 0;
+        case 'endpoint':
+          return dir * a.endpoint.localeCompare(b.endpoint);
+        case 'requests':
+          return dir * (a.totalRequests - b.totalRequests);
+        case 'tokens':
+          return dir * (a.totalTokens - b.totalTokens);
+        case 'cost':
+          return dir * (a.totalCost - b.totalCost);
+        default:
+          return 0;
       }
     });
     return list;
   }, [apiStats, sortKey, sortDir]);
 
-  const arrow = (key: ApiSortKey) =>
-    sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+  const arrow = (key: ApiSortKey) => (sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '');
 
   return (
     <Card title={t('usage_stats.api_details')} className={styles.detailsFixedCard}>
@@ -65,12 +69,14 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
       ) : sorted.length > 0 ? (
         <>
           <div className={styles.apiSortBar}>
-            {([
-              ['endpoint', 'usage_stats.api_endpoint'],
-              ['requests', 'usage_stats.requests_count'],
-              ['tokens', 'usage_stats.tokens_count'],
-              ...(hasPrices ? [['cost', 'usage_stats.total_cost']] : []),
-            ] as [ApiSortKey, string][]).map(([key, labelKey]) => (
+            {(
+              [
+                ['endpoint', 'usage_stats.api_endpoint'],
+                ['requests', 'usage_stats.requests_count'],
+                ['tokens', 'usage_stats.tokens_count'],
+                ...(hasPrices ? [['cost', 'usage_stats.total_cost']] : []),
+              ] as [ApiSortKey, string][]
+            ).map(([key, labelKey]) => (
               <button
                 key={key}
                 type="button"
@@ -78,7 +84,8 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                 className={`${styles.apiSortBtn} ${sortKey === key ? styles.apiSortBtnActive : ''}`}
                 onClick={() => handleSort(key)}
               >
-                {t(labelKey)}{arrow(key)}
+                {t(labelKey)}
+                {arrow(key)}
               </button>
             ))}
           </div>
@@ -103,27 +110,40 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                           <span className={styles.apiBadge}>
                             <span className={styles.requestCountCell}>
                               <span>
-                                {t('usage_stats.requests_count')}: {api.totalRequests.toLocaleString()}
+                                {t('usage_stats.requests_count')}:{' '}
+                                {api.totalRequests.toLocaleString()}
                               </span>
                               <span className={styles.requestBreakdown}>
-                                (<span className={styles.statSuccess}>{api.successCount.toLocaleString()}</span>{' '}
-                                <span className={styles.statFailure}>{api.failureCount.toLocaleString()}</span>)
+                                (
+                                <span className={styles.statSuccess}>
+                                  {api.successCount.toLocaleString()}
+                                </span>{' '}
+                                <span className={styles.statFailure}>
+                                  {api.failureCount.toLocaleString()}
+                                </span>
+                                )
                               </span>
                             </span>
                           </span>
                           <span className={styles.apiBadge}>
-                            {t('usage_stats.tokens_count')}: {formatCompactNumber(api.totalTokens)}
+                            {t('usage_stats.tokens_count')}:{' '}
+                            {api.tokensIncomplete
+                              ? api.totalTokens > 0
+                                ? `${formatCompactNumber(api.totalTokens)} + ?`
+                                : t('usage_stats.tokens_unavailable')
+                              : formatCompactNumber(api.totalTokens)}
                           </span>
-                          {hasPrices && api.totalCost > 0 && (
+                          {hasPrices && (api.totalCost > 0 || api.tokensIncomplete) && (
                             <span className={styles.apiBadge}>
-                              {t('usage_stats.total_cost')}: {formatUsd(api.totalCost)}
+                              {t('usage_stats.total_cost')}:{' '}
+                              {api.tokensIncomplete
+                                ? t('usage_stats.tokens_unavailable')
+                                : formatUsd(api.totalCost)}
                             </span>
                           )}
                         </div>
                       </div>
-                      <span className={styles.expandIcon}>
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
+                      <span className={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</span>
                     </button>
                     {isExpanded && (
                       <div id={panelId} className={styles.apiModels}>
@@ -134,12 +154,24 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                               <span className={styles.requestCountCell}>
                                 <span>{stats.requests.toLocaleString()}</span>
                                 <span className={styles.requestBreakdown}>
-                                  (<span className={styles.statSuccess}>{stats.successCount.toLocaleString()}</span>{' '}
-                                  <span className={styles.statFailure}>{stats.failureCount.toLocaleString()}</span>)
+                                  (
+                                  <span className={styles.statSuccess}>
+                                    {stats.successCount.toLocaleString()}
+                                  </span>{' '}
+                                  <span className={styles.statFailure}>
+                                    {stats.failureCount.toLocaleString()}
+                                  </span>
+                                  )
                                 </span>
                               </span>
                             </span>
-                            <span className={styles.modelStat}>{formatCompactNumber(stats.tokens)}</span>
+                            <span className={styles.modelStat}>
+                              {stats.tokensIncomplete
+                                ? stats.tokens > 0
+                                  ? `${formatCompactNumber(stats.tokens)} + ?`
+                                  : t('usage_stats.tokens_unavailable')
+                                : formatCompactNumber(stats.tokens)}
+                            </span>
                           </div>
                         ))}
                       </div>

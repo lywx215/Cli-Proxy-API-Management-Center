@@ -1,0 +1,10 @@
+{
+  "plan": ".codex/review-plan.md",
+  "requirements": ["AGENTS.md"],
+  "deliverables": [
+    "*.md", "*.ts", "*.js", "*.json", "*.html", "*.yaml", "*.yml",
+    "src/**/*.ts", "src/**/*.tsx", "src/**/*.js", "src/**/*.jsx",
+    "src/**/*.css", "src/**/*.scss", "tests/**/*.ts", "tests/**/*.tsx",
+    "scripts/**/*", ".github/**/*.yml", ".github/**/*.yaml"
+  ]
+}

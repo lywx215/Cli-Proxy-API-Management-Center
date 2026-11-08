@@ -26,6 +26,13 @@ import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
 import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
 import { GeminiEnterpriseRegionEditor } from './GeminiEnterpriseRegionEditor';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
+import { useEnterpriseCarbonOperations } from '../hooks/useEnterpriseCarbonOperations';
+import { EnterpriseCarbonOperationsModal } from './EnterpriseCarbonOperationsModal';
+import {
+  enterpriseCarbonAdmission,
+  enterpriseCarbonSummary,
+  enterpriseCarbonSupported,
+} from '../enterpriseCarbon';
 import statusStyles from './AuthFileCard.module.scss';
 import styles from './GeminiEnterpriseAccount.module.scss';
 
@@ -117,6 +124,19 @@ function CollectionRows({
             <span className={styles.region}>{binding?.location || 'global'}</span>
           </div>
           <EnterpriseModelPolicyStatus snapshot={binding?.modelPolicyState} compact />
+          {enterpriseCarbonSupported(file) && (
+            <small className="hint">
+              {t(
+                'gemini_enterprise.carbon.' +
+                  (enterpriseCarbonAdmission(file)?.enabled ? 'enabled' : 'disabled')
+              )}
+              {' · '}
+              {t(
+                'gemini_enterprise.carbon.' +
+                  (enterpriseCarbonAdmission(file)?.available ? 'available' : 'unavailable')
+              )}
+            </small>
+          )}
         </td>
         <td>
           <GeminiEnterpriseQuota file={file} disableControls={props.disableControls} compact />
@@ -254,7 +274,9 @@ export function GeminiEnterpriseAccount(props: Props) {
   const rowsId = useId();
   const children = useMemo(() => enterpriseCollectionFiles(file), [file]);
   const projectCount = new Set(children.map((child) => child.geminiEnterprise?.projectId)).size;
+  const carbonSummary = enterpriseCarbonSummary(children);
   const account = file.geminiEnterprise;
+  const carbonOperations = useEnterpriseCarbonOperations(file, props.onEnterpriseResourcesSaved);
   const discover = async () => {
     if (disableControls || discovering) return;
     const controller = new AbortController();
@@ -315,6 +337,7 @@ export function GeminiEnterpriseAccount(props: Props) {
         <div className={styles.identity}>
           <h2 title={file.email || file.name}>{file.email || file.name}</h2>
           <p title={file.name}>{file.name}</p>
+          {carbonSummary.supported && <p>{t('gemini_enterprise.carbon.summary', carbonSummary)}</p>}
         </div>
         <div className={styles.accountActions}>
           <Button
@@ -388,6 +411,55 @@ export function GeminiEnterpriseAccount(props: Props) {
           onChange={(enabled) => props.onToggleStatus(file, enabled)}
         />
       </div>
+      <div className={styles.carbonActions}>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={
+            disableControls ||
+            carbonOperations.busy ||
+            discovering ||
+            !account?.googleCarbonConfigureSupported ||
+            !children.length
+          }
+          onClick={() => void carbonOperations.start('configure')}
+          aria-describedby={`${rowsId}-carbon-hint`}
+        >
+          {t('gemini_enterprise.carbon_batch.configure')}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={
+            disableControls ||
+            carbonOperations.busy ||
+            discovering ||
+            !carbonSummary.supported ||
+            !children.length ||
+            file.disabled === true
+          }
+          onClick={() => void carbonOperations.start('test')}
+        >
+          {t('gemini_enterprise.carbon_batch.test')}
+        </Button>
+        <p id={`${rowsId}-carbon-hint`} className="hint">
+          {t('gemini_enterprise.carbon_batch.remote_warning')}
+        </p>
+        {!account?.googleCarbonConfigureSupported && (
+          <p className="hint">{t('gemini_enterprise.carbon_batch.unsupported')}</p>
+        )}
+      </div>
+      <EnterpriseCarbonOperationsModal
+        {...carbonOperations}
+        disabled={disableControls}
+        onCancel={carbonOperations.cancel}
+        onClose={carbonOperations.close}
+        onChange={(target, enabled) => void carbonOperations.changeEnabled(target, enabled)}
+        onShowModels={(target) => {
+          carbonOperations.close();
+          props.onShowModels(target);
+        }}
+      />
       {expanded && (
         <div id={rowsId}>
           {children.length ? (

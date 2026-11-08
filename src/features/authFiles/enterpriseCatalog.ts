@@ -76,9 +76,8 @@ export function buildEnterpriseCatalogPatch(
 export function enterpriseDefaultCatalog(snapshot?: EnterpriseModelPolicyState): string[] {
   const sub = snapshot?.subscription;
   if (!sub || !['ok', 'stale'].includes(sub.status) || sub.freeTrial === null) return [];
-  return sub.freeTrial === false || sub.edition === 'business_standard'
-    ? ['gemini-4-argon']
-    : [...ENTERPRISE_TRIAL_CATALOG];
+  if (sub.freeTrial === false) return ['gemini-4-argon'];
+  return sub.edition === 'business_standard' ? ['gemini-4-argon'] : [...ENTERPRISE_TRIAL_CATALOG];
 }
 
 export function enterpriseCatalogPreview(

@@ -16,6 +16,7 @@ export type BuiltInOAuthProvider =
   | 'gemini-enterprise'
   | 'anthropic'
   | 'antigravity'
+  | 'antigravity-enterprise'
   | 'kimi'
   | 'kimi-ai'
   | 'xai'
@@ -54,6 +55,7 @@ const WEBUI_SUPPORTED = new Set<string>([
   'codex',
   'claude',
   'antigravity',
+  'antigravity-enterprise',
   'xai',
   'devin',
   'gemini-cli',

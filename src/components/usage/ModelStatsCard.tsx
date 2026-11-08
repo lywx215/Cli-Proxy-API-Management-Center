@@ -19,13 +19,7 @@ export interface ModelStatsCardProps {
 }
 
 type SortKey =
-  | 'model'
-  | 'requests'
-  | 'tokens'
-  | 'cost'
-  | 'successRate'
-  | 'averageLatencyMs'
-  | 'totalLatencyMs';
+  'model' | 'requests' | 'tokens' | 'cost' | 'successRate' | 'averageLatencyMs' | 'totalLatencyMs';
 type SortDir = 'asc' | 'desc';
 
 interface ModelStatWithRate extends ModelStat {
@@ -183,7 +177,13 @@ export function ModelStatsCard({ modelStats, loading, hasPrices }: ModelStatsCar
                           </span>
                         </span>
                       </td>
-                      <td>{formatCompactNumber(stat.tokens)}</td>
+                      <td>
+                        {stat.tokensIncomplete
+                          ? stat.tokens > 0
+                            ? `${formatCompactNumber(stat.tokens)} + ?`
+                            : t('usage_stats.tokens_unavailable')
+                          : formatCompactNumber(stat.tokens)}
+                      </td>
                       <td className={styles.durationCell}>
                         {formatDurationMs(stat.averageLatencyMs)}
                       </td>
@@ -203,7 +203,15 @@ export function ModelStatsCard({ modelStats, loading, hasPrices }: ModelStatsCar
                           {stat.successRate.toFixed(1)}%
                         </span>
                       </td>
-                      {hasPrices && <td>{stat.cost > 0 ? formatUsd(stat.cost) : '--'}</td>}
+                      {hasPrices && (
+                        <td>
+                          {stat.tokensIncomplete
+                            ? t('usage_stats.tokens_unavailable')
+                            : stat.cost > 0
+                              ? formatUsd(stat.cost)
+                              : '--'}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

@@ -17,6 +17,7 @@ import {
   formatPerMinuteValue,
   formatUsd,
   collectUsageDetails,
+  hasUnreportedWebTokens,
   extractTotalTokens,
   type ModelPrice,
 } from '@/utils/usage';
@@ -141,6 +142,24 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
     };
   }, [hasPrices, modelPrices, nowMs, usage]);
 
+  const incompleteTokens = useMemo(
+    () => collectUsageDetails(usage).some(hasUnreportedWebTokens),
+    [usage]
+  );
+  const estimatedReasoning = useMemo(
+    () =>
+      collectUsageDetails(usage).some(
+        (detail) => detail.tokens.estimate && detail.tokens.reasoning_tokens !== null
+      ),
+    [usage]
+  );
+  const formatTokens = (value: number, formatted: string) =>
+    incompleteTokens
+      ? value > 0
+        ? `${formatted} + ?`
+        : t('usage_stats.tokens_unavailable')
+      : formatted;
+
   const statsCards: StatCardData[] = [
     {
       key: 'requests',
@@ -177,7 +196,9 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
       accent: '#8b5cf6',
       accentSoft: 'rgba(139, 92, 246, 0.18)',
       accentBorder: 'rgba(139, 92, 246, 0.35)',
-      value: loading ? '-' : formatCompactNumber(usage?.total_tokens ?? 0),
+      value: loading
+        ? '-'
+        : formatTokens(usage?.total_tokens ?? 0, formatCompactNumber(usage?.total_tokens ?? 0)),
       meta: (
         <>
           <span className={styles.statMetaItem}>
@@ -194,11 +215,11 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
               ? '-'
               : tokenBreakdown.reasoningTokens === null
                 ? t('usage_stats.tokens_unavailable')
-                : formatCompactNumber(tokenBreakdown.reasoningTokens)}
+                : `${estimatedReasoning ? '≈ ' : ''}${formatCompactNumber(tokenBreakdown.reasoningTokens)}`}
           </span>
         </>
       ),
-      trend: sparklines.tokens,
+      trend: incompleteTokens ? null : sparklines.tokens,
     },
     {
       key: 'rpm',
@@ -223,14 +244,18 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
       accent: '#f97316',
       accentSoft: 'rgba(249, 115, 22, 0.18)',
       accentBorder: 'rgba(249, 115, 22, 0.32)',
-      value: loading ? '-' : formatPerMinuteValue(rateStats.tpm),
+      value: loading
+        ? '-'
+        : formatTokens(rateStats.tokenCount, formatPerMinuteValue(rateStats.tpm)),
       meta: (
         <span className={styles.statMetaItem}>
           {t('usage_stats.total_tokens')}:{' '}
-          {loading ? '-' : formatCompactNumber(rateStats.tokenCount)}
+          {loading
+            ? '-'
+            : formatTokens(rateStats.tokenCount, formatCompactNumber(rateStats.tokenCount))}
         </span>
       ),
-      trend: sparklines.tpm,
+      trend: incompleteTokens ? null : sparklines.tpm,
     },
     {
       key: 'cost',
@@ -239,12 +264,23 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
       accent: '#f59e0b',
       accentSoft: 'rgba(245, 158, 11, 0.18)',
       accentBorder: 'rgba(245, 158, 11, 0.32)',
-      value: loading ? '-' : hasPrices ? formatUsd(totalCost) : '--',
+      value: loading
+        ? '-'
+        : hasPrices
+          ? incompleteTokens
+            ? t('usage_stats.tokens_unavailable')
+            : formatUsd(totalCost)
+          : '--',
       meta: (
         <>
           <span className={styles.statMetaItem}>
             {t('usage_stats.total_tokens')}:{' '}
-            {loading ? '-' : formatCompactNumber(usage?.total_tokens ?? 0)}
+            {loading
+              ? '-'
+              : formatTokens(
+                  usage?.total_tokens ?? 0,
+                  formatCompactNumber(usage?.total_tokens ?? 0)
+                )}
           </span>
           {!hasPrices && (
             <span className={`${styles.statMetaItem} ${styles.statSubtle}`}>
@@ -253,7 +289,7 @@ export function StatCards({ usage, loading, modelPrices, nowMs, sparklines }: St
           )}
         </>
       ),
-      trend: hasPrices ? sparklines.cost : null,
+      trend: hasPrices && !incompleteTokens ? sparklines.cost : null,
     },
   ];
 

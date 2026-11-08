@@ -25,6 +25,9 @@ skills
 # Editor directories and files
 settings.local.json
 .codex
+!.codex/
+.codex/*
+!.codex/review.json
 .vscode/*
 !.vscode/extensions.json
 .idea

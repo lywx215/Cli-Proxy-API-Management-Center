@@ -5,6 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { parse as parseYaml, parseDocument } from 'yaml';
 import { useConfigStore, useNotificationStore } from '@/stores';
 import { configFileApi } from '@/services/api/configFile';
+import {
+  notifyEnterpriseWebChange,
+  EnterpriseWebClientError,
+} from '@/services/api/geminiEnterpriseWeb';
+import { verifyEnterpriseWebConfigChange } from '../enterpriseWebConfig';
 import { apiClient } from '@/services/api/client';
 import {
   applyConfigPatch,
@@ -220,6 +225,8 @@ export function useConfigDocument({
       const trustedProxiesChanged = hasTrustedProxiesChange(latestServerYaml, mergedYaml);
 
       if (previewMode === 'visual' && !previewPlan) return;
+      await verifyEnterpriseWebConfigChange(latestServerYaml, mergedYaml, 'before');
+      if (!operation.isCurrent()) return;
       writeAttempted = true;
       if (previewMode === 'visual' && previewPlan) {
         await applyConfigPatch(previewPlan, operation.revision);
@@ -227,7 +234,9 @@ export function useConfigDocument({
         await configFileApi.saveConfigYaml(mergedYaml);
       }
       if (!operation.isCurrent()) return;
-      useConfigStore.getState().clearCache();
+      notifyEnterpriseWebChange();
+      await verifyEnterpriseWebConfigChange(latestServerYaml, mergedYaml, 'after');
+      if (!operation.isCurrent()) return;
       const latestContent = await configFileApi.fetchConfigYaml();
       if (!operation.isCurrent()) return;
       setSourceDirty(false);
@@ -270,9 +279,19 @@ export function useConfigDocument({
       const message =
         err instanceof ConfigDraftConflictError
           ? t('config_management.concurrent_list_conflict', { path: err.path.join('.') })
-          : err instanceof Error
-            ? err.message
-            : '';
+          : err instanceof EnterpriseWebClientError
+            ? t(
+                err.code === 'history_unsupported'
+                  ? 'enterprise_web.history_unsupported'
+                  : err.code === 'input_limits_unsupported'
+                    ? 'enterprise_web.input_limits_unsupported'
+                    : err.code === 'invalid_input_limits'
+                      ? 'enterprise_web.invalid_input_limits'
+                      : 'enterprise_web.confirm_failed'
+              )
+            : err instanceof Error
+              ? err.message
+              : '';
       if (writeAttempted && previewMode === 'visual') {
         // v8 field mutations are not a transaction. Never roll back with a full document.
         // Re-read immediately so changing an already-applied value back remains a dirty edit.

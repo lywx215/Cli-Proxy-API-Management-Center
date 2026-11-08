@@ -14,6 +14,9 @@ export type CodexLiveICEServerDraft = {
 };
 
 export type VisualConfigFieldPath =
+  | 'geminiEnterpriseWebHistoryMode'
+  | 'geminiEnterpriseWebMaxConcurrent'
+  | 'geminiEnterpriseWebMaxInflightBytes'
   | 'trustedProxies'
   | 'discoveryServiceType'
   | 'transientErrorCooldownSeconds'
@@ -41,6 +44,7 @@ export type VisualConfigFieldPath =
   | 'apiKeyRateLimit.defaultRpm';
 
 export type VisualConfigValidationErrorCode =
+  | 'invalid_history_mode'
   | 'invalid_trusted_proxies'
   | 'invalid_discovery_service_type'
   | 'invalid_duration'
@@ -140,6 +144,10 @@ export interface SpeedThrottleConfig {
 
 /** UI draft keys; YAML persistence uses the v8 tree, not these flattened names. */
 export type VisualConfigValues = {
+  geminiEnterpriseWebEnabled: boolean;
+  geminiEnterpriseWebHistoryMode: string;
+  geminiEnterpriseWebMaxConcurrent: string;
+  geminiEnterpriseWebMaxInflightBytes: string;
   githubToken: string;
   trustedProxies: string[];
   discoveryEnabled: boolean;
@@ -250,6 +258,10 @@ export const makeClientId = () => {
 };
 
 export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
+  geminiEnterpriseWebEnabled: false,
+  geminiEnterpriseWebHistoryMode: 'single-turn',
+  geminiEnterpriseWebMaxConcurrent: '',
+  geminiEnterpriseWebMaxInflightBytes: '',
   githubToken: '',
   trustedProxies: [],
   discoveryEnabled: false,

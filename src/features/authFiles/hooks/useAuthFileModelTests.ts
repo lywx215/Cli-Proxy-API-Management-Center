@@ -6,6 +6,12 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import type { ApiError, AuthFileItem } from '@/types';
 import type { AuthFileModelItem } from '../constants';
 import { enterpriseResources } from '../enterpriseResources';
+import { useEnterpriseWebRuntime } from '../enterpriseWeb/useEnterpriseWebRuntime';
+import {
+  canTestEnterpriseCarbon,
+  ENTERPRISE_CARBON_MODEL,
+  isEnterpriseCarbonModel,
+} from '../enterpriseCarbon';
 import {
   canTestEnterpriseFile,
   cancelModelTest,
@@ -19,7 +25,14 @@ import {
   type ModelTestState,
 } from '../modelTesting';
 
-export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFileModelItem[]) {
+export function useAuthFileModelTests(
+  file: AuthFileItem | null,
+  models: AuthFileModelItem[],
+  onCarbonResult?: (result: ModelTestResult, file: AuthFileItem) => void
+) {
+  const isWeb = (file?.type || file?.provider) === 'gemini-enterprise-web';
+  const webRuntime = useEnterpriseWebRuntime(isWeb);
+  const channelReady = !isWeb || Boolean(webRuntime.status?.enabled && !webRuntime.error);
   const { t } = useTranslation();
   const [results, setResults] = useState<Record<string, ModelTestState>>({});
   const [busy, setBusy] = useState(false);
@@ -75,17 +88,32 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
 
   const run = useCallback(
     async (requestedModels: string[]) => {
-      if (!file || !canTestEnterpriseFile(file) || unsupported || request.current) return;
+      if (
+        !file ||
+        (!canTestEnterpriseFile(file) && !canTestEnterpriseCarbon(file)) ||
+        !channelReady ||
+        unsupported ||
+        request.current
+      )
+        return;
       const ids = [...new Set(requestedModels)].filter(
         (id) =>
-          models.some(
-            (model) =>
-              model.id === id &&
-              model.policy_allowed !== false &&
-              isEnterpriseTextModel(model) &&
-              !isEnterpriseModelExcluded(file, model.upstream_model || model.id)
-          ) && !enterpriseModelCooldown(file, id, resultsRef.current[id])
+          (id === ENTERPRISE_CARBON_MODEL && !isWeb
+            ? canTestEnterpriseCarbon(file) &&
+              models.some((model) => model.id === id && model.test_candidate === true)
+            : models.some(
+                (model) =>
+                  model.id === id &&
+                  (isWeb || !isEnterpriseCarbonModel(model)) &&
+                  model.policy_allowed !== false &&
+                  isEnterpriseTextModel(model) &&
+                  !isEnterpriseModelExcluded(file, model.upstream_model || model.id)
+              )) && !enterpriseModelCooldown(file, id, resultsRef.current[id])
       );
+      if (!isWeb)
+        ids.sort(
+          (a, b) => Number(a === ENTERPRISE_CARBON_MODEL) - Number(b === ENTERPRISE_CARBON_MODEL)
+        );
       if (!ids.length) return;
       const controller = new AbortController();
       request.current = controller;
@@ -110,7 +138,12 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
             }
             const started = Date.now();
             try {
-              return await authFileModelTestsApi.test(file, model, controller.signal);
+              return await authFileModelTestsApi.test(
+                file,
+                model,
+                controller.signal,
+                models.find((entry) => entry.id === model)?.upstream_model || model
+              );
             } catch (cause) {
               const error = cause as Partial<ApiError>;
               if (!current()) controller.abort();
@@ -125,7 +158,7 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
                     : 'failed',
                 model,
                 authIndex: String(file.authIndex ?? ''),
-                resources: enterpriseResources(file.geminiEnterprise),
+                resources: isWeb ? undefined : enterpriseResources(file.geminiEnterprise),
                 checkedAt: new Date().toISOString(),
                 elapsedMs: Date.now() - started,
                 httpStatus: error.status ?? 0,
@@ -161,14 +194,19 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
               },
             }));
             setProgress({ completed, total: ids.length });
+            if (model === ENTERPRISE_CARBON_MODEL && !isWeb) {
+              onCarbonResult?.(result, file);
+            }
           },
           (model) =>
             Boolean(
               fileRef.current &&
-              (isEnterpriseModelExcluded(
-                fileRef.current,
-                models.find((entry) => entry.id === model)?.upstream_model || model
-              ) ||
+              ((model === ENTERPRISE_CARBON_MODEL && !isWeb
+                ? !canTestEnterpriseCarbon(fileRef.current)
+                : isEnterpriseModelExcluded(
+                    fileRef.current,
+                    models.find((entry) => entry.id === model)?.upstream_model || model
+                  )) ||
                 enterpriseModelCooldown(fileRef.current, model, resultsRef.current[model]))
             )
         );
@@ -181,11 +219,12 @@ export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFil
         }
       }
     },
-    [file, models, unsupported, t]
+    [file, models, unsupported, t, channelReady, isWeb, onCarbonResult]
   );
 
   return {
-    modelTestEnabled: canTestEnterpriseFile(file),
+    modelTestEnabled:
+      (canTestEnterpriseFile(file) || canTestEnterpriseCarbon(file)) && channelReady,
     modelTestResults: results,
     modelTestBusy: busy,
     modelTestUnsupported: unsupported,

@@ -2304,6 +2304,11 @@ export function useVisualConfig() {
 
 export const VISUAL_CONFIG_PROTOCOL_OPTIONS = [
   {
+    value: 'gemini-enterprise-web',
+    labelKey: 'enterprise_web.title',
+    defaultLabel: 'Gemini Enterprise Web',
+  },
+  {
     value: '',
     labelKey: 'config_management.visual.payload_rules.provider_default',
     defaultLabel: 'Default',

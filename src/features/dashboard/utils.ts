@@ -4,6 +4,7 @@ import { TRAFFIC_BUCKET_MINUTES } from './types';
 const PROVIDER_LABELS: Record<string, string> = {
   gemini: 'Gemini',
   'gemini-enterprise': 'Gemini Enterprise',
+  'gemini-enterprise-web': 'Gemini Enterprise Web',
   'gemini-interactions': 'Interactions API',
   aistudio: 'AI Studio',
   codex: 'Codex',
@@ -18,6 +19,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   kimi: 'Kimi',
   iflow: 'iFlow',
   antigravity: 'Antigravity',
+  'antigravity-enterprise': 'Antigravity Enterprise',
 };
 
 /**

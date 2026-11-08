@@ -20,8 +20,11 @@ import { TYPE_COLORS } from '@/utils/quota';
 
 export type { ResolvedTheme, ThemeColors, TypeColorSet } from '@/types';
 export type AuthFileModelItem = {
+  test_candidate?: boolean;
+  business_registered?: boolean;
   catalog_source?: string;
   upstream_model?: string;
+  native_model?: string;
   policy_allowed?: boolean;
   upstream_listed?: boolean;
   id: string;
@@ -51,6 +54,8 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
 export const OAUTH_PROVIDER_PRESETS = [
   'gemini-cli',
   'gemini-enterprise',
+  'gemini-enterprise-web',
+  'antigravity-enterprise',
   'meta',
   'vertex',
   'aistudio',
@@ -74,6 +79,8 @@ export const AUTH_FILE_WEBSOCKET_PROVIDERS = new Set(['codex', 'xai']);
 export const AUTH_FILE_USING_API_PROVIDERS = new Set(['xai']);
 export const AUTH_FILE_MANUAL_REFRESH_PROVIDERS = new Set([
   'gemini-enterprise',
+  'gemini-enterprise-web',
+  'antigravity-enterprise',
   'meta',
   'antigravity',
   'claude',
@@ -87,6 +94,7 @@ export { TYPE_COLORS };
 
 export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   antigravity: iconAntigravity,
+  'antigravity-enterprise': iconAntigravity,
   aistudio: iconGemini,
   claude: iconClaude,
   codex: iconCodex,
@@ -95,6 +103,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   gemini: iconGemini,
   'gemini-cli': iconGemini,
   'gemini-enterprise': iconGemini,
+  'gemini-enterprise-web': iconGemini,
   xai: { light: iconGrok, dark: iconGrokDark },
   iflow: iconIflow,
   kimi: { light: iconKimiDark, dark: iconKimiLight },
@@ -156,10 +165,17 @@ export const hasAuthFileStatusWarning = (file: AuthFileItem): boolean => {
 export const isProblemAuthFile = (file: AuthFileItem): boolean => {
   const status = typeof file.status === 'string' ? file.status.trim().toLowerCase() : '';
   if (file.disabled === true || status === 'disabled') return false;
-  return file.unavailable === true || status === 'error' || hasAuthFileStatusWarning(file);
+  return (
+    file.geminiEnterpriseWeb?.cookieCheckStatus === 'relogin_required' ||
+    file.unavailable === true ||
+    status === 'error' ||
+    hasAuthFileStatusWarning(file)
+  );
 };
 
 export const getTypeLabel = (t: TFunction, type: string): string => {
+  if (type === 'antigravity-enterprise') return t('antigravity_enterprise.title');
+  if (type === 'gemini-enterprise-web') return t('enterprise_web.title');
   const providerKey = normalizeProviderKey(type);
   const key = `auth_files.filter_${providerKey}`;
   const translated = t(key);
