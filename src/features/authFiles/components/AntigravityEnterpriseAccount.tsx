@@ -16,7 +16,9 @@ import { useNotificationStore } from '@/stores/useNotificationStore';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
 import { useNow } from '@/hooks/useNow';
 import type { AuthFileItem } from '@/types';
+import type { AuthFileCooldownSnapshot } from '@/types/authFile';
 import type { AntigravityEnterpriseQuota as Quota } from '@/types/antigravityEnterprise';
+import { summarizeCooldowns } from '../cooldowns';
 import { getAuthFileRefreshKey } from '../manualRefresh';
 import type { AuthFileCardProps } from './AuthFileCard';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
@@ -45,20 +47,48 @@ type Props = Pick<
 
 export function AntigravityEnterpriseQuotaBody({
   data,
+  cooldownSnapshot,
   loading,
   failed,
 }: {
   data?: Quota;
+  cooldownSnapshot?: AuthFileCooldownSnapshot;
   loading?: boolean;
   failed?: boolean;
 }) {
   const { t, i18n } = useTranslation();
-  const now = useNow(Boolean(data?.weekly?.resetAt));
+  const quotaCooldowns = data?.cooldownSnapshot;
+  const snapshot =
+    quotaCooldowns &&
+    (!cooldownSnapshot || quotaCooldowns.receivedAtMs >= cooldownSnapshot.receivedAtMs)
+      ? quotaCooldowns
+      : cooldownSnapshot;
+  const now = useNow(Boolean(data?.weekly?.resetAt || snapshot?.records?.length));
+  const rows = snapshot ? summarizeCooldowns(snapshot, now).rows : [];
+  const bindingRestriction = rows.find(
+    ({ record, remainingSeconds }) =>
+      record.scope === 'credential' &&
+      record.reason === 'binding_rate_limit' &&
+      remainingSeconds > 0
+  );
+  const weeklyRestriction = rows.find(
+    ({ record }) =>
+      record.reason === 'weekly_quota' &&
+      record.origin === 'shared_pool' &&
+      record.feature === 'ai_developer_tools'
+  );
+  const limited = rows.filter(
+    ({ record, remainingSeconds }) =>
+      remainingSeconds > 0 &&
+      (record.httpStatus === 429 ||
+        record.reason === 'quota' ||
+        record.reason === 'credential_quota')
+  );
   const bucket = data?.weekly;
   const expired = Boolean(bucket?.resetAt && Date.parse(bucket.resetAt) <= now);
   const fraction = !expired && !bucket?.disabled ? bucket?.remainingFraction : null;
   const amount = !expired && !bucket?.disabled ? bucket?.remainingAmount : null;
-  const remaining =
+  const reported =
     fraction !== null && fraction !== undefined
       ? new Intl.NumberFormat(i18n.resolvedLanguage, {
           style: 'percent',
@@ -66,10 +96,53 @@ export function AntigravityEnterpriseQuotaBody({
         }).format(fraction)
       : amount !== null && amount !== undefined
         ? t('antigravity_enterprise.remaining_units', { value: amount })
-        : t('antigravity_enterprise.unknown');
+        : null;
+  const fresh = data?.status === 'ok' && !data.stale && !failed;
+  const exhausted =
+    fresh && (fraction === 0 || (typeof amount === 'string' && /^0+$/.test(amount)));
+  let headline = t('antigravity_enterprise.quota_unverified');
+  if (loading && !data) headline = t('antigravity_enterprise.loading');
+  if (bindingRestriction) {
+    headline = t('antigravity_enterprise.binding_cooling_title');
+  } else if (exhausted) {
+    headline = t('antigravity_enterprise.weekly_exhausted');
+  } else if (weeklyRestriction) {
+    headline = t(
+      weeklyRestriction.record.phase === 'cooling' && weeklyRestriction.remainingSeconds > 0
+        ? 'antigravity_enterprise.weekly_exhausted'
+        : 'antigravity_enterprise.quota_recheck_pending'
+    );
+  } else if (limited.length > 0) {
+    headline = t(
+      limited.some(({ record }) => record.scope === 'credential')
+        ? 'antigravity_enterprise.binding_limited'
+        : 'antigravity_enterprise.models_limited'
+    );
+  } else if (expired) {
+    headline = t('antigravity_enterprise.quota_recheck_pending');
+  }
   return (
     <div className={ownStyles.quotaBody} aria-live="polite">
-      <strong>{loading && !data ? t('antigravity_enterprise.loading') : remaining}</strong>
+      <strong>{headline}</strong>
+      {bindingRestriction && (
+        <>
+          <span className={ownStyles.warning}>
+            {t('antigravity_enterprise.binding_rate_limit')}
+          </span>
+          <time dateTime={bindingRestriction.record.retryAt}>
+            {t('antigravity_enterprise.retry_at', {
+              value: new Date(bindingRestriction.record.retryAt).toLocaleString(
+                i18n.resolvedLanguage
+              ),
+            })}
+          </time>
+        </>
+      )}
+      {reported !== null && (
+        <span className={ownStyles.observation}>
+          {t('antigravity_enterprise.pool_reported', { value: reported })}
+        </span>
+      )}
       {bucket?.resetAt ? (
         <time
           dateTime={bucket.resetAt}
@@ -176,7 +249,12 @@ function WeeklyQuota({ file, disabled }: { file: AuthFileItem; disabled: boolean
           <IconRefreshCw size={13} />
         </Button>
       </div>
-      <AntigravityEnterpriseQuotaBody data={data} loading={loading} failed={failed} />
+      <AntigravityEnterpriseQuotaBody
+        data={data}
+        cooldownSnapshot={file.cooldownSnapshot}
+        loading={loading}
+        failed={failed}
+      />
     </section>
   );
 }
@@ -205,7 +283,7 @@ function BindingRows({
       ? 'account_disabled'
       : file.unavailable
         ? 'unavailable'
-        : 'ready';
+        : 'enabled';
   const toggle = async (enabled: boolean) => {
     if (busy || props.disableControls) return;
     const controller = new AbortController();

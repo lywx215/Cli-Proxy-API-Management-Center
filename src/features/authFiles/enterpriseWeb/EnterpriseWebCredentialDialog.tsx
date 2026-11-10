@@ -6,6 +6,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { apiClient } from '@/services/api/client';
+import { authFilesApi } from '@/services/api/authFiles';
+import { getStatusFromError } from '@/utils/quota';
 import {
   enterpriseWebApi,
   getEnterpriseWebEditError,
@@ -45,6 +47,8 @@ export function EnterpriseWebCredentialDialog({ editing, onClose, onSaved }: Pro
   const [edit, setEdit] = useState(() => createEdit(editing));
   const [credentialSaving, setCredentialSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [revisionConflict, setRevisionConflict] = useState(false);
+  const [summary, setSummary] = useState(editing?.geminiEnterpriseWeb);
   const credentialPending = useRef(false);
   const generation = useRef(0);
   useEffect(() => {
@@ -67,7 +71,7 @@ export function EnterpriseWebCredentialDialog({ editing, onClose, onSaved }: Pro
     []
   );
   const saveCredential = async () => {
-    if (credentialPending.current) return;
+    if (credentialPending.current || revisionConflict) return;
     const validation = getEnterpriseWebEditError(edit);
     if (validation) {
       setFormError(t(`enterprise_web.${validation}`));
@@ -94,8 +98,47 @@ export function EnterpriseWebCredentialDialog({ editing, onClose, onSaved }: Pro
       onClose();
       await onSaved();
     } catch (failure) {
-      if (current === generation.current)
+      if (current !== generation.current || revision !== apiClient.getConnectionRevision()) return;
+      if (edit.name && getStatusFromError(failure) === 409) {
+        setRevisionConflict(true);
+        setFormError(t('enterprise_web.credential_revision_conflict'));
+      } else {
         setFormError(failure instanceof Error ? failure.message : t('enterprise_web.save_failed'));
+      }
+    } finally {
+      if (current === generation.current) {
+        credentialPending.current = false;
+        setCredentialSaving(false);
+      }
+    }
+  };
+  const reloadRevision = async () => {
+    if (credentialPending.current || !edit.name) return;
+    const name = edit.name;
+    const authIndex = editing?.authIndex;
+    const current = generation.current;
+    const revision = apiClient.getConnectionRevision();
+    const isCurrent = () =>
+      current === generation.current && revision === apiClient.getConnectionRevision();
+    credentialPending.current = true;
+    setCredentialSaving(true);
+    try {
+      const { files } = await authFilesApi.list({
+        name,
+        authIndex: authIndex == null ? undefined : String(authIndex),
+      });
+      if (!isCurrent()) return;
+      const latest = files.find(
+        (file) =>
+          file.name === name && (authIndex == null || String(file.authIndex) === String(authIndex))
+      )?.geminiEnterpriseWeb;
+      if (!latest?.revision) throw new Error('revision_unavailable');
+      setSummary(latest);
+      setEdit((prior) => ({ ...prior, expectedRevision: latest.revision }));
+      setRevisionConflict(false);
+      setFormError('');
+    } catch {
+      if (isCurrent()) setFormError(t('enterprise_web.credential_revision_reload_failed'));
     } finally {
       if (current === generation.current) {
         credentialPending.current = false;
@@ -122,7 +165,13 @@ export function EnterpriseWebCredentialDialog({ editing, onClose, onSaved }: Pro
       footer={
         <Button
           onClick={() => void saveCredential()}
-          disabled={credentialSaving || !connected || runtime.unsupported || !runtime.status}
+          disabled={
+            credentialSaving ||
+            revisionConflict ||
+            !connected ||
+            runtime.unsupported ||
+            !runtime.status
+          }
           loading={credentialSaving}
         >
           {t('common.save')}
@@ -131,9 +180,7 @@ export function EnterpriseWebCredentialDialog({ editing, onClose, onSaved }: Pro
     >
       <div className={styles.editor}>
         <p>{t('enterprise_web.credential_scope')}</p>
-        {editing?.geminiEnterpriseWeb && (
-          <EnterpriseWebCredentialStatus summary={editing.geminiEnterpriseWeb} />
-        )}
+        {summary && <EnterpriseWebCredentialStatus summary={summary} />}
         {runtime.unsupported && <p role="alert">{t('enterprise_web.unsupported')}</p>}
         {runtime.error && <p role="alert">{t('enterprise_web.unknown')}</p>}
         <Input
@@ -217,6 +264,15 @@ export function EnterpriseWebCredentialDialog({ editing, onClose, onSaved }: Pro
           <div className={styles.error} role="alert">
             {formError}
           </div>
+        )}
+        {revisionConflict && (
+          <Button
+            variant="secondary"
+            onClick={() => void reloadRevision()}
+            disabled={credentialSaving || !connected}
+          >
+            {t('enterprise_web.credential_revision_reload')}
+          </Button>
         )}
       </div>
     </Modal>

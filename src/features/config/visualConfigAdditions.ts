@@ -22,6 +22,11 @@ export const ADDITION_FIELDS = [
     kind: 'boolean',
   },
   {
+    key: 'geminiEnterpriseWebCookieCCPollingEnabled',
+    path: ['upstream', 'gemini-enterprise-web', 'cookie-cc-polling-enabled'],
+    kind: 'boolean',
+  },
+  {
     key: 'geminiEnterpriseWebMaxConcurrent',
     path: ['upstream', 'gemini-enterprise-web', 'max-concurrent'],
     kind: 'integer',

@@ -2,7 +2,11 @@ import { apiClient } from './client';
 import { guardConfigConnection } from './configValue';
 import { isRecord } from '@/utils/helpers';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { normalizeWebInputLimits, type WebInputLimits } from './enterpriseWebInputLimits';
+import {
+  normalizeWebInputLimits,
+  type WebHistoryCountPolicy,
+  type WebInputLimits,
+} from './enterpriseWebInputLimits';
 
 export class EnterpriseWebClientError extends Error {
   constructor(
@@ -12,6 +16,8 @@ export class EnterpriseWebClientError extends Error {
       | 'settings_not_effective'
       | 'missing_policy'
       | 'history_unsupported'
+      | 'cc_polling_unsupported'
+      | 'cc_polling_invalid'
       | 'input_limits_unsupported'
       | 'invalid_input_limits'
   ) {
@@ -49,6 +55,27 @@ const COOKIE_CHECK_REASONS = [
   'temporary_failure',
 ] as const;
 type CookieCheckReason = (typeof COOKIE_CHECK_REASONS)[number];
+const CC_CHECK_STATUSES = [
+  'pending',
+  'no_change',
+  'renewed',
+  'retrying',
+  'unsupported',
+  'paused',
+] as const;
+const CC_CHECK_REASONS = [
+  ...COOKIE_CHECK_REASONS,
+  'polling_disabled',
+  'credential_disabled',
+  'endpoint_unsupported',
+] as const;
+type CookieCCCheck = {
+  status: (typeof CC_CHECK_STATUSES)[number];
+  reason?: (typeof CC_CHECK_REASONS)[number];
+  lastCheckedAt?: string;
+  nextCheckAt?: string;
+  lastRenewedAt?: string;
+};
 export const WEB_MODEL_POLICIES: WebModelPolicy[] = ['argon_only', 'exclude_argon', 'unclassified'];
 export const isClassifiedWebPolicy = (policy: unknown): policy is 'argon_only' | 'exclude_argon' =>
   policy === 'argon_only' || policy === 'exclude_argon';
@@ -67,6 +94,7 @@ export type EnterpriseWebSummary = {
   cookieLastVerifiedAt?: string;
   cookieLastRenewedAt?: string;
   cookieNextCheckAt?: string;
+  cookieCCCheck?: CookieCCCheck;
   verifiedAt?: string;
   testedModelIds: string[];
   modelPolicy: WebModelPolicy;
@@ -75,14 +103,18 @@ export type EnterpriseWebSummary = {
 };
 export type EnterpriseWebSettings = {
   enabled: boolean;
+  cookieCCPollingEnabled?: boolean;
   historyMode?: WebHistoryMode;
   maxConcurrent: number;
   maxInflightBytes: number;
 };
 export type EnterpriseWebStatus = EnterpriseWebSettings & {
   inputLimits?: WebInputLimits;
+  historyCountPolicy?: WebHistoryCountPolicy;
+  supportsModelHistoryInlineData?: boolean;
   supportedHistoryModes?: WebHistoryMode[];
   preflightRejections?: Partial<Record<(typeof WEB_PREFLIGHT_REASONS)[number], number>>;
+  mediaFallbackRequests?: { webDisabled: number; noWebCredential: number };
   activeRequests: number;
   inflightBytes: number;
   draining: boolean;
@@ -103,6 +135,19 @@ export type EnterpriseWebEdit = {
 const string = (value: unknown) => (typeof value === 'string' ? value : '');
 const number = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
+
+function normalizeCookieCCCheck(raw: unknown): CookieCCCheck | undefined {
+  if (!isRecord(raw)) return undefined;
+  const status = CC_CHECK_STATUSES.find((value) => value === raw.status);
+  if (!status) return undefined;
+  return {
+    status,
+    reason: CC_CHECK_REASONS.find((value) => value === raw.reason),
+    lastCheckedAt: string(raw.last_checked_at) || undefined,
+    nextCheckAt: string(raw.next_check_at) || undefined,
+    lastRenewedAt: string(raw.last_renewed_at) || undefined,
+  };
+}
 
 // A strict allowlist keeps secrets out of UI records, even on unexpected responses.
 export function normalizeEnterpriseWebSummary(raw: unknown): EnterpriseWebSummary | undefined {
@@ -131,6 +176,7 @@ export function normalizeEnterpriseWebSummary(raw: unknown): EnterpriseWebSummar
     cookieLastVerifiedAt: string(raw.cookie_last_verified_at) || undefined,
     cookieLastRenewedAt: string(raw.cookie_last_renewed_at) || undefined,
     cookieNextCheckAt: string(raw.cookie_next_check_at) || undefined,
+    cookieCCCheck: normalizeCookieCCCheck(raw.cookie_cc_check),
     verifiedAt: string(raw.verified_at) || undefined,
     testedModelIds: Array.isArray(raw.tested_model_ids)
       ? raw.tested_model_ids.filter((id): id is string => typeof id === 'string')
@@ -167,9 +213,24 @@ export function normalizeEnterpriseWebStatus(raw: unknown): EnterpriseWebStatus 
   )
     throw new EnterpriseWebClientError('invalid_status');
   const supported = Array.isArray(raw.supported_history_modes) ? raw.supported_history_modes : [];
+  const historyCountPolicy = raw.history_count_policy === 'unlimited' ? 'unlimited' : undefined;
+  const { web_disabled: webDisabled, no_web_credential: noWebCredential } = isRecord(
+    raw.media_fallback_requests
+  )
+    ? raw.media_fallback_requests
+    : {};
   return {
     enabled: raw.enabled,
-    inputLimits: normalizeWebInputLimits(raw.input_limits),
+    cookieCCPollingEnabled:
+      typeof raw.cookie_cc_polling_enabled === 'boolean'
+        ? raw.cookie_cc_polling_enabled
+        : undefined,
+    inputLimits: normalizeWebInputLimits(raw.input_limits, false, historyCountPolicy),
+    historyCountPolicy,
+    supportsModelHistoryInlineData:
+      typeof raw.supports_model_history_inline_data === 'boolean'
+        ? raw.supports_model_history_inline_data
+        : undefined,
     historyMode: WEB_HISTORY_MODES.find((mode) => mode === raw.history_mode),
     supportedHistoryModes: WEB_HISTORY_MODES.filter((mode) => supported.includes(mode)),
     preflightRejections: Object.fromEntries(
@@ -182,6 +243,15 @@ export function normalizeEnterpriseWebStatus(raw: unknown): EnterpriseWebStatus 
           : [];
       })
     ),
+    mediaFallbackRequests:
+      typeof webDisabled === 'number' &&
+      Number.isSafeInteger(webDisabled) &&
+      webDisabled >= 0 &&
+      typeof noWebCredential === 'number' &&
+      Number.isSafeInteger(noWebCredential) &&
+      noWebCredential >= 0
+        ? { webDisabled, noWebCredential }
+        : undefined,
     maxConcurrent: number(raw.max_concurrent),
     maxInflightBytes: number(raw.max_inflight_bytes),
     activeRequests: number(raw.active_requests),
@@ -275,17 +345,28 @@ export const enterpriseWebApi = {
   async saveSettings(settings: EnterpriseWebSettings) {
     if (!validEnterpriseWebSettings(settings)) throw new EnterpriseWebClientError('invalid_limits');
     const guard = guardConfigConnection();
-    if (settings.historyMode !== undefined) {
+    if (settings.historyMode !== undefined || settings.cookieCCPollingEnabled !== undefined) {
       const before = await enterpriseWebApi.status();
       guard();
-      if (!before.historyMode || !before.supportedHistoryModes?.includes(settings.historyMode))
+      if (
+        settings.historyMode !== undefined &&
+        (!before.historyMode || !before.supportedHistoryModes?.includes(settings.historyMode))
+      )
         throw new EnterpriseWebClientError('history_unsupported');
+      if (
+        settings.cookieCCPollingEnabled !== undefined &&
+        before.cookieCCPollingEnabled === undefined
+      )
+        throw new EnterpriseWebClientError('cc_polling_unsupported');
     }
     await apiClient.patch('/config/upstream/gemini-enterprise-web', {
       enabled: settings.enabled,
       'max-concurrent': settings.maxConcurrent,
       'max-inflight-bytes': settings.maxInflightBytes,
       ...(settings.historyMode === undefined ? {} : { 'history-mode': settings.historyMode }),
+      ...(settings.cookieCCPollingEnabled === undefined
+        ? {}
+        : { 'cookie-cc-polling-enabled': settings.cookieCCPollingEnabled }),
     });
     guard();
     notifyEnterpriseWebChange();
@@ -295,6 +376,8 @@ export const enterpriseWebApi = {
     if (
       actual.enabled !== settings.enabled ||
       (settings.historyMode !== undefined && actual.historyMode !== settings.historyMode) ||
+      (settings.cookieCCPollingEnabled !== undefined &&
+        actual.cookieCCPollingEnabled !== settings.cookieCCPollingEnabled) ||
       actual.maxConcurrent !== settings.maxConcurrent ||
       actual.maxInflightBytes !== settings.maxInflightBytes
     ) {

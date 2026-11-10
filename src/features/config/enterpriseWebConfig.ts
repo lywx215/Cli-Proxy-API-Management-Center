@@ -26,6 +26,8 @@ export async function verifyEnterpriseWebConfigChange(
   const old = webConfig(before);
   const next = webConfig(after);
   const keys = ['enabled', 'max-concurrent', 'max-inflight-bytes', 'history-mode'] as const;
+  const ccKey = 'cookie-cc-polling-enabled';
+  const ccChanged = old[ccKey] !== next[ccKey];
   const fingerprint = (value: unknown) =>
     JSON.stringify(
       isRecord(value)
@@ -35,14 +37,21 @@ export async function verifyEnterpriseWebConfigChange(
         : value
     );
   const limitsChanged = fingerprint(old['input-limits']) !== fingerprint(next['input-limits']);
-  if (!limitsChanged && !keys.some((key) => old[key] !== next[key])) return;
+  if (!ccChanged && !limitsChanged && !keys.some((key) => old[key] !== next[key])) return;
   const modeChanged = old['history-mode'] !== next['history-mode'];
-  if (phase === 'before' && !modeChanged && !limitsChanged) return;
-  const expectedLimits = normalizeWebInputLimits(next['input-limits'] ?? {}, true);
-  if (limitsChanged && !expectedLimits) throw new EnterpriseWebClientError('invalid_input_limits');
+  if (phase === 'before' && !ccChanged && !modeChanged && !limitsChanged) return;
+  if (ccChanged && next[ccKey] !== undefined && typeof next[ccKey] !== 'boolean')
+    throw new EnterpriseWebClientError('cc_polling_invalid');
+  const nextLimits = next['input-limits'] ?? {};
+  if (limitsChanged && !normalizeWebInputLimits(nextLimits, true, 'unlimited'))
+    throw new EnterpriseWebClientError('invalid_input_limits');
   const actual = await enterpriseWebApi.status();
+  if (ccChanged && actual.cookieCCPollingEnabled === undefined)
+    throw new EnterpriseWebClientError('cc_polling_unsupported');
   if (limitsChanged && !actual.inputLimits)
     throw new EnterpriseWebClientError('input_limits_unsupported');
+  const expectedLimits = normalizeWebInputLimits(nextLimits, true, actual.historyCountPolicy);
+  if (limitsChanged && !expectedLimits) throw new EnterpriseWebClientError('invalid_input_limits');
   const mode = next['history-mode'] ?? 'single-turn';
   if (
     modeChanged &&
@@ -59,6 +68,7 @@ export async function verifyEnterpriseWebConfigChange(
     actual.enabled !== expected.enabled ||
     actual.maxConcurrent !== expected.maxConcurrent ||
     actual.maxInflightBytes !== expected.maxInflightBytes ||
+    (ccChanged && actual.cookieCCPollingEnabled !== (next[ccKey] === true)) ||
     (limitsChanged &&
       expectedLimits &&
       actual.inputLimits &&

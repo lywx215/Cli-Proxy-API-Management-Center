@@ -111,6 +111,7 @@ export const SECTION_VALIDATION_FIELDS: Record<VisualSectionId, readonly VisualC
  */
 export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   geminiEnterpriseWebEnabled: ['geminiEnterpriseWebEnabled'],
+  geminiEnterpriseWebCookieCCPollingEnabled: ['geminiEnterpriseWebCookieCCPollingEnabled'],
   geminiEnterpriseWebHistoryMode: ['geminiEnterpriseWebHistoryMode'],
   geminiEnterpriseWebMaxConcurrent: ['geminiEnterpriseWebMaxConcurrent'],
   geminiEnterpriseWebMaxInflightBytes: ['geminiEnterpriseWebMaxInflightBytes'],

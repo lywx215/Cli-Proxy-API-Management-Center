@@ -145,6 +145,7 @@ export interface SpeedThrottleConfig {
 /** UI draft keys; YAML persistence uses the v8 tree, not these flattened names. */
 export type VisualConfigValues = {
   geminiEnterpriseWebEnabled: boolean;
+  geminiEnterpriseWebCookieCCPollingEnabled: boolean;
   geminiEnterpriseWebHistoryMode: string;
   geminiEnterpriseWebMaxConcurrent: string;
   geminiEnterpriseWebMaxInflightBytes: string;
@@ -259,6 +260,7 @@ export const makeClientId = () => {
 
 export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   geminiEnterpriseWebEnabled: false,
+  geminiEnterpriseWebCookieCCPollingEnabled: false,
   geminiEnterpriseWebHistoryMode: 'single-turn',
   geminiEnterpriseWebMaxConcurrent: '',
   geminiEnterpriseWebMaxInflightBytes: '',

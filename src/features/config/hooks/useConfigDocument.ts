@@ -283,11 +283,13 @@ export function useConfigDocument({
             ? t(
                 err.code === 'history_unsupported'
                   ? 'enterprise_web.history_unsupported'
-                  : err.code === 'input_limits_unsupported'
-                    ? 'enterprise_web.input_limits_unsupported'
-                    : err.code === 'invalid_input_limits'
-                      ? 'enterprise_web.invalid_input_limits'
-                      : 'enterprise_web.confirm_failed'
+                  : err.code === 'cc_polling_unsupported' || err.code === 'cc_polling_invalid'
+                    ? `enterprise_web.${err.code}`
+                    : err.code === 'input_limits_unsupported'
+                      ? 'enterprise_web.input_limits_unsupported'
+                      : err.code === 'invalid_input_limits'
+                        ? 'enterprise_web.invalid_input_limits'
+                        : 'enterprise_web.confirm_failed'
               )
             : err instanceof Error
               ? err.message

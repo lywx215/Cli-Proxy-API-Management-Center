@@ -4,6 +4,7 @@ import { apiClient } from '@/services/api/client';
 import { authFileModelTestsApi } from '@/services/api/authFileModelTests';
 import { useAuthStore } from '@/stores/useAuthStore';
 import type { ApiError, AuthFileItem } from '@/types';
+import { notifyAuthFilesChanged } from '../authFilesEvents';
 import type { AuthFileModelItem } from '../constants';
 import { enterpriseResources } from '../enterpriseResources';
 import { useEnterpriseWebRuntime } from '../enterpriseWeb/useEnterpriseWebRuntime';
@@ -125,6 +126,7 @@ export function useAuthFileModelTests(
         identityRef.current === bindingIdentity &&
         revision === apiClient.getConnectionRevision();
       let completed = 0;
+      let refreshedQuota = false;
       setBusy(true);
       setProgress({ completed, total: ids.length });
       try {
@@ -182,6 +184,10 @@ export function useAuthFileModelTests(
           },
           (model, result) => {
             if (!current()) return;
+            if (file.antigravityEnterprise && result.httpStatus === 429 && !refreshedQuota) {
+              refreshedQuota = true;
+              notifyAuthFilesChanged();
+            }
             completed += 1;
             setResults((previous) => ({
               ...previous,

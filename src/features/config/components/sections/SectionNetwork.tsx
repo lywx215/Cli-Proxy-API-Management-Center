@@ -73,10 +73,28 @@ export function SectionNetwork({
         <ToggleSetting
           fieldId="geminiEnterpriseWebEnabled"
           label={t('enterprise_web.enabled')}
-          description={t('enterprise_web.scope')}
+          description={t(
+            !web.error && web.status?.mediaFallbackRequests
+              ? 'enterprise_web.scope_with_media_fallback'
+              : 'enterprise_web.scope'
+          )}
           checked={values.geminiEnterpriseWebEnabled}
           disabled={disabled || web.unsupported || !web.status}
           onChange={(geminiEnterpriseWebEnabled) => onChange({ geminiEnterpriseWebEnabled })}
+        />
+        <ToggleSetting
+          fieldId="geminiEnterpriseWebCookieCCPollingEnabled"
+          label={t('enterprise_web.cc_polling')}
+          description={t(
+            web.status?.cookieCCPollingEnabled === undefined && web.status
+              ? 'enterprise_web.cc_polling_unsupported'
+              : 'enterprise_web.cc_polling_hint'
+          )}
+          checked={values.geminiEnterpriseWebCookieCCPollingEnabled}
+          disabled={disabled || web.error || web.status?.cookieCCPollingEnabled === undefined}
+          onChange={(geminiEnterpriseWebCookieCCPollingEnabled) =>
+            onChange({ geminiEnterpriseWebCookieCCPollingEnabled })
+          }
         />
         <TextSetting
           fieldId="geminiEnterpriseWebMaxConcurrent"

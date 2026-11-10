@@ -163,6 +163,11 @@ export function normalizeAntigravityEnterpriseQuota(value: unknown): Antigravity
     status: text(value.status) || 'unknown',
     stale: value.stale === true,
     observedAt: timestamp(quota.observed_at),
+    cooldownSnapshot: normalizeAuthFileCooldowns(
+      value.cooldowns,
+      timestamp(value.cooldowns_observed_at),
+      Date.now()
+    ),
     // A present proto3 message has false as the default scalar value.
     overageEnabled: overage
       ? typeof overage.enabled === 'boolean'

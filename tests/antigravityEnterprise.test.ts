@@ -184,7 +184,8 @@ describe('weekly quota observations', () => {
     expect(data.weekly?.resetAt).toBeNull();
     expect(data.overageEnabled).toBe(false);
     const html = await translate(createElement(AntigravityEnterpriseQuotaBody, { data }));
-    expect(html).toContain('0%');
+    expect(html).toContain('<strong>Weekly quota exhausted</strong>');
+    expect(html).toContain('Shared pool reports 0%');
     expect(html).toContain('Reset time not provided');
     expect(html).not.toContain('100%');
   });
@@ -220,9 +221,115 @@ describe('weekly quota observations', () => {
       quota: { ...response.quota, overageInfo: { enabled: true } },
     });
     const html = await translate(createElement(AntigravityEnterpriseQuotaBody, { data }));
-    expect(html).toContain('25%');
+    expect(html).toContain('<strong>Available quota unverified</strong>');
+    expect(html).toContain('Shared pool reports 25%');
     expect(html).toContain('Last known observation');
     expect(html).toContain('disabled overage billing');
+  });
+
+  test('keeps a positive pool percentage separate from a confirmed weekly restriction', async () => {
+    const response = quotaResponse({ remainingFraction: 0.9999995 });
+    const data = normalizeAntigravityEnterpriseQuota({
+      ...response,
+      cooldowns: [
+        {
+          scope: 'credential',
+          origin: 'shared_pool',
+          reason: 'weekly_quota',
+          feature: 'ai_developer_tools',
+          pool_id: 'a'.repeat(64),
+          pool_version: 2,
+          phase: 'cooling',
+          retry_at: '2026-11-16T08:00:00Z',
+          remaining_seconds: 3600,
+          restriction_kind: 'weekly',
+          restriction_scope: 'edition',
+        },
+      ],
+    });
+    const html = await translate(createElement(AntigravityEnterpriseQuotaBody, { data }));
+    expect(html).toContain('<strong>Weekly quota exhausted</strong>');
+    expect(html).toContain('Shared pool reports 99.99995%');
+  });
+
+  test('uses existing binding cooldowns for 429s without claiming weekly exhaustion', async () => {
+    const data = normalizeAntigravityEnterpriseQuota(
+      quotaResponse({ remainingFraction: 0.9999995 })
+    );
+    const fallback = normalizeAuthFileCooldowns(
+      [
+        {
+          scope: 'model',
+          model_key: 'gemini-4-argon-low',
+          reason: 'quota',
+          http_status: 429,
+          retry_at: '2026-11-09T08:00:00Z',
+          remaining_seconds: 60,
+        },
+      ],
+      undefined,
+      Date.now()
+    );
+    const html = await translate(
+      createElement(AntigravityEnterpriseQuotaBody, { data, cooldownSnapshot: fallback })
+    );
+    expect(html).toContain('<strong>Some model calls are limited</strong>');
+    expect(html).toContain('Shared pool reports 99.99995%');
+    expect(html).not.toContain('Weekly quota exhausted');
+  });
+
+  test('shows binding rate-limit reason and retry time separately from the pool reset', async () => {
+    const retryAt = '2026-11-15T09:00:59Z';
+    const response = quotaResponse({ remainingFraction: 0.9999995 });
+    const data = normalizeAntigravityEnterpriseQuota({
+      ...response,
+      cooldowns: [
+        {
+          scope: 'credential',
+          restriction_scope: 'binding',
+          reason: 'binding_rate_limit',
+          http_status: 429,
+          retry_at: retryAt,
+          remaining_seconds: 3600,
+        },
+      ],
+    });
+    const html = await translate(createElement(AntigravityEnterpriseQuotaBody, { data }));
+    expect(html).toContain('<strong>Subscription binding cooldown</strong>');
+    expect(html).toContain('Upstream rate limit (HTTP 429)');
+    expect(html).toContain('Retry at ');
+    expect(html).toContain(`dateTime="${new Date(retryAt).toISOString()}"`);
+    expect(html).toContain('Shared pool reports 99.99995%');
+    expect(html).not.toContain('Weekly quota exhausted');
+    expect(data.cooldownSnapshot?.records?.[0].restrictionScope).toBe('binding');
+    const details = await translate(
+      createElement(AuthFileCooldownSection, { snapshot: data.cooldownSnapshot })
+    );
+    expect(details).toContain('Subscription binding cooldown');
+    expect(details).toContain('This subscription binding');
+    expect(details).toContain('Upstream rate limit (HTTP 429)');
+    expect(cooldownReasonKey('binding_rate_limit')).toBe(
+      'antigravity_enterprise.binding_rate_limit'
+    );
+  });
+
+  test('does not show an expired binding restriction as active', async () => {
+    const data = normalizeAntigravityEnterpriseQuota({
+      ...quotaResponse({ remainingFraction: 0.9 }),
+      cooldowns: [
+        {
+          scope: 'credential',
+          restriction_scope: 'binding',
+          reason: 'binding_rate_limit',
+          http_status: 429,
+          retry_at: '2026-11-09T08:00:00Z',
+          remaining_seconds: 0,
+        },
+      ],
+    });
+    const html = await translate(createElement(AntigravityEnterpriseQuotaBody, { data }));
+    expect(html).not.toContain('Subscription binding cooldown');
+    expect(html).not.toContain('Upstream rate limit (HTTP 429)');
   });
 
   test('recognizes weekly shared cooldowns and requires backend support for metadata rechecks', () => {

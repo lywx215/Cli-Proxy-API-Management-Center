@@ -1,9 +1,12 @@
 import { isRecord } from '@/utils/helpers';
 
 // Keep this contract aligned with backend GeminiEnterpriseWebInputLimits.
-export const WEB_INPUT_LIMITS = [
-  ['max-contents', 50, 10000],
+const LEGACY_HISTORY_LIMITS = [
+  ['max-contents', 200, 10000],
   ['max-segments', 4129, 100000],
+] as const;
+
+const WEB_INPUT_LIMITS = [
   ['max-text-bytes', 4 * 1048576, 64 * 1048576],
   ['max-user-parts', 256, 65536],
   ['max-model-parts', 4096, 65536],
@@ -18,26 +21,38 @@ export const WEB_INPUT_LIMITS = [
   ['max-generation-config-bytes', 1048576, 64 * 1048576],
 ] as const;
 
-export type WebInputLimits = Record<(typeof WEB_INPUT_LIMITS)[number][0], number>;
+export type WebHistoryCountPolicy = 'unlimited';
+export type WebInputLimits = Record<(typeof WEB_INPUT_LIMITS)[number][0], number> &
+  Partial<Record<(typeof LEGACY_HISTORY_LIMITS)[number][0], number>>;
 
 // Runtime status must be explicit. Only YAML/config reads may fill omitted or
 // zero fields with backend defaults; unknown backend fields are left intact on save.
 export function normalizeWebInputLimits(
   raw: unknown,
-  configDefaults = false
+  configDefaults = false,
+  historyCountPolicy?: WebHistoryCountPolicy
 ): WebInputLimits | undefined {
   if (!isRecord(raw)) return undefined;
   const result = {} as WebInputLimits;
-  for (const [key, fallback, maximum] of WEB_INPUT_LIMITS) {
+  const fields =
+    historyCountPolicy === 'unlimited'
+      ? WEB_INPUT_LIMITS
+      : [...WEB_INPUT_LIMITS, ...LEGACY_HISTORY_LIMITS];
+  for (const [key, fallback, maximum] of fields) {
     const value =
       configDefaults && (raw[key] === undefined || raw[key] === 0) ? fallback : raw[key];
     if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1 || value > maximum)
       return undefined;
     result[key] = value;
   }
-  return result['max-segments'] >= result['max-contents'] ? result : undefined;
+  if (historyCountPolicy === 'unlimited') return result;
+  const segments = result['max-segments']!;
+  if (configDefaults && (raw['max-contents'] === undefined || raw['max-contents'] === 0)) {
+    result['max-contents'] = Math.min(result['max-contents']!, segments);
+  }
+  return segments >= result['max-contents']! ? result : undefined;
 }
 
 export function sameWebInputLimits(a: WebInputLimits, b: WebInputLimits): boolean {
-  return WEB_INPUT_LIMITS.every(([key]) => a[key] === b[key]);
+  return [...WEB_INPUT_LIMITS, ...LEGACY_HISTORY_LIMITS].every(([key]) => a[key] === b[key]);
 }

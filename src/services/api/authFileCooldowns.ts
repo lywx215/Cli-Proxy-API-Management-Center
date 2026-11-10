@@ -82,6 +82,12 @@ function normalizeRecord(value: unknown): AuthFileCooldown | null {
           sharedResetSupported: entry.shared_reset_supported === true,
         }
       : {}),
+    ...(!shared && scope === 'credential' && entry.restriction_scope === 'binding'
+      ? {
+          restrictionScope: 'binding',
+          timeSource: entry.time_source === 'google' ? 'google' : undefined,
+        }
+      : {}),
     scope,
     ...(scope === 'model' ? { modelKey } : {}),
     reason: reason || 'unknown',

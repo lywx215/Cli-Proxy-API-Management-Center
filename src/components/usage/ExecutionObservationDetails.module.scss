@@ -1,0 +1,34 @@
+.details {
+  min-width: 110px;
+  max-width: 420px;
+  font-size: 12px;
+  white-space: normal;
+
+  &[open] {
+    min-width: 360px;
+  }
+
+  summary {
+    cursor: pointer;
+  }
+  p {
+    margin: 8px 0;
+    color: var(--text-secondary);
+  }
+  dl {
+    margin: 8px 0;
+  }
+  dl > div {
+    display: grid;
+    grid-template-columns: minmax(90px, 1fr) minmax(120px, 2fr);
+    gap: 12px;
+    margin: 4px 0;
+  }
+  dt {
+    color: var(--text-secondary);
+  }
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}

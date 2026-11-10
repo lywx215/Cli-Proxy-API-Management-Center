@@ -59,6 +59,12 @@ function CooldownDetails({
   const now = useSyncExternalStore(clock.subscribe, clock.getSnapshot, clock.getSnapshot);
   const { rows, modelCount, credentialWide, earliestSeconds } = summarizeCooldowns(snapshot, now);
   const elapsed = earliestSeconds === 0;
+  const bindingLimited = rows.some(
+    ({ record, remainingSeconds }) =>
+      record.reason === 'binding_rate_limit' &&
+      record.scope === 'credential' &&
+      remainingSeconds > 0
+  );
   const sharedRows = rows.filter(({ record }) => record.origin === 'shared_pool');
   const sharedTitle = (record: AuthFileCooldown) =>
     record.feature === 'ai_developer_tools'
@@ -92,11 +98,13 @@ function CooldownDetails({
       <summary className={styles.summary}>
         <span className={styles.summaryContent}>
           <span className={styles.scope}>
-            {sharedRows.length
-              ? t(sharedTitle(sharedRows[0].record))
-              : elapsed
-                ? t('auth_files.cooldown_elapsed')
-                : scopeLabel}
+            {bindingLimited
+              ? t('antigravity_enterprise.binding_cooling_title')
+              : sharedRows.length
+                ? t(sharedTitle(sharedRows[0].record))
+                : elapsed
+                  ? t('auth_files.cooldown_elapsed')
+                  : scopeLabel}
           </span>
           <span className={styles.next}>
             {sharedRows.length && sharedPhase !== 'cooling'
@@ -114,11 +122,13 @@ function CooldownDetails({
             <li className={styles.row} key={`${record.scope}:${record.modelKey ?? ''}:${index}`}>
               <div className={styles.rowHead}>
                 <span className={styles.model}>
-                  {record.scope === 'credential'
-                    ? record.origin === 'shared_pool'
-                      ? t('auth_files.shared_quota_all_text')
-                      : t('auth_files.cooldown_scope_credential')
-                    : record.modelKey}
+                  {record.reason === 'binding_rate_limit'
+                    ? t('antigravity_enterprise.binding_scope')
+                    : record.scope === 'credential'
+                      ? record.origin === 'shared_pool'
+                        ? t('auth_files.shared_quota_all_text')
+                        : t('auth_files.cooldown_scope_credential')
+                      : record.modelKey}
                 </span>
                 <span className={styles.remaining}>
                   {remainingSeconds > 0

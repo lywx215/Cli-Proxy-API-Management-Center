@@ -1,3 +1,4 @@
+import { normalizeExecutionObservation, type ExecutionObservation } from './usage/observation';
 /**
  * 使用统计相关工具
  * 迁移自基线 modules/usage.js 的纯逻辑部分
@@ -55,6 +56,9 @@ export interface ModelPrice {
 }
 
 export interface UsageDetail {
+  execution_id?: string;
+  trace_id?: string;
+  observation?: ExecutionObservation;
   provider?: string;
   timestamp: string;
   source: string;
@@ -554,6 +558,10 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
         const tokensRaw = isRecord(detailRaw.tokens) ? detailRaw.tokens : {};
         const latencyMs = extractLatencyMs(detailRaw);
         details.push({
+          execution_id:
+            typeof detailRaw.execution_id === 'string' ? detailRaw.execution_id : undefined,
+          trace_id: typeof detailRaw.trace_id === 'string' ? detailRaw.trace_id : undefined,
+          observation: normalizeExecutionObservation(detailRaw.observation),
           timestamp,
           provider:
             typeof detailRaw.provider === 'string'
@@ -639,6 +647,10 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
         const tokensRaw = isRecord(detailRaw.tokens) ? detailRaw.tokens : {};
         const latencyMs = extractLatencyMs(detailRaw);
         details.push({
+          execution_id:
+            typeof detailRaw.execution_id === 'string' ? detailRaw.execution_id : undefined,
+          trace_id: typeof detailRaw.trace_id === 'string' ? detailRaw.trace_id : undefined,
+          observation: normalizeExecutionObservation(detailRaw.observation),
           timestamp,
           provider:
             typeof detailRaw.provider === 'string'

@@ -5,6 +5,7 @@ const REASON_KEYS: Record<string, string> = {
   credential_quota: 'auth_files.cooldown_reason_credential_quota',
   weekly_quota: 'antigravity_enterprise.weekly_quota',
   permission_denied: 'antigravity_enterprise.permission_denied',
+  binding_rate_limit: 'antigravity_enterprise.binding_rate_limit',
   cloudflare_challenge: 'auth_files.cooldown_reason_cloudflare_challenge',
   invalid_grant: 'auth_files.cooldown_reason_invalid_grant',
   unauthorized: 'auth_files.cooldown_reason_unauthorized',

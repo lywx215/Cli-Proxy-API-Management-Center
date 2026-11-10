@@ -48,8 +48,15 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     fieldId: 'geminiEnterpriseWebEnabled',
     sectionId: 'network',
     labelKey: 'enterprise_web.enabled',
-    hintKey: 'enterprise_web.scope',
+    hintKey: 'enterprise_web.scope_with_media_fallback',
     yamlKeys: ['upstream', 'gemini-enterprise-web', 'enabled'],
+  },
+  {
+    fieldId: 'geminiEnterpriseWebCookieCCPollingEnabled',
+    sectionId: 'network',
+    labelKey: 'enterprise_web.cc_polling',
+    hintKey: 'enterprise_web.cc_polling_hint',
+    yamlKeys: ['upstream', 'gemini-enterprise-web', 'cookie-cc-polling-enabled'],
   },
   {
     fieldId: 'geminiEnterpriseWebMaxConcurrent',

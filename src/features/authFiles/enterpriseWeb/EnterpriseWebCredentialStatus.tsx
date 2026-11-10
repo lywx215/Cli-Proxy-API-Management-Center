@@ -17,11 +17,17 @@ export function EnterpriseWebCredentialStatus({
   const reloginRequired = checkStatus === 'relogin_required';
   const checkFailed = checkStatus === 'check_failed';
   const degraded = checkStatus === 'renewal_degraded';
+  const cc = summary?.cookieCCCheck;
   const times = [
     ['cookie_checked_at', summary?.cookieCheckedAt],
     ['cookie_last_verified_at', summary?.cookieLastVerifiedAt],
     ['cookie_last_renewed_at', summary?.cookieLastRenewedAt],
     ['cookie_next_check_at', summary?.cookieNextCheckAt],
+  ] as const;
+  const ccTimes = [
+    ['cookie_checked_at', cc?.lastCheckedAt],
+    ['cookie_last_renewed_at', cc?.lastRenewedAt],
+    ['cookie_next_check_at', cc?.nextCheckAt],
   ] as const;
   return (
     <>
@@ -76,7 +82,26 @@ export function EnterpriseWebCredentialStatus({
             <p>{t('enterprise_web.policy_pending_hint')}</p>
           )}
           <p>{t('enterprise_web.credential_hint')}</p>
+          <p>{t('enterprise_web.request_failure_hint')}</p>
         </>
+      )}
+      {cc && (
+        <div>
+          <p>
+            {t('enterprise_web.cc_polling_actual', {
+              status: t(`enterprise_web.cc_statuses.${cc.status}`),
+            })}
+          </p>
+          {cc.reason && <p>{t(`enterprise_web.cc_reasons.${cc.reason}`)}</p>}
+          {!compact &&
+            ccTimes.map(([label, time]) =>
+              time ? (
+                <p key={label}>
+                  {t('enterprise_web.' + label, { time: formatDateTimeValue(time, i18n.language) })}
+                </p>
+              ) : null
+            )}
+        </div>
       )}
     </>
   );

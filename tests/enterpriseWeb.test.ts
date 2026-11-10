@@ -121,6 +121,44 @@ describe('Enterprise Web management boundary', () => {
     expect(validEnterpriseWebSettings({ ...settings, maxConcurrent: 0 })).toBe(false);
     expect(validEnterpriseWebSettings({ ...settings, maxInflightBytes: 50 * 1048576 })).toBe(false);
   });
+  test('shows fallback reasons only when both counters are available', async () => {
+    const i18n = createInstance();
+    await i18n.init({ lng: 'en', resources: { en: { translation: en } } });
+    const counters = { web_disabled: 0, no_web_credential: 7, 'unknown-reason': 9 };
+    const status = normalizeEnterpriseWebStatus({ ...rawStatus, media_fallback_requests: counters });
+    expect(status.mediaFallbackRequests).toEqual({ webDisabled: 0, noWebCredential: 7 });
+
+    const render = (value: typeof status, error = false) =>
+      renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(EnterpriseWebStatus, { status: value, error })
+        )
+      );
+    expect(render(status)).toContain(
+      'Text fallbacks · Web disabled 0 · No eligible Web credential 7'
+    );
+    expect(render(status, true)).not.toContain('Text fallbacks');
+    for (const media_fallback_requests of [
+      undefined,
+      { web_disabled: 0 },
+      { ...counters, no_web_credential: -1 },
+      { ...counters, no_web_credential: '7' },
+    ]) {
+      const legacy = normalizeEnterpriseWebStatus({ ...rawStatus, media_fallback_requests });
+      expect(legacy.mediaFallbackRequests).toBeUndefined();
+      expect(render(legacy)).not.toContain('Text fallbacks');
+    }
+    for (const language of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
+      const locale = JSON.parse(
+        readFileSync(new URL(`../src/i18n/locales/${language}.json`, import.meta.url), 'utf8')
+      );
+      expect(locale.enterprise_web.scope_with_media_fallback.length).toBeGreaterThan(0);
+      expect(locale.enterprise_web.media_fallback_counts).toContain('{{webDisabled}}');
+      expect(locale.enterprise_web.media_fallback_counts).toContain('{{noWebCredential}}');
+    }
+  });
   test('parses the Plus origin, region and account index without guessing global', () => {
     expect(
       parseEnterpriseWebPage('https://vertexaisearch.cloud.google.com/ca/home/cid/config?hl=zh_CN')

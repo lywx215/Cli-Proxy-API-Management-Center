@@ -28,21 +28,68 @@ function mockStatus(value: unknown = status) {
 }
 
 test('input limits normalize explicit runtime values without inventing old backend support', () => {
-  expect(defaults['max-contents']).toBe(50);
+  expect(defaults['max-contents']).toBe(200);
   expect(defaults['max-text-bytes']).toBe(4 * 1048576);
   expect(defaults['max-attachments']).toBe(12);
+  expect(defaults['max-attachment-bytes']).toBe(50 * 1048576);
   expect(normalizeEnterpriseWebStatus(status).inputLimits).toEqual(defaults);
   expect(
     normalizeEnterpriseWebStatus({ ...status, input_limits: undefined }).inputLimits
   ).toBeUndefined();
   expect(normalizeWebInputLimits({})).toBeUndefined();
   expect(normalizeWebInputLimits({ 'max-contents': 0 }, true)).toEqual(defaults);
+  const explicit = { ...defaults, 'max-contents': 50 };
+  expect(normalizeWebInputLimits({ 'max-contents': 50 }, true)).toEqual(explicit);
+  expect(normalizeEnterpriseWebStatus({ ...status, input_limits: explicit }).inputLimits).toEqual(
+    explicit
+  );
+  expect(normalizeWebInputLimits({ 'max-segments': 100 }, true)).toEqual({
+    ...defaults,
+    'max-contents': 100,
+    'max-segments': 100,
+  });
+  expect(
+    normalizeWebInputLimits({ 'max-contents': 200, 'max-segments': 100 }, true)
+  ).toBeUndefined();
   expect(normalizeWebInputLimits({ ...defaults, 'max-contents': 0 })).toBeUndefined();
   expect(normalizeWebInputLimits({ ...defaults, 'max-contents': 1.5 })).toBeUndefined();
   expect(normalizeWebInputLimits({ ...defaults, 'max-attachments': 129 })).toBeUndefined();
   expect(normalizeWebInputLimits({ ...defaults, 'max-tool-array-entries': 65536 })).toBeDefined();
   expect(normalizeWebInputLimits({ ...defaults, 'max-tool-array-entries': 65537 })).toBeUndefined();
   expect(normalizeWebInputLimits({ ...defaults, 'max-segments': 49 })).toBeUndefined();
+});
+
+test('unlimited history is explicit and retains every current input limit', async () => {
+  const limits = normalizeWebInputLimits({}, true, 'unlimited')!;
+  const current = {
+    ...status,
+    history_count_policy: 'unlimited',
+    supports_model_history_inline_data: true,
+    input_limits: { ...limits, 'max-attachments': 20 },
+  };
+  const normalized = normalizeEnterpriseWebStatus(current);
+  expect(normalized.historyCountPolicy).toBe('unlimited');
+  expect(normalized.supportsModelHistoryInlineData).toBe(true);
+  expect(normalized.inputLimits?.['max-contents']).toBeUndefined();
+  expect(normalized.inputLimits?.['max-segments']).toBeUndefined();
+  expect(normalized.inputLimits?.['max-attachments']).toBe(20);
+  expect(normalized.inputLimits?.['max-attachment-bytes']).toBe(50 * 1048576);
+  expect(normalizeEnterpriseWebStatus(status).historyCountPolicy).toBeUndefined();
+  expect(normalizeEnterpriseWebStatus(status).inputLimits?.['max-contents']).toBe(200);
+
+  const get = mockStatus(current);
+  const edited =
+    before + '    input-limits: {max-contents: 70, max-segments: 1, max-attachments: 20}\n';
+  await verifyEnterpriseWebConfigChange(before, edited, 'before');
+  await verifyEnterpriseWebConfigChange(before, edited, 'after');
+  get.mockResolvedValue({ ...current, input_limits: limits });
+  await expect(verifyEnterpriseWebConfigChange(before, edited, 'after')).rejects.toMatchObject({
+    code: 'settings_not_effective',
+  });
+  get.mockResolvedValue(status);
+  await expect(verifyEnterpriseWebConfigChange(before, edited, 'before')).rejects.toMatchObject({
+    code: 'invalid_input_limits',
+  });
 });
 
 test('input limit saves require runtime support before write and actual values after write', async () => {
@@ -73,11 +120,11 @@ test('removing configured input limits confirms backend defaults, including zero
 
 test('invalid limits fail without status requests and unrelated saves do not add a dependency', async () => {
   const get = mockStatus();
-  for (const value of ['-1', '1.5', '10001', '"70"']) {
+  for (const value of ['-1', '1.5', '129', '"20"']) {
     await expect(
       verifyEnterpriseWebConfigChange(
         before,
-        before + `    input-limits: {max-contents: ${value}}\n`,
+        before + `    input-limits: {max-attachments: ${value}}\n`,
         'before'
       )
     ).rejects.toMatchObject({ code: 'invalid_input_limits' });

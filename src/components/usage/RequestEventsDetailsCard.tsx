@@ -1,3 +1,5 @@
+import { ExecutionObservationDetails } from './ExecutionObservationDetails';
+import type { ExecutionObservation } from '@/utils/usage/observation';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +28,9 @@ const ALL_FILTER = '__all__';
 const MAX_RENDERED_EVENTS = 500;
 
 type RequestEventRow = {
+  observation?: ExecutionObservation;
+  executionId?: string;
+  traceId?: string;
   id: string;
   timestamp: string;
   timestampMs: number;
@@ -163,7 +168,12 @@ export function RequestEventsDetailsCard({
       ].some((value) => value !== null);
 
       return {
-        id: `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
+        id: detail.execution_id
+          ? `${detail.execution_id}-${model}`
+          : `${timestamp}-${model}-${sourceKey}-${authIndex}-${index}`,
+        observation: detail.observation,
+        executionId: detail.execution_id,
+        traceId: detail.trace_id,
         timestamp,
         timestampMs: Number.isNaN(timestampMs) ? 0 : timestampMs,
         timestampLabel: date ? date.toLocaleString(i18n.language) : timestamp || '-',
@@ -348,6 +358,9 @@ export function RequestEventsDetailsCard({
 
     const csvHeader = [
       'timestamp',
+      'execution_id',
+      'trace_id',
+      'observation_json',
       'model',
       'source',
       'source_raw',
@@ -368,6 +381,9 @@ export function RequestEventsDetailsCard({
     const csvRows = filteredRows.map((row) =>
       [
         row.timestamp,
+        row.executionId ?? '',
+        row.traceId ?? '',
+        row.observation ? JSON.stringify(row.observation) : '',
         row.model,
         row.source,
         row.sourceRaw,
@@ -405,6 +421,9 @@ export function RequestEventsDetailsCard({
     if (!filteredRows.length) return;
 
     const payload = filteredRows.map((row) => ({
+      ...(row.executionId ? { execution_id: row.executionId } : {}),
+      ...(row.traceId ? { trace_id: row.traceId } : {}),
+      ...(row.observation ? { observation: row.observation } : {}),
       timestamp: row.timestamp,
       model: row.model,
       source: row.source,
@@ -589,6 +608,11 @@ export function RequestEventsDetailsCard({
                       >
                         {row.failed ? t('stats.failure') : t('stats.success')}
                       </span>
+                      <ExecutionObservationDetails
+                        observation={row.observation}
+                        executionId={row.executionId}
+                        traceId={row.traceId}
+                      />
                       {row.creditsUsed && <span className={styles.creditsBadge}>💎</span>}
                     </td>
                     {hasLatencyData && (

@@ -11,6 +11,9 @@ export function EnterpriseWebStatus({
   error?: boolean;
 }) {
   const { t } = useTranslation();
+  const limits = status?.inputLimits;
+  const contents = limits?.['max-contents'];
+  const segments = limits?.['max-segments'];
   return (
     <div role="status" aria-live="polite">
       <p>
@@ -47,6 +50,40 @@ export function EnterpriseWebStatus({
               : 'enterprise_web.history_single'
           )}
         </p>
+      )}
+      {status?.mediaFallbackRequests && !error && (
+        <p>{t('enterprise_web.media_fallback_counts', status.mediaFallbackRequests)}</p>
+      )}
+      {status && !error && status.cookieCCPollingEnabled !== undefined && (
+        <p>
+          {t('enterprise_web.cc_polling_actual', {
+            status: t(
+              !status.cookieCCPollingEnabled
+                ? 'enterprise_web.off'
+                : status.enabled
+                  ? 'enterprise_web.on'
+                  : 'enterprise_web.cc_polling_channel_off'
+            ),
+          })}
+        </p>
+      )}
+      {status && !error && status.supportedHistoryModes?.includes('serialized-context') && (
+        <>
+          <p>
+            {status.historyCountPolicy === 'unlimited'
+              ? t('enterprise_web.history_count_unlimited')
+              : contents !== undefined && segments !== undefined
+                ? t('enterprise_web.history_count_legacy', { contents, segments })
+                : t('enterprise_web.history_count_unknown')}
+          </p>
+          <p>
+            {t(
+              status.supportsModelHistoryInlineData === true
+                ? 'enterprise_web.model_history_attachments'
+                : 'enterprise_web.model_history_attachments_unknown'
+            )}
+          </p>
+        </>
       )}
       {status &&
         !error &&

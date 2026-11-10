@@ -50,6 +50,7 @@ export interface AntigravityEnterpriseQuota {
   status: string;
   stale: boolean;
   observedAt?: string;
+  cooldownSnapshot?: AuthFileCooldownSnapshot;
   overageEnabled: boolean | null;
   weekly?: {
     remainingFraction: number | null;
