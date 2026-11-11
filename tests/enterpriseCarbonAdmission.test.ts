@@ -371,6 +371,47 @@ describe('Carbon application admission frontend', () => {
     expect((await authFileModelTestsApi.test(target, carbon, signal)).revision).toBe(3);
   });
 
+  test('runs a registered Carbon alias as a direct generation without requiring saved proof', async () => {
+    const target = file({ ...manualAdmission, enabled: true, available: true, can_test: false });
+    const alias = 'carbon-alias';
+    const raw = {
+      status: 'ok',
+      model: alias,
+      upstream_model: carbon,
+      auth_index: 'app-index',
+      binding_id: 'binding',
+      revision: 3,
+      resources: serializeEnterpriseResources(enterpriseResources(target.geminiEnterprise)),
+      checked_at: proof.checked_at,
+      elapsed_ms: 5,
+      http_status: 200,
+    };
+    const post = spyOn(apiClient, 'post').mockResolvedValue(raw);
+    const signal = new AbortController().signal;
+    const testDirect = (selected = target) =>
+      authFileModelTestsApi.test(selected, alias, signal, carbon, { carbonDirect: true });
+    expect(await testDirect()).toMatchObject({ status: 'ok', model: alias, upstreamModel: carbon });
+    expect(post).toHaveBeenLastCalledWith(
+      '/credentials/models/test',
+      {
+        name: 'fixture.json',
+        auth_index: 'app-index',
+        model: alias,
+        carbon_direct: true,
+        binding_id: 'binding',
+        expected_revision: 3,
+        expected: raw.resources,
+      },
+      { signal, timeout: 0 }
+    );
+    await expect(testDirect(file(manualAdmission))).rejects.toBeInstanceOf(
+      InvalidManagementResponseError
+    );
+    expect(post).toHaveBeenCalledTimes(1);
+    post.mockResolvedValue({ ...raw, upstream_model: 'gemini-4-argon' });
+    await expect(testDirect()).rejects.toBeInstanceOf(InvalidManagementResponseError);
+  });
+
   test('rejects late Carbon test and switch responses after cancellation or connection changes', async () => {
     let connection = 10;
     spyOn(apiClient, 'getConnectionRevision').mockImplementation(() => connection);
@@ -493,7 +534,6 @@ describe('Carbon application admission frontend', () => {
       new URL('../src/features/authFiles/hooks/useAuthFileModelTests.ts', import.meta.url),
       'utf8'
     );
-    expect(tests).toContain('ids.sort');
     expect(tests).not.toContain('carbon_enabled: true');
   });
 
@@ -552,6 +592,7 @@ describe('Carbon application admission frontend', () => {
           onClose: () => {},
           onCopyText: () => {},
           onTestModels: () => {},
+          onVerifyCarbon: () => {},
           onCarbonChange: () => {},
         })
       )
@@ -591,12 +632,18 @@ describe('Carbon application admission frontend', () => {
             onClose: () => {},
             onCopyText: () => {},
             onTestModels: () => {},
+            onVerifyCarbon: () => {},
             onCarbonChange: () => {},
           })
         )
       );
       expect(content.includes('Admitted Carbon row')).toBe(active);
       expect(content.includes('Admitted Carbon alias')).toBe(active);
+      for (const model of [carbon, 'carbon-alias']) {
+        const button = content.match(new RegExp(`<button[^>]*aria-label="Test ${model}"[^>]*>`));
+        expect(Boolean(button)).toBe(active);
+        if (button) expect(button[0]).not.toContain('disabled');
+      }
       expect(content.includes('Admitted business model')).toBe(active);
       expect(content.includes('not a business model')).toBe(!active);
       expect(content).toContain(`Supported models · ${active ? 3 : 1}`);

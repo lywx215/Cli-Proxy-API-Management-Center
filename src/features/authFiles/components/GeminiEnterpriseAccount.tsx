@@ -85,6 +85,13 @@ function CollectionRows({
     enterprisePolicyRoutingPaused(binding?.modelPolicyState);
   const argonForceEnabled =
     binding?.modelPolicyState?.argonForceEnabled ?? binding?.settings?.argon_force_enabled === true;
+  const allModelsEnabled =
+    binding?.modelPolicyState?.allModelsEnabled ?? binding?.settings?.all_models_enabled === true;
+  const modelSwitchDisabled =
+    props.disableControls ||
+    busy ||
+    binding?.revision === undefined ||
+    !String(file.authIndex ?? '').trim();
   const status = file.disabled
     ? 'disabled'
     : parentDisabled
@@ -187,19 +194,26 @@ function CollectionRows({
               </span>
             </div>
             {binding?.argonForceSupported === true && binding.bindingId && (
-              <div className={styles.argonSwitchRow}>
+              <div className={styles.modelSwitchRow}>
                 <ToggleSwitch
                   checked={argonForceEnabled}
                   label={t('gemini_enterprise.policy.force_argon')}
                   onChange={(enabled) =>
                     void saveCollection({ fields: { argon_force_enabled: enabled } })
                   }
-                  disabled={
-                    props.disableControls ||
-                    busy ||
-                    binding.revision === undefined ||
-                    !String(file.authIndex ?? '').trim()
+                  disabled={modelSwitchDisabled}
+                />
+              </div>
+            )}
+            {binding?.allModelsSupported === true && binding.bindingId && (
+              <div className={styles.modelSwitchRow}>
+                <ToggleSwitch
+                  checked={allModelsEnabled}
+                  label={t('gemini_enterprise.policy.all_models')}
+                  onChange={(enabled) =>
+                    void saveCollection({ fields: { all_models_enabled: enabled } })
                   }
+                  disabled={modelSwitchDisabled}
                 />
               </div>
             )}

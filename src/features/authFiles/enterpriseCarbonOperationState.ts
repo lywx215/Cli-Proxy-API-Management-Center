@@ -87,6 +87,7 @@ export function carbonApplicationConfigurationIdentity(file: AuthFileItem): stri
       policy && {
         mode: policy.mode,
         effectiveMode: policy.effectiveMode,
+        allModelsEnabled: policy.allModelsEnabled,
         allowedModels: policy.allowedModels,
         excludedModels: policy.excludedModels,
         globalExcludedModels: policy.globalExcludedModels,

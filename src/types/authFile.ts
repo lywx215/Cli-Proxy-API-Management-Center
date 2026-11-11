@@ -86,6 +86,7 @@ export type EnterpriseCarbonAdmission = {
 };
 export type EnterpriseModelPolicyState = {
   argonForceEnabled?: boolean;
+  allModelsEnabled?: boolean;
   carbonAdmissionSupported?: boolean;
   carbonAdmission?: EnterpriseCarbonAdmission;
   mode: EnterpriseModelPolicyMode;
@@ -155,6 +156,7 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   argonForceSupported?: boolean;
+  allModelsSupported?: boolean;
   carbonAuthorizationRevision?: number;
   carbonRegistrationEpoch?: number;
   googleCarbonConfigureSupported?: boolean;

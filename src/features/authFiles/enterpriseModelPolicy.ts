@@ -40,7 +40,9 @@ export function enterprisePolicyRoutingPaused(snapshot?: EnterpriseModelPolicySt
   if (!snapshot || snapshot.argonForceEnabled) return false;
   if (
     snapshot.status === 'blocked' ||
-    (snapshot.mode === 'custom' && snapshot.allowedModels?.length === 0) ||
+    (!snapshot.allModelsEnabled &&
+      snapshot.mode === 'custom' &&
+      snapshot.allowedModels?.length === 0) ||
     (snapshot.catalogKnown && snapshot.effectiveModels.length === 0)
   )
     return true;
@@ -197,12 +199,15 @@ export function enterprisePolicyPreview(
   snapshot: EnterpriseModelPolicyState | undefined,
   excluded: string[]
 ): string[] | null {
-  const allowed = draft.whitelistEnabled ? parseEnterpriseAllowedModels(draft.allowedText) : null;
+  const allModels = snapshot?.allModelsEnabled === true;
+  const allowed =
+    !allModels && draft.whitelistEnabled ? parseEnterpriseAllowedModels(draft.allowedText) : null;
   const forced = snapshot?.argonForceEnabled ? [ARGON_MODEL] : [];
   if (draft.mode === 'custom' && allowed?.length === 0) return forced;
   if (!snapshot) return null;
-  let effective: string = draft.mode;
-  if (draft.mode === 'auto') {
+  let effective: string = allModels ? 'catalog' : draft.mode;
+  if (allModels && snapshot.status === 'blocked') return forced;
+  if (!allModels && draft.mode === 'auto') {
     const subscription = snapshot.subscription;
     if (subscription.status !== 'ok' && subscription.status !== 'stale') return forced;
     effective = 'catalog';

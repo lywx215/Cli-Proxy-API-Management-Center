@@ -52,6 +52,7 @@ import {
 } from '@/features/authFiles/logic';
 import { useAuthFilesData } from '@/features/authFiles/hooks/useAuthFilesData';
 import { useAuthFilesModels } from '@/features/authFiles/hooks/useAuthFilesModels';
+import { ENTERPRISE_CARBON_MODEL } from '@/features/authFiles/enterpriseCarbon';
 import { useAuthFilesOauth } from '@/features/authFiles/hooks/useAuthFilesOauth';
 import { useAuthFilesPrefixProxyEditor } from '@/features/authFiles/hooks/useAuthFilesPrefixProxyEditor';
 import { useAuthFilesStatusBarCache } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
@@ -135,6 +136,7 @@ export function AuthFilesPage() {
     cancelModelTests,
     carbonSaving,
     carbonError,
+    carbonVerificationTest,
     changeCarbonEnabled,
     enterpriseMutationVersion,
   } = useAuthFilesModels();
@@ -970,6 +972,8 @@ export function AuthFilesPage() {
         testUnsupported={modelTestUnsupported}
         testProgress={modelTestProgress}
         onTestModels={(models) => void runModelTests(models)}
+        onVerifyCarbon={() => void runModelTests([ENTERPRISE_CARBON_MODEL], true)}
+        carbonVerificationTest={carbonVerificationTest}
         onCancelTests={cancelModelTests}
         controlsDisabled={disableControls}
         carbonSaving={carbonSaving}

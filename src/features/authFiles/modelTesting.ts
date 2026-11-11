@@ -134,6 +134,7 @@ export function modelTestIdentity(file: AuthFileItem): string {
     file.geminiEnterprise?.modelPolicyState?.effectiveMode,
     file.geminiEnterprise?.modelPolicyState?.status,
     file.geminiEnterprise?.modelPolicyState?.argonForceEnabled,
+    file.geminiEnterprise?.modelPolicyState?.allModelsEnabled,
     file.geminiEnterprise?.modelPolicyState?.catalogKnown,
     file.geminiEnterprise?.modelPolicyState?.effectiveModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels !== undefined,

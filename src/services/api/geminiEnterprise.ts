@@ -125,7 +125,11 @@ export class GeminiEnterpriseConfigConflict extends Error {}
 export type EnterpriseCollectionPatch = {
   disabled?: boolean;
   resources?: EnterpriseResources;
-  fields?: AuthFileFieldsPatch & { carbon_enabled?: boolean; argon_force_enabled?: boolean };
+  fields?: AuthFileFieldsPatch & {
+    carbon_enabled?: boolean;
+    argon_force_enabled?: boolean;
+    all_models_enabled?: boolean;
+  };
   carbonTestId?: string;
 };
 

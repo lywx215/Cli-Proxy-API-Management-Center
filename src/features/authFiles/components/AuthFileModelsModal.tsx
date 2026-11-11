@@ -2,7 +2,6 @@ import { EnterpriseCatalogStatus } from './EnterpriseCatalogFields';
 import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
 import { EnterpriseCarbonAdmission } from './EnterpriseCarbonAdmission';
 import {
-  canTestEnterpriseCarbon,
   enterpriseCarbonAdmission,
   ENTERPRISE_CARBON_MODEL,
   isEnterpriseCarbonModel,
@@ -12,13 +11,12 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { IconCheckCircle2, IconCopy } from '@/components/ui/icons';
+import { IconCopy } from '@/components/ui/icons';
 import type { AuthFileItem } from '@/types';
 import type { AuthFileModelItem } from '@/features/authFiles/constants';
 import { isModelExcluded } from '@/features/authFiles/constants';
 import { createSharedClock } from '@/utils/time/sharedClock';
 import { enterpriseCollectionName } from '../enterpriseAccounts';
-import { enterpriseCarbonTestPresentation } from '../enterpriseCarbonPresentation';
 import { enterpriseForcesArgon } from '../enterpriseModelPolicy';
 import {
   enterpriseModelCooldown,
@@ -50,6 +48,8 @@ export type AuthFileModelsModalProps = {
   testUnsupported?: boolean;
   testProgress?: { completed: number; total: number };
   onTestModels?: (models: string[]) => void;
+  onVerifyCarbon?: () => void;
+  carbonVerificationTest?: ModelTestState;
   onCancelTests?: () => void;
   controlsDisabled?: boolean;
   carbonSaving?: boolean;
@@ -77,6 +77,8 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
     testUnsupported = false,
     testProgress = { completed: 0, total: 0 },
     onTestModels,
+    onVerifyCarbon,
+    carbonVerificationTest,
     onCancelTests,
     controlsDisabled = false,
     carbonSaving = false,
@@ -102,32 +104,27 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
       Boolean(file && isEnterpriseModelExcluded(file, upstreamModel))
     );
   };
-  const cooling = (id: string) =>
+  const cooling = (id: string, test = testResults[id]) =>
     file
-      ? enterpriseModelCooldown(file, id, testResults[id], now)
-      : Math.max(0, Math.ceil(((testResults[id]?.cooldownUntilMs ?? 0) - now) / 1000));
+      ? enterpriseModelCooldown(file, id, test, now)
+      : Math.max(0, Math.ceil(((test?.cooldownUntilMs ?? 0) - now) / 1000));
+  const carbonCooldown = Math.max(
+    cooling(ENTERPRISE_CARBON_MODEL),
+    cooling(ENTERPRISE_CARBON_MODEL, carbonVerificationTest)
+  );
+  const modelCooldown = (model: AuthFileModelItem) =>
+    Math.max(cooling(model.id), isOAuth && isEnterpriseCarbonModel(model) ? carbonCooldown : 0);
   const carbonAvailable = enterpriseCarbonAdmission(file)?.available === true;
   const displayedModels = models.filter(
     (model) => !isOAuth || !isEnterpriseCarbonModel(model) || carbonAvailable
   );
   const testableModels = displayedModels.filter(
-    (model) =>
-      (!isOAuth || !isEnterpriseCarbonModel(model)) &&
-      isEnterpriseTextModel(model) &&
-      !isExcluded(model) &&
-      !cooling(model.id)
+    (model) => isEnterpriseTextModel(model) && !isExcluded(model) && !modelCooldown(model)
   );
   const testableIds = testableModels.map((model) => model.id);
   const carbonCandidateAvailable = testCandidates.some(
     (model) => model.id === ENTERPRISE_CARBON_MODEL && model.test_candidate === true
   );
-  if (
-    isOAuth &&
-    carbonCandidateAvailable &&
-    canTestEnterpriseCarbon(file) &&
-    !cooling(ENTERPRISE_CARBON_MODEL)
-  )
-    testableIds.push(ENTERPRISE_CARBON_MODEL);
   const binding = file?.geminiEnterprise;
 
   return (
@@ -205,59 +202,56 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
           disabled={controlsDisabled}
           saving={carbonSaving}
           testBusy={testBusy}
-          test={testResults[ENTERPRISE_CARBON_MODEL]}
+          test={carbonVerificationTest}
           error={carbonError}
           testCandidateAvailable={carbonCandidateAvailable}
-          cooldownSeconds={cooling(ENTERPRISE_CARBON_MODEL)}
-          onTest={() => onTestModels?.([ENTERPRISE_CARBON_MODEL])}
+          cooldownSeconds={carbonCooldown}
+          onTest={onVerifyCarbon}
           onChange={onCarbonChange}
           onCopy={() => onCopyText(ENTERPRISE_CARBON_MODEL)}
         />
       )}
-      {showTests &&
-        !loading &&
-        !error &&
-        (displayedModels.length > 0 || testableIds.length > 0) && (
-          <div className={styles.testToolbar}>
-            <span>
-              {t(isWeb ? 'enterprise_web.available_count' : 'gemini_enterprise.models.text_count', {
-                count: displayedModels.filter(isEnterpriseTextModel).length,
-              })}
-            </span>
-            <div className={styles.testActions}>
-              {testBusy ? (
-                <Button size="sm" variant="secondary" onClick={onCancelTests}>
-                  {t('auth_files.model_test_cancel')}
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={!testsEnabled || testUnsupported || !testableIds.length || carbonSaving}
-                  onClick={() => onTestModels?.(testableIds)}
-                >
-                  {t('auth_files.model_test_all')}
-                </Button>
-              )}
-              {testProgress.total > 0 && (
-                <span className="hint" aria-live="polite">
-                  {t('auth_files.model_test_progress', testProgress)}
-                </span>
-              )}
-            </div>
-            {(!testsEnabled || testUnsupported) && (
-              <p className="hint">
-                {t(
-                  testUnsupported
-                    ? 'auth_files.model_test_unsupported'
-                    : isWeb
-                      ? 'enterprise_web.model_test_disabled'
-                      : 'auth_files.model_test_disabled'
-                )}
-              </p>
+      {showTests && !loading && !error && (displayedModels.length > 0 || testBusy) && (
+        <div className={styles.testToolbar}>
+          <span>
+            {t(isWeb ? 'enterprise_web.available_count' : 'gemini_enterprise.models.text_count', {
+              count: displayedModels.filter(isEnterpriseTextModel).length,
+            })}
+          </span>
+          <div className={styles.testActions}>
+            {testBusy ? (
+              <Button size="sm" variant="secondary" onClick={onCancelTests}>
+                {t('auth_files.model_test_cancel')}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!testsEnabled || testUnsupported || !testableIds.length || carbonSaving}
+                onClick={() => onTestModels?.(testableIds)}
+              >
+                {t('auth_files.model_test_all')}
+              </Button>
+            )}
+            {testProgress.total > 0 && (
+              <span className="hint" aria-live="polite">
+                {t('auth_files.model_test_progress', testProgress)}
+              </span>
             )}
           </div>
-        )}
+          {displayedModels.length > 0 && (!testsEnabled || testUnsupported) && (
+            <p className="hint">
+              {t(
+                testUnsupported
+                  ? 'auth_files.model_test_unsupported'
+                  : isWeb
+                    ? 'enterprise_web.model_test_disabled'
+                    : 'auth_files.model_test_disabled'
+              )}
+            </p>
+          )}
+        </div>
+      )}
       {loading ? (
         <div className="hint" role="status">
           {t('auth_files.models_loading')}
@@ -291,12 +285,9 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
             {displayedModels.map((model) => {
               const excludedModel = isExcluded(model);
               const textModel = isEnterpriseTextModel(model);
-              const carbonAlias = isOAuth && isEnterpriseCarbonModel(model);
               const test = testResults[model.id];
               const result = test?.result;
-              const carbonFeedback =
-                carbonAlias && file ? enterpriseCarbonTestPresentation(file, test) : undefined;
-              const cooldown = cooling(model.id);
+              const cooldown = modelCooldown(model);
               const state =
                 test?.state === 'running' ? 'running' : cooldown ? 'cooling' : test?.state;
               return (
@@ -354,15 +345,13 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
                         }
                         role="status"
                       >
-                        {carbonAlias
-                          ? t('gemini_enterprise.carbon.dedicated_test')
-                          : excludedModel
-                            ? t('auth_files.models_excluded_badge')
-                            : !textModel
-                              ? t('auth_files.model_test_text_only')
-                              : state
-                                ? t('auth_files.model_test_state_' + state)
-                                : t('gemini_enterprise.models.untested')}
+                        {excludedModel
+                          ? t('auth_files.models_excluded_badge')
+                          : !textModel
+                            ? t('auth_files.model_test_text_only')
+                            : state
+                              ? t('auth_files.model_test_state_' + state)
+                              : t('gemini_enterprise.models.untested')}
                         {cooldown > 0 && (
                           <small>{t('auth_files.model_test_retry', { seconds: cooldown })}</small>
                         )}
@@ -392,7 +381,6 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
                           testUnsupported ||
                           testBusy ||
                           carbonSaving ||
-                          carbonAlias ||
                           excludedModel ||
                           !textModel ||
                           cooldown > 0
@@ -404,32 +392,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
                           ? t('gemini_enterprise.models.retest')
                           : t('auth_files.model_test_one')}
                       </Button>
-                      {carbonAlias ? (
-                        carbonFeedback && (
-                          <div className={styles.testMessage}>
-                            <p
-                              className={
-                                carbonFeedback.tone === 'success'
-                                  ? styles.testSuccess
-                                  : carbonFeedback.tone === 'failure'
-                                    ? styles.testFailure
-                                    : styles.state
-                              }
-                              role="status"
-                              aria-live="polite"
-                            >
-                              {carbonFeedback.tone === 'success' && (
-                                <>
-                                  <IconCheckCircle2 size={14} aria-hidden="true" />{' '}
-                                </>
-                              )}
-                              {t(carbonFeedback.labelKey)}
-                              {carbonFeedback.reasonKey && <> · {t(carbonFeedback.reasonKey)}</>}
-                              {carbonFeedback.detail && <> · {carbonFeedback.detail}</>}
-                            </p>
-                          </div>
-                        )
-                      ) : result?.status === 'ok' && state === 'ok' ? (
+                      {result?.status === 'ok' && state === 'ok' ? (
                         <div className={styles.testMessage}>
                           <p className={styles.testSuccess} role="status">
                             {t('auth_files.model_test_state_ok')}

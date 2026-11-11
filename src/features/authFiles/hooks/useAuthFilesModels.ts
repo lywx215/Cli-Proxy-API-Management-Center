@@ -52,6 +52,7 @@ export type UseAuthFilesModelsResult = {
   syncModelsFile: (files: AuthFileItem[]) => void;
   carbonSaving: boolean;
   carbonError: string | null;
+  carbonVerificationTest?: ModelTestState;
   changeCarbonEnabled: (enabled: boolean) => Promise<void>;
   enterpriseMutationVersion: number;
 } & ReturnType<typeof useAuthFileModelTests>;
@@ -102,7 +103,13 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
         : selected;
     modelsFileRef.current = next;
     setModelsFile(next);
-    setLastCarbonTest({ state: result.status, result });
+    setLastCarbonTest({
+      state: result.status,
+      result,
+      ...(result.retryAfterSeconds
+        ? { cooldownUntilMs: Date.now() + result.retryAfterSeconds * 1000 }
+        : {}),
+    });
     modelsCacheRef.current.clear();
     setEnterpriseMutationVersion((value) => value + 1);
     void reloadSelected.current?.(next);
@@ -110,7 +117,8 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const tests = useAuthFileModelTests(
     modelsFile,
     [...modelsList, ...modelsTestCandidates],
-    acceptCarbonResult
+    acceptCarbonResult,
+    lastCarbonTest
   );
   const { resetModelTests } = tests;
 
@@ -370,12 +378,7 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     invalidateModels,
     syncModelsFile,
     ...tests,
-    modelTestResults: lastCarbonTest
-      ? {
-          ...tests.modelTestResults,
-          'gemini-4-carbon': tests.modelTestResults['gemini-4-carbon'] ?? lastCarbonTest,
-        }
-      : tests.modelTestResults,
+    carbonVerificationTest: tests.carbonVerificationRunning ? { state: 'running' } : lastCarbonTest,
     carbonSaving,
     carbonError,
     changeCarbonEnabled,

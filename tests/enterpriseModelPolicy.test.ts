@@ -403,6 +403,69 @@ describe('Enterprise model policy settings and API normalization', () => {
     expect(normalizeEnterpriseAccount({})?.argonForceSupported).toBeUndefined();
   });
 
+  test('the full-catalog switch is saved per binding and restores the stored policy on close', async () => {
+    const rawPolicy = {
+      mode: 'custom',
+      effective_mode: 'catalog',
+      all_models_enabled: true,
+      enforced_allowed_models: null,
+      effective_models: ['gemini-4-argon', 'gemini-3.8-flash'],
+      excluded_models: [],
+      catalog_models: [{ id: 'gemini-4-argon' }, { id: 'gemini-3.8-flash' }],
+      subscription: { status: 'ok', free_trial: false },
+    };
+    const policy = snapshot(rawPolicy);
+    const draft = readEnterprisePolicy({ model_policy: 'custom', allowed_models: [] });
+    const file = policyFile(policy);
+    file.geminiEnterprise = { ...file.geminiEnterprise, bindingId: 'one', revision: 3 };
+    expect(enterprisePolicyRoutingPaused(policy)).toBe(false);
+    expect(canTestEnterpriseFile(file)).toBe(true);
+    expect(enterprisePolicyPreview(draft, policy, [])).toEqual(rawPolicy.effective_models);
+    expect(enterprisePolicyPreview(draft, policy, ['gemini-4-*'])).toEqual(['gemini-3.8-flash']);
+    expect(enterprisePolicyRoutingPaused({ ...policy, status: 'blocked' })).toBe(true);
+    expect(enterprisePolicyPreview(draft, { ...policy, status: 'blocked' }, [])).toEqual([]);
+
+    const closed = snapshot({
+      mode: 'custom',
+      effective_mode: 'custom',
+      allowed_models: [],
+      all_models_enabled: false,
+      effective_models: [],
+    });
+    expect(enterprisePolicyRoutingPaused(closed)).toBe(true);
+    expect(enterprisePolicyPreview(draft, closed, [])).toEqual([]);
+    expect(modelTestIdentity(file)).not.toBe(
+      modelTestIdentity({
+        ...file,
+        geminiEnterprise: { ...file.geminiEnterprise, modelPolicyState: closed },
+      })
+    );
+
+    const patch = spyOn(apiClient, 'patch').mockResolvedValue({
+      status: 'ok',
+      gemini_enterprise: {
+        all_models_supported: true,
+        collections: [{ binding_id: 'one', revision: 4, model_policy_state: rawPolicy }],
+      },
+    });
+    const saved = await geminiEnterpriseApi.updateCollection(file, {
+      fields: { all_models_enabled: true },
+    });
+    expect(patch.mock.calls[0]?.slice(0, 2)).toEqual([
+      '/credentials/gemini-enterprise/collections',
+      {
+        name: 'policy-fixture.json',
+        auth_index: 'fixture-auth',
+        binding_id: 'one',
+        expected_revision: 3,
+        fields: { all_models_enabled: true },
+      },
+    ]);
+    expect(saved.allModelsSupported).toBe(true);
+    expect(saved.collections?.[0].modelPolicyState?.allModelsEnabled).toBe(true);
+    expect(normalizeEnterpriseAccount({})?.allModelsSupported).toBeUndefined();
+  });
+
   test('renders pause and empty-list feedback and keeps all six locales aligned', async () => {
     const english = JSON.parse(
       readFileSync(new URL('../src/i18n/locales/en.json', import.meta.url), 'utf8')

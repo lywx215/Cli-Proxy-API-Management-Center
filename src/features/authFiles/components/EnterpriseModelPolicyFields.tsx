@@ -25,13 +25,17 @@ export function EnterpriseModelPolicyStatus({
   if (!snapshot) return null;
   const subscription = snapshot.subscription;
   const argonForced = snapshot.argonForceEnabled === true;
+  const allModelsEnabled = snapshot.allModelsEnabled === true;
   const paidRestricted = snapshot.enforcedReason === 'paid_subscription_restricted';
   const paused = enterprisePolicyRoutingPaused(snapshot);
   const reason = argonForced
     ? undefined
     : snapshot.reason || (!paidRestricted ? snapshot.enforcedReason : undefined);
   const showSubscription =
-    argonForced || snapshot.mode === 'auto' || snapshot.enforcedAllowedModels !== undefined;
+    argonForced ||
+    allModelsEnabled ||
+    snapshot.mode === 'auto' ||
+    snapshot.enforcedAllowedModels !== undefined;
   const timestamp = subscription.lastSuccessAt && Date.parse(subscription.lastSuccessAt);
   if (compact)
     return (
@@ -56,6 +60,7 @@ export function EnterpriseModelPolicyStatus({
             defaultValue: snapshot.effectiveMode,
           }),
           argonForced ? subscription.state : null,
+          allModelsEnabled ? t('gemini_enterprise.policy.all_models_enabled') : null,
           argonForced
             ? t('gemini_enterprise.policy.argon_forced')
             : paused
@@ -77,6 +82,7 @@ export function EnterpriseModelPolicyStatus({
         })}
       </div>
       {argonForced && <div>{t('gemini_enterprise.policy.argon_forced')}</div>}
+      {allModelsEnabled && <div>{t('gemini_enterprise.policy.all_models_enabled')}</div>}
       {showSubscription && (
         <>
           <div>

@@ -109,10 +109,11 @@ async function render(
             testCandidates: [{ id: carbon, test_candidate: true }],
             excluded: {},
             testsEnabled: true,
-            testResults: { [carbon]: state },
+            carbonVerificationTest: state,
             onClose: () => {},
             onCopyText: () => {},
             onTestModels: () => {},
+            onVerifyCarbon: () => {},
             onCarbonChange: () => {},
           })
         : createElement(EnterpriseCarbonOperationsModal, {

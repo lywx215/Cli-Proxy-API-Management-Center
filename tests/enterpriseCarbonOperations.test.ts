@@ -565,7 +565,7 @@ describe('credential Carbon operations', () => {
     const tested = await render('test');
     expect(tested).toContain('Carbon verification succeeded');
     expect(tested).toContain('Verification passed; enable manually');
-    expect(tested).toContain('Carbon manually disabled');
+    expect(tested).toContain('Carbon disabled');
     expect(tested).toContain('Verification passed');
     expect(tested).not.toMatch(/<input[^>]*checked=""/);
     expect(tested).toContain('aria-describedby=');

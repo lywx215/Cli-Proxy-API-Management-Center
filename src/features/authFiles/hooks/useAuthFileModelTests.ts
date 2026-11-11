@@ -10,6 +10,7 @@ import { enterpriseResources } from '../enterpriseResources';
 import { useEnterpriseWebRuntime } from '../enterpriseWeb/useEnterpriseWebRuntime';
 import {
   canTestEnterpriseCarbon,
+  enterpriseCarbonAdmission,
   ENTERPRISE_CARBON_MODEL,
   isEnterpriseCarbonModel,
 } from '../enterpriseCarbon';
@@ -29,14 +30,17 @@ import {
 export function useAuthFileModelTests(
   file: AuthFileItem | null,
   models: AuthFileModelItem[],
-  onCarbonResult?: (result: ModelTestResult, file: AuthFileItem) => void
+  onCarbonResult?: (result: ModelTestResult, file: AuthFileItem) => void,
+  lastCarbonTest?: ModelTestState
 ) {
   const isWeb = (file?.type || file?.provider) === 'gemini-enterprise-web';
+  const isOAuth = (file?.type || file?.provider) === 'gemini-enterprise';
   const webRuntime = useEnterpriseWebRuntime(isWeb);
   const channelReady = !isWeb || Boolean(webRuntime.status?.enabled && !webRuntime.error);
   const { t } = useTranslation();
   const [results, setResults] = useState<Record<string, ModelTestState>>({});
   const [busy, setBusy] = useState(false);
+  const [carbonVerificationRunning, setCarbonVerificationRunning] = useState(false);
   const [unsupported, setUnsupported] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const request = useRef<AbortController | null>(null);
@@ -54,6 +58,7 @@ export function useAuthFileModelTests(
     request.current?.abort();
     request.current = null;
     setBusy(false);
+    setCarbonVerificationRunning(false);
     setResults((previous) =>
       Object.fromEntries(
         Object.entries(previous).map(([id, result]) => [id, cancelModelTest(result)])
@@ -88,33 +93,32 @@ export function useAuthFileModelTests(
   }, [reset]);
 
   const run = useCallback(
-    async (requestedModels: string[]) => {
+    async (requestedModels: string[], verifyCarbon = false) => {
       if (
         !file ||
-        (!canTestEnterpriseFile(file) && !canTestEnterpriseCarbon(file)) ||
+        (verifyCarbon ? !canTestEnterpriseCarbon(file) : !canTestEnterpriseFile(file)) ||
         !channelReady ||
         unsupported ||
         request.current
       )
         return;
-      const ids = [...new Set(requestedModels)].filter(
-        (id) =>
-          (id === ENTERPRISE_CARBON_MODEL && !isWeb
-            ? canTestEnterpriseCarbon(file) &&
-              models.some((model) => model.id === id && model.test_candidate === true)
-            : models.some(
-                (model) =>
-                  model.id === id &&
-                  (isWeb || !isEnterpriseCarbonModel(model)) &&
-                  model.policy_allowed !== false &&
-                  isEnterpriseTextModel(model) &&
-                  !isEnterpriseModelExcluded(file, model.upstream_model || model.id)
-              )) && !enterpriseModelCooldown(file, id, resultsRef.current[id])
-      );
-      if (!isWeb)
-        ids.sort(
-          (a, b) => Number(a === ENTERPRISE_CARBON_MODEL) - Number(b === ENTERPRISE_CARBON_MODEL)
+      const findModel = (id: string) =>
+        models.find((model) => model.id === id && (model.test_candidate === true) === verifyCarbon);
+      const canRun = (target: AuthFileItem, id: string) => {
+        const model = findModel(id);
+        if (!model || enterpriseModelCooldown(target, id, resultsRef.current[id])) return false;
+        const carbon = isOAuth && isEnterpriseCarbonModel(model);
+        if (carbon && enterpriseModelCooldown(target, ENTERPRISE_CARBON_MODEL, lastCarbonTest))
+          return false;
+        if (verifyCarbon) return carbon && canTestEnterpriseCarbon(target);
+        return (
+          (!carbon || enterpriseCarbonAdmission(target)?.available === true) &&
+          model.policy_allowed !== false &&
+          isEnterpriseTextModel(model) &&
+          !isEnterpriseModelExcluded(target, model.upstream_model || id)
         );
+      };
+      const ids = [...new Set(requestedModels)].filter((id) => canRun(file, id));
       if (!ids.length) return;
       const controller = new AbortController();
       request.current = controller;
@@ -128,6 +132,7 @@ export function useAuthFileModelTests(
       let completed = 0;
       let refreshedQuota = false;
       setBusy(true);
+      if (verifyCarbon) setCarbonVerificationRunning(true);
       setProgress({ completed, total: ids.length });
       try {
         await runSerialModelTests(
@@ -140,11 +145,16 @@ export function useAuthFileModelTests(
             }
             const started = Date.now();
             try {
+              const upstreamModel = findModel(model)?.upstream_model || model;
               return await authFileModelTestsApi.test(
                 file,
                 model,
                 controller.signal,
-                models.find((entry) => entry.id === model)?.upstream_model || model
+                upstreamModel,
+                {
+                  carbonDirect:
+                    isOAuth && !verifyCarbon && upstreamModel === ENTERPRISE_CARBON_MODEL,
+                }
               );
             } catch (cause) {
               const error = cause as Partial<ApiError>;
@@ -176,7 +186,7 @@ export function useAuthFileModelTests(
             }
           },
           (model) => {
-            if (current())
+            if (current() && !verifyCarbon)
               setResults((previous) => ({
                 ...previous,
                 [model]: { ...previous[model], state: 'running' },
@@ -189,6 +199,11 @@ export function useAuthFileModelTests(
               notifyAuthFilesChanged();
             }
             completed += 1;
+            setProgress({ completed, total: ids.length });
+            if (verifyCarbon) {
+              onCarbonResult?.(result, file);
+              return;
+            }
             setResults((previous) => ({
               ...previous,
               [model]: {
@@ -199,22 +214,8 @@ export function useAuthFileModelTests(
                   : {}),
               },
             }));
-            setProgress({ completed, total: ids.length });
-            if (model === ENTERPRISE_CARBON_MODEL && !isWeb) {
-              onCarbonResult?.(result, file);
-            }
           },
-          (model) =>
-            Boolean(
-              fileRef.current &&
-              ((model === ENTERPRISE_CARBON_MODEL && !isWeb
-                ? !canTestEnterpriseCarbon(fileRef.current)
-                : isEnterpriseModelExcluded(
-                    fileRef.current,
-                    models.find((entry) => entry.id === model)?.upstream_model || model
-                  )) ||
-                enterpriseModelCooldown(fileRef.current, model, resultsRef.current[model]))
-            )
+          (model) => !fileRef.current || !canRun(fileRef.current, model)
         );
       } catch (cause) {
         if (!controller.signal.aborted) throw cause;
@@ -222,19 +223,20 @@ export function useAuthFileModelTests(
         if (request.current === controller) {
           request.current = null;
           setBusy(false);
+          setCarbonVerificationRunning(false);
         }
       }
     },
-    [file, models, unsupported, t, channelReady, isWeb, onCarbonResult]
+    [file, models, unsupported, t, channelReady, isWeb, isOAuth, onCarbonResult, lastCarbonTest]
   );
 
   return {
-    modelTestEnabled:
-      (canTestEnterpriseFile(file) || canTestEnterpriseCarbon(file)) && channelReady,
+    modelTestEnabled: canTestEnterpriseFile(file) && channelReady,
     modelTestResults: results,
     modelTestBusy: busy,
     modelTestUnsupported: unsupported,
     modelTestProgress: progress,
+    carbonVerificationRunning,
     runModelTests: run,
     cancelModelTests: cancel,
     resetModelTests: reset,

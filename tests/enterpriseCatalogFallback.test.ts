@@ -134,6 +134,16 @@ describe('Enterprise catalog fallback', () => {
     expect(
       enterpriseDefaultCatalog(snapshot({ subscription: { status: 'unknown', free_trial: false } }))
     ).toEqual([]);
+    for (const free_trial of [true, false]) {
+      expect(
+        enterpriseDefaultCatalog(
+          snapshot({
+            all_models_enabled: true,
+            subscription: { status: 'ok', edition: 'business_standard', free_trial },
+          })
+        )
+      ).toEqual([...ENTERPRISE_TRIAL_CATALOG, 'gemini-4-argon']);
+    }
     for (const text of [
       'gemini-*',
       'auto',

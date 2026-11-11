@@ -13,7 +13,11 @@ import {
 import { isRecord } from '@/utils/helpers';
 import { enterpriseRevision, normalizeEnterpriseCarbonAdmission } from './enterpriseAccounts';
 import { EnterpriseWebClientError, isClassifiedWebPolicy } from './geminiEnterpriseWeb';
-import { canTestEnterpriseCarbon } from '@/features/authFiles/enterpriseCarbon';
+import {
+  canTestEnterpriseCarbon,
+  enterpriseCarbonAdmission,
+  ENTERPRISE_CARBON_MODEL,
+} from '@/features/authFiles/enterpriseCarbon';
 
 const STATUSES: readonly string[] = ['ok', 'failed', 'cooling', 'unavailable'];
 
@@ -109,6 +113,7 @@ export function normalizeModelTestResult(value: unknown): ModelTestResult {
     model: text('model'),
     authIndex: text('auth_index'),
     resources,
+    upstreamModel: text('upstream_model') || undefined,
     checkedAt,
     elapsedMs: elapsed,
     httpStatus,
@@ -130,7 +135,8 @@ export const authFileModelTestsApi = {
     file: AuthFileItem,
     model: string,
     signal: AbortSignal,
-    expectedUpstreamModel = model
+    expectedUpstreamModel = model,
+    { carbonDirect = false }: { carbonDirect?: boolean } = {}
   ): Promise<ModelTestResult> {
     const assertConnection = guardConfigConnection();
     if (file.antigravityEnterprise) {
@@ -188,7 +194,13 @@ export const authFileModelTestsApi = {
         throw new InvalidManagementResponseError();
       return result;
     }
-    if (model === 'gemini-4-carbon' && !canTestEnterpriseCarbon(file)) {
+    const verifyCarbon = model === ENTERPRISE_CARBON_MODEL && !carbonDirect;
+    if (
+      (verifyCarbon && !canTestEnterpriseCarbon(file)) ||
+      (carbonDirect &&
+        (expectedUpstreamModel !== ENTERPRISE_CARBON_MODEL ||
+          enterpriseCarbonAdmission(file)?.available !== true))
+    ) {
       throw new InvalidManagementResponseError();
     }
     const expected = enterpriseResources(file.geminiEnterprise);
@@ -200,6 +212,7 @@ export const authFileModelTestsApi = {
           auth_index: String(file.authIndex ?? ''),
           model,
           expected: serializeEnterpriseResources(expected),
+          ...(carbonDirect ? { carbon_direct: true } : {}),
           ...(file.geminiEnterprise?.bindingId
             ? {
                 binding_id: file.geminiEnterprise.bindingId,
@@ -215,9 +228,11 @@ export const authFileModelTestsApi = {
     if (
       result.authIndex !== String(file.authIndex ?? '') ||
       result.model !== model ||
+      (carbonDirect &&
+        (result.upstreamModel !== ENTERPRISE_CARBON_MODEL || result.carbonAdmissionSupported)) ||
       (file.geminiEnterprise?.bindingId &&
         (result.bindingId !== file.geminiEnterprise.bindingId ||
-          (model === 'gemini-4-carbon'
+          (verifyCarbon
             ? result.carbonAdmissionSupported !== true ||
               !result.carbonAdmission ||
               result.expectedRevision === undefined ||

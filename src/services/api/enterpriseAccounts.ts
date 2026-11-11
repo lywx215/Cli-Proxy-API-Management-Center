@@ -81,6 +81,7 @@ const SETTING_KEYS = [
   'model_policy',
   'allowed_models',
   'argon_force_enabled',
+  'all_models_enabled',
   'excluded_models',
   'excluded-models',
   'disable_cooling',
@@ -108,6 +109,7 @@ export function normalizeEnterpriseModelPolicy(
   return {
     mode,
     argonForceEnabled: bool(value.argon_force_enabled),
+    allModelsEnabled: bool(value.all_models_enabled),
     carbonAdmissionSupported: bool(value.carbon_admission_supported),
     carbonAdmission: normalizeEnterpriseCarbonAdmission(value.carbon_admission),
     effectiveMode: text(value.effective_mode) ?? 'auto',
@@ -210,6 +212,7 @@ export function normalizeEnterpriseAccount(
   return {
     ...resources(value),
     argonForceSupported: bool(value.argon_force_supported),
+    allModelsSupported: bool(value.all_models_supported),
     carbonAuthorizationRevision: enterpriseRevision(value.carbon_authorization_revision),
     carbonRegistrationEpoch: enterpriseRevision(value.carbon_registration_epoch),
     googleCarbonConfigureSupported: value.google_carbon_configure_supported === true,
