@@ -3408,7 +3408,9 @@
       "reason_subscription_cache_expired": "The last confirmed policy is over 30 minutes old; routing is paused.",
       "reason_subscription_refresh_failed": "Refreshing the subscription; retaining the last confirmed policy.",
       "reason_invalid_model_policy": "The saved model policy is invalid.",
-      "routing_paused": "Routing paused"
+      "routing_paused": "Routing paused",
+      "force_argon": "Force enable gemini-4-argon",
+      "argon_forced": "Argon force enabled"
     },
     "catalog": {
       "label": "Model catalog fallback",

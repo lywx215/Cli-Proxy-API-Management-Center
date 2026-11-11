@@ -10,6 +10,7 @@ import {
 } from '@/services/api/enterpriseAccounts';
 import { apiClient } from '@/services/api/client';
 import { authFilesApi } from '@/services/api/authFiles';
+import { geminiEnterpriseApi } from '@/services/api/geminiEnterprise';
 import {
   buildEnterprisePolicyPatch,
   enterprisePolicyError,
@@ -344,6 +345,62 @@ describe('Enterprise model policy settings and API normalization', () => {
     expect(await authFilesApi.getModelsForAuthFile('fixture.json')).toEqual([
       { id: 'legacy-model' },
     ]);
+  });
+
+  test('forced Argon is saved per binding and remains testable when the subscription expires', async () => {
+    const rawPolicy = {
+      mode: 'custom',
+      status: 'blocked',
+      argon_force_enabled: true,
+      allowed_models: [],
+      enforced_allowed_models: [],
+      effective_models: ['gemini-4-argon'],
+      global_excluded_models: ['gemini-4-*'],
+      subscription: { status: 'inactive', state: 'EXPIRED' },
+    };
+    const policy = snapshot(rawPolicy);
+    const file = policyFile(policy);
+    file.geminiEnterprise = { ...file.geminiEnterprise, bindingId: 'one', revision: 3 };
+    expect(enterprisePolicyRoutingPaused(policy)).toBe(false);
+    expect(canTestEnterpriseFile(file)).toBe(true);
+    expect(isEnterpriseModelExcluded(file, 'gemini-4-argon')).toBe(false);
+    expect(isEnterpriseModelExcluded(file, 'gemini-4-carbon')).toBe(true);
+    const draft = readEnterprisePolicy({ model_policy: 'custom', allowed_models: [] });
+    expect(enterprisePolicyPreview(draft, policy, ['gemini-4-*'])).toEqual(['gemini-4-argon']);
+    const closed = { ...policy, argonForceEnabled: false };
+    expect(enterprisePolicyRoutingPaused(closed)).toBe(true);
+    expect(enterprisePolicyPreview(draft, closed, [])).toEqual([]);
+    expect(modelTestIdentity(file)).not.toBe(
+      modelTestIdentity({
+        ...file,
+        geminiEnterprise: { ...file.geminiEnterprise, modelPolicyState: closed },
+      })
+    );
+
+    const patch = spyOn(apiClient, 'patch').mockResolvedValue({
+      status: 'ok',
+      gemini_enterprise: {
+        argon_force_supported: true,
+        collections: [{ binding_id: 'one', revision: 4, model_policy_state: rawPolicy }],
+      },
+    });
+    const saved = await geminiEnterpriseApi.updateCollection(file, {
+      fields: { argon_force_enabled: true },
+    });
+    expect(patch.mock.calls[0]?.slice(0, 2)).toEqual([
+      '/credentials/gemini-enterprise/collections',
+      {
+        name: 'policy-fixture.json',
+        auth_index: 'fixture-auth',
+        binding_id: 'one',
+        expected_revision: 3,
+        fields: { argon_force_enabled: true },
+      },
+    ]);
+    expect(saved.argonForceSupported).toBe(true);
+    expect(saved.collections?.[0].modelPolicyState?.subscription.state).toBe('EXPIRED');
+    expect(saved.collections?.[0].modelPolicyState?.argonForceEnabled).toBe(true);
+    expect(normalizeEnterpriseAccount({})?.argonForceSupported).toBeUndefined();
   });
 
   test('renders pause and empty-list feedback and keeps all six locales aligned', async () => {

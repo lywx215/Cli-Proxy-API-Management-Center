@@ -3408,7 +3408,9 @@
       "reason_subscription_cache_expired": "확인된 정책이 30분을 초과하여 라우팅이 중지되었습니다.",
       "reason_subscription_refresh_failed": "구독을 갱신하며 마지막으로 확인된 정책을 유지합니다.",
       "reason_invalid_model_policy": "저장된 모델 정책이 올바르지 않습니다.",
-      "routing_paused": "라우팅 일시 중지"
+      "routing_paused": "라우팅 일시 중지",
+      "force_argon": "gemini-4-argon 강제 활성화",
+      "argon_forced": "Argon 강제 활성화됨"
     },
     "catalog": {
       "label": "모델 카탈로그 대체 설정",

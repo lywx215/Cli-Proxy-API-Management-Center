@@ -80,6 +80,7 @@ const SETTING_KEYS = [
   'catalog_fallback',
   'model_policy',
   'allowed_models',
+  'argon_force_enabled',
   'excluded_models',
   'excluded-models',
   'disable_cooling',
@@ -106,6 +107,7 @@ export function normalizeEnterpriseModelPolicy(
   const sub = isRecord(value.subscription) ? value.subscription : {};
   return {
     mode,
+    argonForceEnabled: bool(value.argon_force_enabled),
     carbonAdmissionSupported: bool(value.carbon_admission_supported),
     carbonAdmission: normalizeEnterpriseCarbonAdmission(value.carbon_admission),
     effectiveMode: text(value.effective_mode) ?? 'auto',
@@ -207,6 +209,7 @@ export function normalizeEnterpriseAccount(
   const discovery = isRecord(value.discovery) ? value.discovery : undefined;
   return {
     ...resources(value),
+    argonForceSupported: bool(value.argon_force_supported),
     carbonAuthorizationRevision: enterpriseRevision(value.carbon_authorization_revision),
     carbonRegistrationEpoch: enterpriseRevision(value.carbon_registration_epoch),
     googleCarbonConfigureSupported: value.google_carbon_configure_supported === true,

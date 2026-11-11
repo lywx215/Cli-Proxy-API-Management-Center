@@ -186,6 +186,18 @@
 .rowActions {
   padding-right: 10px !important;
 }
+.argonSwitchRow {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 10px;
+  > label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    > span:first-of-type {
+      flex-shrink: 0;
+    }
+  }
+}
 .rowControls {
   display: flex;
   flex-direction: column;

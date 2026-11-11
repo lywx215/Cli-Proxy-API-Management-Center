@@ -3413,7 +3413,9 @@
       "reason_subscription_cache_expired": "Chính sách đã xác nhận quá 30 phút; định tuyến đã tạm dừng.",
       "reason_subscription_refresh_failed": "Đang làm mới gói đăng ký; giữ chính sách đã xác nhận gần nhất.",
       "reason_invalid_model_policy": "Chính sách mô hình đã lưu không hợp lệ.",
-      "routing_paused": "Tạm dừng định tuyến"
+      "routing_paused": "Tạm dừng định tuyến",
+      "force_argon": "Bắt buộc bật gemini-4-argon",
+      "argon_forced": "Đã bật Argon bắt buộc"
     },
     "catalog": {
       "label": "Danh mục mô hình dự phòng",

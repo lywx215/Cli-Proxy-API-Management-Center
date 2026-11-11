@@ -24,10 +24,14 @@ export function EnterpriseModelPolicyStatus({
   const { t } = useTranslation();
   if (!snapshot) return null;
   const subscription = snapshot.subscription;
+  const argonForced = snapshot.argonForceEnabled === true;
   const paidRestricted = snapshot.enforcedReason === 'paid_subscription_restricted';
   const paused = enterprisePolicyRoutingPaused(snapshot);
-  const reason = snapshot.reason || (!paidRestricted ? snapshot.enforcedReason : undefined);
-  const showSubscription = snapshot.mode === 'auto' || snapshot.enforcedAllowedModels !== undefined;
+  const reason = argonForced
+    ? undefined
+    : snapshot.reason || (!paidRestricted ? snapshot.enforcedReason : undefined);
+  const showSubscription =
+    argonForced || snapshot.mode === 'auto' || snapshot.enforcedAllowedModels !== undefined;
   const timestamp = subscription.lastSuccessAt && Date.parse(subscription.lastSuccessAt);
   if (compact)
     return (
@@ -51,11 +55,14 @@ export function EnterpriseModelPolicyStatus({
           t('gemini_enterprise.policy.mode_' + snapshot.effectiveMode, {
             defaultValue: snapshot.effectiveMode,
           }),
-          paused
-            ? t('gemini_enterprise.policy.paused')
-            : snapshot.status === 'stale'
-              ? t('gemini_enterprise.policy.stale')
-              : null,
+          argonForced ? subscription.state : null,
+          argonForced
+            ? t('gemini_enterprise.policy.argon_forced')
+            : paused
+              ? t('gemini_enterprise.policy.paused')
+              : snapshot.status === 'stale'
+                ? t('gemini_enterprise.policy.stale')
+                : null,
         ]
           .filter(Boolean)
           .join(' · ')}
@@ -69,6 +76,7 @@ export function EnterpriseModelPolicyStatus({
           defaultValue: snapshot.effectiveMode,
         })}
       </div>
+      {argonForced && <div>{t('gemini_enterprise.policy.argon_forced')}</div>}
       {showSubscription && (
         <>
           <div>
@@ -78,6 +86,7 @@ export function EnterpriseModelPolicyStatus({
                   defaultValue: subscription.edition,
                 })
               : t('gemini_enterprise.policy.unknown')}
+            {argonForced && subscription.state && <> · {subscription.state}</>}
           </div>
           {(subscription.freeTrial !== null || paidRestricted) && (
             <div>
@@ -95,7 +104,9 @@ export function EnterpriseModelPolicyStatus({
             </div>
           ) : null}
           {paused && <div>{t('gemini_enterprise.policy.paused')}</div>}
-          {snapshot.status === 'stale' && <div>{t('gemini_enterprise.policy.stale')}</div>}
+          {!argonForced && snapshot.status === 'stale' && (
+            <div>{t('gemini_enterprise.policy.stale')}</div>
+          )}
           {reason && (
             <div>
               {t('gemini_enterprise.policy.reason_' + reason, {

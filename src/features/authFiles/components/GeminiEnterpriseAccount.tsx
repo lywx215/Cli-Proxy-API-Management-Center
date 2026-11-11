@@ -11,7 +11,10 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconChevronDown, IconDownload, IconRefreshCw, IconTrash2 } from '@/components/ui/icons';
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
 import { apiClient } from '@/services/api/client';
-import { geminiEnterpriseApi } from '@/services/api/geminiEnterprise';
+import {
+  geminiEnterpriseApi,
+  type EnterpriseCollectionPatch,
+} from '@/services/api/geminiEnterprise';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { AuthFileItem } from '@/types';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
@@ -75,6 +78,13 @@ function CollectionRows({
   const hasRecent = statusData.totalSuccess + statusData.totalFailure > 0;
   const detailId = useId();
   const unavailable = file.unavailable || binding?.missing;
+  const routingPaused =
+    !file.disabled &&
+    !parentDisabled &&
+    !unavailable &&
+    enterprisePolicyRoutingPaused(binding?.modelPolicyState);
+  const argonForceEnabled =
+    binding?.modelPolicyState?.argonForceEnabled ?? binding?.settings?.argon_force_enabled === true;
   const status = file.disabled
     ? 'disabled'
     : parentDisabled
@@ -84,12 +94,8 @@ function CollectionRows({
         : file.status === 'active' || file.status === 'ok'
           ? 'available'
           : 'ready';
-  const switchCollection = async (enabled: boolean) => {
-    if (busy || props.disableControls) return;
-    if (!binding?.bindingId) {
-      props.onToggleStatus(file, enabled);
-      return;
-    }
+  const saveCollection = async (patch: EnterpriseCollectionPatch) => {
+    if (request.current || props.disableControls || !binding?.bindingId) return;
     const controller = new AbortController();
     request.current = controller;
     const revision = apiClient.getConnectionRevision();
@@ -97,16 +103,26 @@ function CollectionRows({
       !controller.signal.aborted && revision === apiClient.getConnectionRevision();
     setBusy(true);
     try {
-      await geminiEnterpriseApi.updateCollection(file, { disabled: !enabled }, controller.signal);
+      await geminiEnterpriseApi.updateCollection(file, patch, controller.signal);
       if (current()) await props.onEnterpriseResourcesSaved?.(file);
     } catch {
-      if (current())
+      if (current()) {
         useNotificationStore
           .getState()
           .showNotification(t('gemini_enterprise.collections.update_error'), 'error');
+        await props.onEnterpriseResourcesSaved?.(file);
+      }
     } finally {
-      if (current()) setBusy(false);
+      if (request.current === controller) {
+        request.current = null;
+        if (!controller.signal.aborted) setBusy(false);
+      }
     }
+  };
+  const switchCollection = (enabled: boolean) => {
+    if (busy || props.disableControls) return;
+    if (binding?.bindingId) void saveCollection({ disabled: !enabled });
+    else props.onToggleStatus(file, enabled);
   };
   return (
     <>
@@ -146,7 +162,7 @@ function CollectionRows({
             <div className={styles.switchRow}>
               <ToggleSwitch
                 checked={!file.disabled}
-                onChange={(enabled) => void switchCollection(enabled)}
+                onChange={switchCollection}
                 disabled={
                   props.disableControls ||
                   busy ||
@@ -160,19 +176,33 @@ function CollectionRows({
               />
               <span
                 title={
-                  enterprisePolicyRoutingPaused(binding?.modelPolicyState)
+                  routingPaused
                     ? t('gemini_enterprise.policy.paused')
                     : t('gemini_enterprise.collections.' + status)
                 }
               >
-                {!file.disabled &&
-                !parentDisabled &&
-                !unavailable &&
-                enterprisePolicyRoutingPaused(binding?.modelPolicyState)
+                {routingPaused
                   ? t('gemini_enterprise.policy.routing_paused')
                   : t('gemini_enterprise.collections.' + status)}
               </span>
             </div>
+            {binding?.argonForceSupported === true && binding.bindingId && (
+              <div className={styles.argonSwitchRow}>
+                <ToggleSwitch
+                  checked={argonForceEnabled}
+                  label={t('gemini_enterprise.policy.force_argon')}
+                  onChange={(enabled) =>
+                    void saveCollection({ fields: { argon_force_enabled: enabled } })
+                  }
+                  disabled={
+                    props.disableControls ||
+                    busy ||
+                    binding.revision === undefined ||
+                    !String(file.authIndex ?? '').trim()
+                  }
+                />
+              </div>
+            )}
             <div className={styles.rowButtons}>
               <Button
                 size="sm"

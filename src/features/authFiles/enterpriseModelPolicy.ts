@@ -1,7 +1,8 @@
 import type { EnterpriseModelPolicyMode, EnterpriseModelPolicyState } from '@/types/authFile';
 import { isModelExcluded } from './constants';
 
-const ARGON_FAMILY_MODELS = ['gemini-4-argon'];
+const ARGON_MODEL = 'gemini-4-argon';
+const ARGON_FAMILY_MODELS = [ARGON_MODEL];
 
 export const ENTERPRISE_MODEL_POLICIES = [
   'auto',
@@ -36,7 +37,7 @@ export function readEnterprisePolicy(value: Record<string, unknown>): Enterprise
 }
 
 export function enterprisePolicyRoutingPaused(snapshot?: EnterpriseModelPolicyState): boolean {
-  if (!snapshot) return false;
+  if (!snapshot || snapshot.argonForceEnabled) return false;
   if (
     snapshot.status === 'blocked' ||
     (snapshot.mode === 'custom' && snapshot.allowedModels?.length === 0) ||
@@ -62,6 +63,13 @@ export function enterprisePolicyRoutingPaused(snapshot?: EnterpriseModelPolicySt
       )
     )
   );
+}
+
+export function enterpriseForcesArgon(
+  snapshot: EnterpriseModelPolicyState | undefined,
+  model: string
+): boolean {
+  return snapshot?.argonForceEnabled === true && model.replace(/^models\//, '') === ARGON_MODEL;
 }
 
 export function enterpriseEnforcedModelAllowed(
@@ -190,12 +198,13 @@ export function enterprisePolicyPreview(
   excluded: string[]
 ): string[] | null {
   const allowed = draft.whitelistEnabled ? parseEnterpriseAllowedModels(draft.allowedText) : null;
-  if (draft.mode === 'custom' && allowed?.length === 0) return [];
+  const forced = snapshot?.argonForceEnabled ? [ARGON_MODEL] : [];
+  if (draft.mode === 'custom' && allowed?.length === 0) return forced;
   if (!snapshot) return null;
   let effective: string = draft.mode;
   if (draft.mode === 'auto') {
     const subscription = snapshot.subscription;
-    if (subscription.status !== 'ok' && subscription.status !== 'stale') return [];
+    if (subscription.status !== 'ok' && subscription.status !== 'stale') return forced;
     effective = 'catalog';
     if (subscription.freeTrial === true) {
       if (subscription.edition === 'business_standard') effective = 'argon_only';
@@ -211,8 +220,9 @@ export function enterprisePolicyPreview(
       snapshot.enforcedAllowedModels,
       snapshot.carbonAdmissionSupported === true && snapshot.carbonAdmission?.available === true
     );
-    if (candidates && !candidates.some(allows)) return [];
+    if (candidates && !candidates.some(allows)) return forced;
   }
-  if (!snapshot.catalogKnown) return null;
-  return snapshot.catalogModels.map((entry) => entry.id).filter(allows);
+  if (!snapshot.catalogKnown) return forced.length ? forced : null;
+  const models = snapshot.catalogModels.map((entry) => entry.id).filter(allows);
+  return forced.length && !models.includes(ARGON_MODEL) ? [...models, ARGON_MODEL] : models;
 }

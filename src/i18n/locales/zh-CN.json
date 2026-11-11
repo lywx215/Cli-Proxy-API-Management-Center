@@ -3406,7 +3406,9 @@
       "reason_subscription_cache_expired": "最近确认的策略已超过 30 分钟，已暂停调度。",
       "reason_subscription_refresh_failed": "正在刷新订阅，沿用最近确认的策略。",
       "reason_invalid_model_policy": "已保存的模型策略无效。",
-      "routing_paused": "暂停调度"
+      "routing_paused": "暂停调度",
+      "force_argon": "强制启用 gemini-4-argon",
+      "argon_forced": "Argon 已强制启用"
     },
     "catalog": {
       "label": "模型目录兜底",

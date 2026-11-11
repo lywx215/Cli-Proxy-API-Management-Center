@@ -19,6 +19,7 @@ import { isModelExcluded } from '@/features/authFiles/constants';
 import { createSharedClock } from '@/utils/time/sharedClock';
 import { enterpriseCollectionName } from '../enterpriseAccounts';
 import { enterpriseCarbonTestPresentation } from '../enterpriseCarbonPresentation';
+import { enterpriseForcesArgon } from '../enterpriseModelPolicy';
 import {
   enterpriseModelCooldown,
   isEnterpriseModelExcluded,
@@ -93,9 +94,11 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
   const showTests = fileType === 'gemini-enterprise' || isAntigravityEnterprise || isWeb;
   const isExcluded = (model: AuthFileModelItem) => {
     const upstreamModel = model.upstream_model || model.id;
+    const forced =
+      isOAuth && enterpriseForcesArgon(file?.geminiEnterprise?.modelPolicyState, upstreamModel);
     return (
       model.policy_allowed === false ||
-      isModelExcluded(upstreamModel, fileType, excluded) ||
+      (!forced && isModelExcluded(upstreamModel, fileType, excluded)) ||
       Boolean(file && isEnterpriseModelExcluded(file, upstreamModel))
     );
   };

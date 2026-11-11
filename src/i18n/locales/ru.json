@@ -3400,7 +3400,9 @@
       "reason_subscription_cache_expired": "Подтверждённая политика старше 30 минут; маршрутизация приостановлена.",
       "reason_subscription_refresh_failed": "Подписка обновляется; сохранена последняя подтверждённая политика.",
       "reason_invalid_model_policy": "Сохранённая политика моделей некорректна.",
-      "routing_paused": "Маршрутизация приостановлена"
+      "routing_paused": "Маршрутизация приостановлена",
+      "force_argon": "Принудительно включить gemini-4-argon",
+      "argon_forced": "Argon включён принудительно"
     },
     "catalog": {
       "label": "Резервный каталог моделей",

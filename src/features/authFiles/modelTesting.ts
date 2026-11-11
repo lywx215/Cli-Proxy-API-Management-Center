@@ -1,5 +1,6 @@
 import {
   enterpriseEnforcedModelAllowed,
+  enterpriseForcesArgon,
   enterprisePolicyRoutingPaused,
 } from './enterpriseModelPolicy';
 import type { AuthFileItem, EnterpriseCarbonAdmission } from '@/types';
@@ -132,6 +133,7 @@ export function modelTestIdentity(file: AuthFileItem): string {
       : []),
     file.geminiEnterprise?.modelPolicyState?.effectiveMode,
     file.geminiEnterprise?.modelPolicyState?.status,
+    file.geminiEnterprise?.modelPolicyState?.argonForceEnabled,
     file.geminiEnterprise?.modelPolicyState?.catalogKnown,
     file.geminiEnterprise?.modelPolicyState?.effectiveModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels !== undefined,
@@ -165,7 +167,12 @@ export function isEnterpriseModelExcluded(file: AuthFileItem, model: string): bo
     });
   }
   const policy = file.geminiEnterprise?.modelPolicyState;
-  if (enterprisePolicyRoutingPaused(policy) || !enterpriseEnforcedModelAllowed(policy, model))
+  if (enterpriseForcesArgon(policy, model)) return false;
+  if (
+    policy?.status === 'blocked' ||
+    enterprisePolicyRoutingPaused(policy) ||
+    !enterpriseEnforcedModelAllowed(policy, model)
+  )
     return true;
   const entry = policy?.catalogModels.find((item) => item.id === model);
   if (entry && !entry.allowed) return true;

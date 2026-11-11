@@ -3433,7 +3433,9 @@
       "reason_subscription_cache_expired": "最近確認的策略已超過 30 分鐘，已暫停調度。",
       "reason_subscription_refresh_failed": "正在更新訂閱，沿用最近確認的策略。",
       "reason_invalid_model_policy": "已儲存的模型策略無效。",
-      "routing_paused": "暫停調度"
+      "routing_paused": "暫停調度",
+      "force_argon": "強制啟用 gemini-4-argon",
+      "argon_forced": "Argon 已強制啟用"
     },
     "catalog": {
       "label": "模型目錄備援",
