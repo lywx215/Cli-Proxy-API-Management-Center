@@ -13,11 +13,11 @@ import { apiClient } from '@/services/api/client';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { enterpriseCollectionFiles } from '../enterpriseAccounts';
 import {
-  canEnableEnterpriseCarbon,
-  enterpriseCarbonAdmission,
-  enterpriseCarbonTargetIdentity,
-  sameEnterpriseNonCarbonState,
-} from '../enterpriseCarbon';
+  canEnableEnterpriseHydrogen,
+  enterpriseHydrogenAdmission,
+  enterpriseHydrogenTargetIdentity,
+  sameEnterpriseNonHydrogenState,
+} from '../enterpriseHydrogen';
 
 type ModelsError = 'unsupported' | null;
 
@@ -30,8 +30,8 @@ const applyModelsSnapshot = (
     ? {
         ...item.geminiEnterprise,
         ...(snapshot.modelPolicyState ? { modelPolicyState: snapshot.modelPolicyState } : {}),
-        carbonAdmissionSupported: snapshot.carbonAdmissionSupported,
-        carbonAdmission: snapshot.carbonAdmission,
+        hydrogenAdmissionSupported: snapshot.hydrogenAdmissionSupported,
+        hydrogenAdmission: snapshot.hydrogenAdmission,
       }
     : undefined,
 });
@@ -50,10 +50,10 @@ export type UseAuthFilesModelsResult = {
   /** Invalidate derived caches after credential changes. */
   invalidateModels: (names?: string[]) => void;
   syncModelsFile: (files: AuthFileItem[]) => void;
-  carbonSaving: boolean;
-  carbonError: string | null;
-  carbonVerificationTest?: ModelTestState;
-  changeCarbonEnabled: (enabled: boolean) => Promise<void>;
+  hydrogenSaving: boolean;
+  hydrogenError: string | null;
+  hydrogenVerificationTest?: ModelTestState;
+  changeHydrogenEnabled: (enabled: boolean) => Promise<void>;
   enterpriseMutationVersion: number;
 } & ReturnType<typeof useAuthFileModelTests>;
 
@@ -69,12 +69,12 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const [modelsFileType, setModelsFileType] = useState('');
   const [modelsError, setModelsError] = useState<ModelsError>(null);
   const [modelsFile, setModelsFile] = useState<AuthFileItem | null>(null);
-  const [carbonSaving, setCarbonSaving] = useState(false);
-  const [carbonError, setCarbonError] = useState<string | null>(null);
-  const [lastCarbonTest, setLastCarbonTest] = useState<ModelTestState>();
+  const [hydrogenSaving, setHydrogenSaving] = useState(false);
+  const [hydrogenError, setHydrogenError] = useState<string | null>(null);
+  const [lastHydrogenTest, setLastHydrogenTest] = useState<ModelTestState>();
   const [enterpriseMutationVersion, setEnterpriseMutationVersion] = useState(0);
   const modelsFileRef = useRef<AuthFileItem | null>(null);
-  const carbonRequest = useRef<AbortController | null>(null);
+  const hydrogenRequest = useRef<AbortController | null>(null);
   const reloadSelected = useRef<(file: AuthFileItem) => Promise<void>>(null);
   const modelsCacheRef = useRef<Map<string, AuthFileModelsSnapshot>>(new Map());
   const modelsCacheVersionRef = useRef(0);
@@ -82,28 +82,28 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const activeModelsRequestIdRef = useRef(0);
   const listRequest = useRef<AbortController | null>(null);
 
-  const acceptCarbonResult = useCallback((result: ModelTestResult, tested: AuthFileItem) => {
+  const acceptHydrogenResult = useCallback((result: ModelTestResult, tested: AuthFileItem) => {
     const selected = modelsFileRef.current;
     if (
       !selected ||
-      enterpriseCarbonTargetIdentity(selected) !== enterpriseCarbonTargetIdentity(tested)
+      enterpriseHydrogenTargetIdentity(selected) !== enterpriseHydrogenTargetIdentity(tested)
     )
       return;
     const next =
-      result.carbonAdmissionSupported === true && result.carbonAdmission
+      result.hydrogenAdmissionSupported === true && result.hydrogenAdmission
         ? {
             ...selected,
             geminiEnterprise: {
               ...selected.geminiEnterprise,
               revision: result.revision,
-              carbonAdmissionSupported: true,
-              carbonAdmission: result.carbonAdmission,
+              hydrogenAdmissionSupported: true,
+              hydrogenAdmission: result.hydrogenAdmission,
             },
           }
         : selected;
     modelsFileRef.current = next;
     setModelsFile(next);
-    setLastCarbonTest({
+    setLastHydrogenTest({
       state: result.status,
       result,
       ...(result.retryAfterSeconds
@@ -117,19 +117,19 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const tests = useAuthFileModelTests(
     modelsFile,
     [...modelsList, ...modelsTestCandidates],
-    acceptCarbonResult,
-    lastCarbonTest
+    acceptHydrogenResult,
+    lastHydrogenTest
   );
   const { resetModelTests } = tests;
 
   const closeModelsModal = useCallback(() => {
     resetModelTests();
     listRequest.current?.abort();
-    carbonRequest.current?.abort();
-    carbonRequest.current = null;
-    setCarbonSaving(false);
-    setCarbonError(null);
-    setLastCarbonTest(undefined);
+    hydrogenRequest.current?.abort();
+    hydrogenRequest.current = null;
+    setHydrogenSaving(false);
+    setHydrogenError(null);
+    setLastHydrogenTest(undefined);
     modelsFileRef.current = null;
     setModelsFile(null);
     setModelsTestCandidates([]);
@@ -178,11 +178,11 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
       if (
         current &&
         modelTestIdentity(current) !== modelTestIdentity(selected) &&
-        sameEnterpriseNonCarbonState(current, selected)
+        sameEnterpriseNonHydrogenState(current, selected)
       ) {
-        setLastCarbonTest((previous) =>
-          previous?.result?.carbonTestId &&
-          previous.result.carbonTestId !== enterpriseCarbonAdmission(current)?.test?.testId
+        setLastHydrogenTest((previous) =>
+          previous?.result?.hydrogenTestId &&
+          previous.result.hydrogenTestId !== enterpriseHydrogenAdmission(current)?.test?.testId
             ? undefined
             : previous
         );
@@ -191,10 +191,10 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
         void reloadSelected.current?.(current);
       } else if (!current || modelTestIdentity(current) !== modelTestIdentity(selected)) {
         resetModelTests();
-        carbonRequest.current?.abort();
-        carbonRequest.current = null;
-        setCarbonSaving(false);
-        setLastCarbonTest(undefined);
+        hydrogenRequest.current?.abort();
+        hydrogenRequest.current = null;
+        setHydrogenSaving(false);
+        setLastHydrogenTest(undefined);
         listRequest.current?.abort();
         activeModelsRequestIdRef.current += 1;
         setModelsModalOpen(false);
@@ -212,15 +212,15 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   );
 
   const showModels = useCallback(
-    async (item: AuthFileItem, preserveCarbonResult = false) => {
+    async (item: AuthFileItem, preserveHydrogenResult = false) => {
       resetModelTests();
       listRequest.current?.abort();
       const controller = new AbortController();
       listRequest.current = controller;
       modelsFileRef.current = item;
       setModelsFile(item);
-      setCarbonError(null);
-      if (!preserveCarbonResult) setLastCarbonTest(undefined);
+      setHydrogenError(null);
+      if (!preserveHydrogenResult) setLastHydrogenTest(undefined);
       const revision = apiClient.getConnectionRevision();
       const cacheKey = `${item.name.trim()}\0${revision}:${modelTestIdentity(item)}`;
       const requestId = ++activeModelsRequestIdRef.current;
@@ -290,31 +290,31 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     reloadSelected.current = (item) => showModels(item, true);
   }, [showModels]);
 
-  const changeCarbonEnabled = useCallback(
+  const changeHydrogenEnabled = useCallback(
     async (enabled: boolean) => {
       const selected = modelsFileRef.current;
-      if (!selected || carbonRequest.current || (enabled && !canEnableEnterpriseCarbon(selected)))
+      if (!selected || hydrogenRequest.current || (enabled && !canEnableEnterpriseHydrogen(selected)))
         return;
       if (!enabled) tests.cancelModelTests();
       const controller = new AbortController();
-      carbonRequest.current = controller;
+      hydrogenRequest.current = controller;
       const connection = apiClient.getConnectionRevision();
-      const identity = enterpriseCarbonTargetIdentity(selected);
+      const identity = enterpriseHydrogenTargetIdentity(selected);
       const current = () =>
         !controller.signal.aborted &&
-        carbonRequest.current === controller &&
+        hydrogenRequest.current === controller &&
         connection === apiClient.getConnectionRevision() &&
         modelsFileRef.current !== null &&
-        enterpriseCarbonTargetIdentity(modelsFileRef.current) === identity;
-      setCarbonSaving(true);
-      setCarbonError(null);
+        enterpriseHydrogenTargetIdentity(modelsFileRef.current) === identity;
+      setHydrogenSaving(true);
+      setHydrogenError(null);
       try {
         const account = await geminiEnterpriseApi.updateCollection(
           selected,
           {
-            fields: { carbon_enabled: enabled },
-            ...(enabled && enterpriseCarbonAdmission(selected)?.verificationRequired !== false
-              ? { carbonTestId: enterpriseCarbonAdmission(selected)?.test?.testId }
+            fields: { hydrogen_enabled: enabled },
+            ...(enabled && enterpriseHydrogenAdmission(selected)?.verificationRequired !== false
+              ? { hydrogenTestId: enterpriseHydrogenAdmission(selected)?.test?.testId }
               : {}),
           },
           controller.signal
@@ -323,23 +323,23 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
         const next = enterpriseCollectionFiles({ ...selected, geminiEnterprise: account }).find(
           (item) => item.geminiEnterprise?.bindingId === selected.geminiEnterprise?.bindingId
         );
-        if (!next || enterpriseCarbonAdmission(next)?.enabled !== enabled)
-          throw new Error(t('gemini_enterprise.carbon.state_unknown'));
+        if (!next || enterpriseHydrogenAdmission(next)?.enabled !== enabled)
+          throw new Error(t('gemini_enterprise.hydrogen.state_unknown'));
         modelsCacheRef.current.clear();
         modelsFileRef.current = next;
         setModelsFile(next);
-        setLastCarbonTest(undefined);
+        setLastHydrogenTest(undefined);
         setEnterpriseMutationVersion((value) => value + 1);
         await showModels(next);
       } catch {
         if (current()) {
-          setCarbonError(t('gemini_enterprise.carbon.save_failed'));
+          setHydrogenError(t('gemini_enterprise.hydrogen.save_failed'));
           setEnterpriseMutationVersion((value) => value + 1);
         }
       } finally {
-        if (carbonRequest.current === controller) {
-          carbonRequest.current = null;
-          setCarbonSaving(false);
+        if (hydrogenRequest.current === controller) {
+          hydrogenRequest.current = null;
+          setHydrogenSaving(false);
         }
       }
     },
@@ -360,7 +360,7 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     return () => {
       unsubscribe();
       listRequest.current?.abort();
-      carbonRequest.current?.abort();
+      hydrogenRequest.current?.abort();
     };
   }, [closeModelsModal, invalidateModels]);
 
@@ -378,10 +378,10 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     invalidateModels,
     syncModelsFile,
     ...tests,
-    carbonVerificationTest: tests.carbonVerificationRunning ? { state: 'running' } : lastCarbonTest,
-    carbonSaving,
-    carbonError,
-    changeCarbonEnabled,
+    hydrogenVerificationTest: tests.hydrogenVerificationRunning ? { state: 'running' } : lastHydrogenTest,
+    hydrogenSaving,
+    hydrogenError,
+    changeHydrogenEnabled,
     enterpriseMutationVersion,
   };
 }

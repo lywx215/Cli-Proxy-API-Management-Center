@@ -364,9 +364,9 @@ describe('Enterprise model policy settings and API normalization', () => {
     expect(enterprisePolicyRoutingPaused(policy)).toBe(false);
     expect(canTestEnterpriseFile(file)).toBe(true);
     expect(isEnterpriseModelExcluded(file, 'gemini-4-argon')).toBe(false);
-    expect(isEnterpriseModelExcluded(file, 'gemini-4-carbon')).toBe(true);
+    expect(isEnterpriseModelExcluded(file, 'gemini-4-hydrogen')).toBe(true);
     const draft = readEnterprisePolicy({ model_policy: 'custom', allowed_models: [] });
-    expect(enterprisePolicyPreview(draft, policy, ['gemini-4-*'])).toEqual(['gemini-4-argon']);
+    expect(enterprisePolicyPreview(draft, policy, ['gemini-4-*'])).toEqual(['gemini-4-argon', 'gemini-4-carbon']);
     const closed = { ...policy, argonForceEnabled: false };
     expect(enterprisePolicyRoutingPaused(closed)).toBe(true);
     expect(enterprisePolicyPreview(draft, closed, [])).toEqual([]);

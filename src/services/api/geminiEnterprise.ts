@@ -126,11 +126,11 @@ export type EnterpriseCollectionPatch = {
   disabled?: boolean;
   resources?: EnterpriseResources;
   fields?: AuthFileFieldsPatch & {
-    carbon_enabled?: boolean;
+    hydrogen_enabled?: boolean;
     argon_force_enabled?: boolean;
     all_models_enabled?: boolean;
   };
-  carbonTestId?: string;
+  hydrogenTestId?: string;
 };
 
 function accountResponse(value: unknown, file: Pick<AuthFileItem, 'geminiEnterprise'>) {
@@ -203,7 +203,7 @@ export const geminiEnterpriseApi = {
         ...(patch.disabled !== undefined ? { disabled: patch.disabled } : {}),
         ...(patch.resources ? { resources: serializeEnterpriseResources(patch.resources) } : {}),
         ...(patch.fields ? { fields: patch.fields } : {}),
-        ...(patch.carbonTestId ? { carbon_test_id: patch.carbonTestId } : {}),
+        ...(patch.hydrogenTestId ? { hydrogen_test_id: patch.hydrogenTestId } : {}),
       },
       { signal, timeout: 0 }
     );

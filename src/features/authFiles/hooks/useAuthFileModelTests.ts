@@ -9,11 +9,11 @@ import type { AuthFileModelItem } from '../constants';
 import { enterpriseResources } from '../enterpriseResources';
 import { useEnterpriseWebRuntime } from '../enterpriseWeb/useEnterpriseWebRuntime';
 import {
-  canTestEnterpriseCarbon,
-  enterpriseCarbonAdmission,
-  ENTERPRISE_CARBON_MODEL,
-  isEnterpriseCarbonModel,
-} from '../enterpriseCarbon';
+  canTestEnterpriseHydrogen,
+  enterpriseHydrogenAdmission,
+  ENTERPRISE_HYDROGEN_MODEL,
+  isEnterpriseHydrogenModel,
+} from '../enterpriseHydrogen';
 import {
   canTestEnterpriseFile,
   cancelModelTest,
@@ -30,8 +30,8 @@ import {
 export function useAuthFileModelTests(
   file: AuthFileItem | null,
   models: AuthFileModelItem[],
-  onCarbonResult?: (result: ModelTestResult, file: AuthFileItem) => void,
-  lastCarbonTest?: ModelTestState
+  onHydrogenResult?: (result: ModelTestResult, file: AuthFileItem) => void,
+  lastHydrogenTest?: ModelTestState
 ) {
   const isWeb = (file?.type || file?.provider) === 'gemini-enterprise-web';
   const isOAuth = (file?.type || file?.provider) === 'gemini-enterprise';
@@ -40,7 +40,7 @@ export function useAuthFileModelTests(
   const { t } = useTranslation();
   const [results, setResults] = useState<Record<string, ModelTestState>>({});
   const [busy, setBusy] = useState(false);
-  const [carbonVerificationRunning, setCarbonVerificationRunning] = useState(false);
+  const [hydrogenVerificationRunning, setHydrogenVerificationRunning] = useState(false);
   const [unsupported, setUnsupported] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const request = useRef<AbortController | null>(null);
@@ -58,7 +58,7 @@ export function useAuthFileModelTests(
     request.current?.abort();
     request.current = null;
     setBusy(false);
-    setCarbonVerificationRunning(false);
+    setHydrogenVerificationRunning(false);
     setResults((previous) =>
       Object.fromEntries(
         Object.entries(previous).map(([id, result]) => [id, cancelModelTest(result)])
@@ -93,26 +93,26 @@ export function useAuthFileModelTests(
   }, [reset]);
 
   const run = useCallback(
-    async (requestedModels: string[], verifyCarbon = false) => {
+    async (requestedModels: string[], verifyHydrogen = false) => {
       if (
         !file ||
-        (verifyCarbon ? !canTestEnterpriseCarbon(file) : !canTestEnterpriseFile(file)) ||
+        (verifyHydrogen ? !canTestEnterpriseHydrogen(file) : !canTestEnterpriseFile(file)) ||
         !channelReady ||
         unsupported ||
         request.current
       )
         return;
       const findModel = (id: string) =>
-        models.find((model) => model.id === id && (model.test_candidate === true) === verifyCarbon);
+        models.find((model) => model.id === id && (model.test_candidate === true) === verifyHydrogen);
       const canRun = (target: AuthFileItem, id: string) => {
         const model = findModel(id);
         if (!model || enterpriseModelCooldown(target, id, resultsRef.current[id])) return false;
-        const carbon = isOAuth && isEnterpriseCarbonModel(model);
-        if (carbon && enterpriseModelCooldown(target, ENTERPRISE_CARBON_MODEL, lastCarbonTest))
+        const hydrogen = isOAuth && isEnterpriseHydrogenModel(model);
+        if (hydrogen && enterpriseModelCooldown(target, ENTERPRISE_HYDROGEN_MODEL, lastHydrogenTest))
           return false;
-        if (verifyCarbon) return carbon && canTestEnterpriseCarbon(target);
+        if (verifyHydrogen) return hydrogen && canTestEnterpriseHydrogen(target);
         return (
-          (!carbon || enterpriseCarbonAdmission(target)?.available === true) &&
+          (!hydrogen || enterpriseHydrogenAdmission(target)?.available === true) &&
           model.policy_allowed !== false &&
           isEnterpriseTextModel(model) &&
           !isEnterpriseModelExcluded(target, model.upstream_model || id)
@@ -132,7 +132,7 @@ export function useAuthFileModelTests(
       let completed = 0;
       let refreshedQuota = false;
       setBusy(true);
-      if (verifyCarbon) setCarbonVerificationRunning(true);
+      if (verifyHydrogen) setHydrogenVerificationRunning(true);
       setProgress({ completed, total: ids.length });
       try {
         await runSerialModelTests(
@@ -150,11 +150,7 @@ export function useAuthFileModelTests(
                 file,
                 model,
                 controller.signal,
-                upstreamModel,
-                {
-                  carbonDirect:
-                    isOAuth && !verifyCarbon && upstreamModel === ENTERPRISE_CARBON_MODEL,
-                }
+                upstreamModel
               );
             } catch (cause) {
               const error = cause as Partial<ApiError>;
@@ -186,7 +182,7 @@ export function useAuthFileModelTests(
             }
           },
           (model) => {
-            if (current() && !verifyCarbon)
+            if (current() && !verifyHydrogen)
               setResults((previous) => ({
                 ...previous,
                 [model]: { ...previous[model], state: 'running' },
@@ -200,8 +196,8 @@ export function useAuthFileModelTests(
             }
             completed += 1;
             setProgress({ completed, total: ids.length });
-            if (verifyCarbon) {
-              onCarbonResult?.(result, file);
+            if (verifyHydrogen) {
+              onHydrogenResult?.(result, file);
               return;
             }
             setResults((previous) => ({
@@ -223,11 +219,11 @@ export function useAuthFileModelTests(
         if (request.current === controller) {
           request.current = null;
           setBusy(false);
-          setCarbonVerificationRunning(false);
+          setHydrogenVerificationRunning(false);
         }
       }
     },
-    [file, models, unsupported, t, channelReady, isWeb, isOAuth, onCarbonResult, lastCarbonTest]
+    [file, models, unsupported, t, channelReady, isWeb, isOAuth, onHydrogenResult, lastHydrogenTest]
   );
 
   return {
@@ -236,7 +232,7 @@ export function useAuthFileModelTests(
     modelTestBusy: busy,
     modelTestUnsupported: unsupported,
     modelTestProgress: progress,
-    carbonVerificationRunning,
+    hydrogenVerificationRunning,
     runModelTests: run,
     cancelModelTests: cancel,
     resetModelTests: reset,

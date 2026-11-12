@@ -67,7 +67,7 @@ export interface GeminiEnterpriseResources {
 
 export type EnterpriseModelPolicyMode =
   'auto' | 'catalog' | 'argon_only' | 'exclude_argon' | 'custom';
-export type EnterpriseCarbonTestEvidence = {
+export type EnterpriseHydrogenTestEvidence = {
   testId: string;
   status: string;
   checkedAt: string;
@@ -75,20 +75,20 @@ export type EnterpriseCarbonTestEvidence = {
   httpStatus?: number;
   reason?: string;
 };
-export type EnterpriseCarbonAdmission = {
+export type EnterpriseHydrogenAdmission = {
   enabled: boolean;
   available: boolean;
   canTest: boolean;
   canEnable: boolean;
   verificationRequired?: boolean;
   reason?: string;
-  test?: EnterpriseCarbonTestEvidence;
+  test?: EnterpriseHydrogenTestEvidence;
 };
 export type EnterpriseModelPolicyState = {
   argonForceEnabled?: boolean;
   allModelsEnabled?: boolean;
-  carbonAdmissionSupported?: boolean;
-  carbonAdmission?: EnterpriseCarbonAdmission;
+  hydrogenAdmissionSupported?: boolean;
+  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   mode: EnterpriseModelPolicyMode;
   effectiveMode: string;
   status: string;
@@ -134,8 +134,8 @@ export type EnterpriseModelPolicyState = {
 };
 
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
-  carbonAdmissionSupported?: boolean;
-  carbonAdmission?: EnterpriseCarbonAdmission;
+  hydrogenAdmissionSupported?: boolean;
+  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   modelPolicyState?: EnterpriseModelPolicyState;
   bindingId: string;
   revision?: number;
@@ -157,11 +157,11 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   argonForceSupported?: boolean;
   allModelsSupported?: boolean;
-  carbonAuthorizationRevision?: number;
-  carbonRegistrationEpoch?: number;
-  googleCarbonConfigureSupported?: boolean;
-  carbonAdmissionSupported?: boolean;
-  carbonAdmission?: EnterpriseCarbonAdmission;
+  hydrogenAuthorizationRevision?: number;
+  hydrogenRegistrationEpoch?: number;
+  googleHydrogenConfigureSupported?: boolean;
+  hydrogenAdmissionSupported?: boolean;
+  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   modelPolicySupported?: boolean;
   catalogFallbackSupported?: boolean;
   modelPolicyState?: EnterpriseModelPolicyState;

@@ -73,7 +73,7 @@
     gap: 4px;
   }
 }
-.carbonActions {
+.hydrogenActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -124,6 +124,49 @@
     text-align: right;
     padding-right: 12px;
   }
+}
+.groupHeading > td {
+  padding: 0;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+.groupToggle:global(.btn.btn-sm) {
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 0;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 11px;
+  > span {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 6px;
+  }
+  svg {
+    flex-shrink: 0;
+  }
+}
+.groupLabel {
+  min-width: 0;
+  font-weight: 600;
+}
+.groupAction {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 400;
+}
+.groupRows[hidden] {
+  display: none;
+}
+.subscriptionReason {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 10px;
 }
 .mainRow {
   td {
@@ -287,5 +330,15 @@
 @container enterprise-account (max-width: 680px) {
   .discoverLabel {
     display: none;
+  }
+}
+@container enterprise-account (max-width: 639px) {
+  .table {
+    min-width: 640px;
+  }
+  .groupToggle:global(.btn.btn-sm) {
+    position: sticky;
+    left: 0;
+    width: 100cqw;
   }
 }

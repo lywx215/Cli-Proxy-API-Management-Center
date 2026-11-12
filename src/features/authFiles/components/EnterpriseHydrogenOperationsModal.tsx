@@ -6,25 +6,25 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconCheckCircle2 } from '@/components/ui/icons';
 import type { AuthFileItem } from '@/types';
 import type {
-  CarbonOperationMode,
-  CarbonOperationRow,
-} from '../hooks/useEnterpriseCarbonOperations';
+  HydrogenOperationMode,
+  HydrogenOperationRow,
+} from '../hooks/useEnterpriseHydrogenOperations';
 import {
-  canEnableEnterpriseCarbon,
-  enterpriseCarbonAdmission,
-  enterpriseCarbonEvidenceStatus,
-  enterpriseCarbonReasonKey,
-} from '../enterpriseCarbon';
+  canEnableEnterpriseHydrogen,
+  enterpriseHydrogenAdmission,
+  enterpriseHydrogenEvidenceStatus,
+  enterpriseHydrogenReasonKey,
+} from '../enterpriseHydrogen';
 import { enterpriseCollectionName } from '../enterpriseAccounts';
-import { googleCarbonReasonKey } from '../enterpriseCarbonOperations';
+import { googleHydrogenReasonKey } from '../enterpriseHydrogenOperations';
 import {
-  enterpriseCarbonAvailabilityPresentation,
-  enterpriseCarbonTestPresentation,
-} from '../enterpriseCarbonPresentation';
-import styles from './EnterpriseCarbonOperationsModal.module.scss';
+  enterpriseHydrogenAvailabilityPresentation,
+  enterpriseHydrogenTestPresentation,
+} from '../enterpriseHydrogenPresentation';
+import styles from './EnterpriseHydrogenOperationsModal.module.scss';
 import modelStyles from './AuthFileModelsModal.module.scss';
 
-export function EnterpriseCarbonOperationsModal({
+export function EnterpriseHydrogenOperationsModal({
   mode,
   rows,
   busy,
@@ -37,8 +37,8 @@ export function EnterpriseCarbonOperationsModal({
   onShowModels,
   onChange,
 }: {
-  mode: CarbonOperationMode | null;
-  rows: CarbonOperationRow[];
+  mode: HydrogenOperationMode | null;
+  rows: HydrogenOperationRow[];
   busy: boolean;
   error: boolean;
   completed: number;
@@ -57,7 +57,7 @@ export function EnterpriseCarbonOperationsModal({
       open={mode !== null}
       onClose={onClose}
       width={780}
-      title={t('gemini_enterprise.carbon_batch.' + (mode === 'configure' ? 'configure' : 'test'))}
+      title={t('gemini_enterprise.hydrogen_batch.' + (mode === 'configure' ? 'configure' : 'test'))}
       footer={
         <>
           {busy && (
@@ -73,33 +73,33 @@ export function EnterpriseCarbonOperationsModal({
     >
       <p id={hintId} className="hint">
         {t(
-          'gemini_enterprise.carbon_batch.' +
+          'gemini_enterprise.hydrogen_batch.' +
             (mode === 'configure' ? 'configure_hint' : 'test_hint')
         )}
       </p>
-      <p className="hint">{t('gemini_enterprise.carbon_batch.cancel_hint')}</p>
+      <p className="hint">{t('gemini_enterprise.hydrogen_batch.cancel_hint')}</p>
       <div role="status" aria-live="polite" className={styles.progress}>
         <progress
           max={Math.max(1, total)}
           value={completed}
-          aria-label={t('gemini_enterprise.carbon_batch.progress', { completed, total })}
+          aria-label={t('gemini_enterprise.hydrogen_batch.progress', { completed, total })}
         />
-        <span>{t('gemini_enterprise.carbon_batch.progress', { completed, total })}</span>
+        <span>{t('gemini_enterprise.hydrogen_batch.progress', { completed, total })}</span>
       </div>
       {error && (
         <p role="alert" className={styles.failure}>
-          {t('gemini_enterprise.carbon_batch.request_failed')}
+          {t('gemini_enterprise.hydrogen_batch.request_failed')}
         </p>
       )}
       <div className={styles.results} aria-busy={busy}>
         {rows.map((row) => {
           const target = row.file;
-          const admission = enterpriseCarbonAdmission(target);
+          const admission = enterpriseHydrogenAdmission(target);
           const evidence = admission?.test;
-          const availability = enterpriseCarbonAvailabilityPresentation(target);
+          const availability = enterpriseHydrogenAvailabilityPresentation(target);
           const testFeedback =
             mode === 'test'
-              ? enterpriseCarbonTestPresentation(
+              ? enterpriseHydrogenTestPresentation(
                   target,
                   row.state === 'running' || row.state === 'cancelled'
                     ? { state: row.state, result: row.test }
@@ -147,7 +147,7 @@ export function EnterpriseCarbonOperationsModal({
                     <IconCheckCircle2 size={14} aria-hidden="true" />{' '}
                   </>
                 )}
-                {t(feedback?.labelKey ?? 'gemini_enterprise.carbon_batch.status_' + attempt)}
+                {t(feedback?.labelKey ?? 'gemini_enterprise.hydrogen_batch.status_' + attempt)}
               </p>
               {feedback?.reasonKey ? (
                 <p className="hint">{t(feedback.reasonKey)}</p>
@@ -158,8 +158,8 @@ export function EnterpriseCarbonOperationsModal({
                 <p className="hint">
                   {t(
                     mode === 'configure' || changed || row.reason === 'outcome_unknown'
-                      ? googleCarbonReasonKey(row.reason)
-                      : enterpriseCarbonReasonKey(row.reason)
+                      ? googleHydrogenReasonKey(row.reason)
+                      : enterpriseHydrogenReasonKey(row.reason)
                   )}
                 </p>
               ) : null}
@@ -179,12 +179,12 @@ export function EnterpriseCarbonOperationsModal({
                       </>
                     )}
                     {t(availability.labelKey)}
-                    {availability.labelKey !== 'gemini_enterprise.carbon.pending_enable' && (
+                    {availability.labelKey !== 'gemini_enterprise.hydrogen.pending_enable' && (
                       <>
                         {' · '}
                         {t(
-                          'gemini_enterprise.carbon.status_' +
-                            enterpriseCarbonEvidenceStatus(admission)
+                          'gemini_enterprise.hydrogen.status_' +
+                            enterpriseHydrogenEvidenceStatus(admission)
                         )}
                       </>
                     )}
@@ -192,7 +192,7 @@ export function EnterpriseCarbonOperationsModal({
                   {availability.reasonKey && <p className="hint">{t(availability.reasonKey)}</p>}
                   {evidence && (
                     <p className="hint">
-                      {t('gemini_enterprise.carbon.checked_at')}{' '}
+                      {t('gemini_enterprise.hydrogen.checked_at')}{' '}
                       <time dateTime={evidence.checkedAt}>
                         {new Date(evidence.checkedAt).toLocaleString()}
                       </time>
@@ -211,21 +211,21 @@ export function EnterpriseCarbonOperationsModal({
                       busy ||
                       saving ||
                       changed ||
-                      (!admission?.enabled && !canEnableEnterpriseCarbon(target))
+                      (!admission?.enabled && !canEnableEnterpriseHydrogen(target))
                     }
                     onChange={(enabled) => onChange(target, enabled)}
                     ariaLabel={
-                      t('gemini_enterprise.carbon.toggle') + ': ' + enterpriseCollectionName(target)
+                      t('gemini_enterprise.hydrogen.toggle') + ': ' + enterpriseCollectionName(target)
                     }
                     ariaDescribedBy={hintId}
                     label={t(
-                      'gemini_enterprise.carbon.' + (admission?.enabled ? 'enabled' : 'disabled')
+                      'gemini_enterprise.hydrogen.' + (admission?.enabled ? 'enabled' : 'disabled')
                     )}
                   />
-                  {row.saving && <p role="status">{t('gemini_enterprise.carbon.saving')}</p>}
+                  {row.saving && <p role="status">{t('gemini_enterprise.hydrogen.saving')}</p>}
                   {row.saveFailed && (
                     <p role="alert" className={styles.failure}>
-                      {t('gemini_enterprise.carbon.save_failed')}
+                      {t('gemini_enterprise.hydrogen.save_failed')}
                     </p>
                   )}
                 </>
@@ -236,7 +236,7 @@ export function EnterpriseCarbonOperationsModal({
                 disabled={disabled || busy || saving || changed}
                 onClick={() => onShowModels(target)}
               >
-                {t('gemini_enterprise.carbon_batch.open_models')}
+                {t('gemini_enterprise.hydrogen_batch.open_models')}
               </Button>
             </section>
           );

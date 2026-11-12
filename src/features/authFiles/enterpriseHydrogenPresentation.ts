@@ -2,29 +2,29 @@ import type { AuthFileItem } from '@/types';
 import type { ModelTestState } from './modelTesting';
 import { sanitizeModelTestMessage } from './modelTesting';
 import {
-  canEnableEnterpriseCarbon,
-  enterpriseCarbonAdmission,
-  enterpriseCarbonReasonKey,
-} from './enterpriseCarbon';
+  canEnableEnterpriseHydrogen,
+  enterpriseHydrogenAdmission,
+  enterpriseHydrogenReasonKey,
+} from './enterpriseHydrogen';
 
-export type CarbonFeedbackTone = 'success' | 'failure' | 'neutral';
-export type CarbonFeedback = {
-  tone: CarbonFeedbackTone;
+export type HydrogenFeedbackTone = 'success' | 'failure' | 'neutral';
+export type HydrogenFeedback = {
+  tone: HydrogenFeedbackTone;
   labelKey: string;
   reasonKey?: string;
   detail?: string;
 };
 
 const manualDisabledReasons = new Set([
-  'carbon_disabled',
+  'hydrogen_disabled',
   'manual_disabled',
   'not_enabled',
   'disabled',
 ]);
 
-export function enterpriseCarbonAvailabilityPresentation(file: AuthFileItem): CarbonFeedback {
-  const admission = enterpriseCarbonAdmission(file);
-  const eligible = canEnableEnterpriseCarbon(file);
+export function enterpriseHydrogenAvailabilityPresentation(file: AuthFileItem): HydrogenFeedback {
+  const admission = enterpriseHydrogenAdmission(file);
+  const eligible = canEnableEnterpriseHydrogen(file);
   const verificationRequired = admission?.verificationRequired !== false;
   const currentProof = eligible && admission?.test?.status === 'verified' && !admission.test.reason;
   const manualDisabled = manualDisabledReasons.has(admission?.reason ?? '');
@@ -36,28 +36,28 @@ export function enterpriseCarbonAvailabilityPresentation(file: AuthFileItem): Ca
     admission.available &&
     !blockingReason
   )
-    return { tone: 'success', labelKey: 'gemini_enterprise.carbon.available' };
+    return { tone: 'success', labelKey: 'gemini_enterprise.hydrogen.available' };
   if (currentProof && admission?.enabled === false && !admission.available && manualDisabled)
     return {
       tone: 'success',
-      labelKey: 'gemini_enterprise.carbon.pending_enable',
-      reasonKey: 'gemini_enterprise.carbon.pending_enable_hint',
+      labelKey: 'gemini_enterprise.hydrogen.pending_enable',
+      reasonKey: 'gemini_enterprise.hydrogen.pending_enable_hint',
     };
   if (!verificationRequired && eligible && admission?.enabled === false && manualDisabled)
-    return { tone: 'neutral', labelKey: 'gemini_enterprise.carbon.disabled' };
+    return { tone: 'neutral', labelKey: 'gemini_enterprise.hydrogen.disabled' };
   return {
     tone: 'neutral',
-    labelKey: 'gemini_enterprise.carbon.unavailable',
-    reasonKey: admission?.reason ? enterpriseCarbonReasonKey(admission.reason) : undefined,
+    labelKey: 'gemini_enterprise.hydrogen.unavailable',
+    reasonKey: admission?.reason ? enterpriseHydrogenReasonKey(admission.reason) : undefined,
   };
 }
 
 // Presentation never changes admission, test ownership, or switch eligibility.
 // A saved historical success is not proof that the current application is ready.
-export function enterpriseCarbonTestPresentation(
+export function enterpriseHydrogenTestPresentation(
   file: AuthFileItem,
   test?: ModelTestState
-): CarbonFeedback | undefined {
+): HydrogenFeedback | undefined {
   if (!test) return undefined;
   if (test.state === 'running' || test.state === 'cancelled')
     return { tone: 'neutral', labelKey: 'auth_files.model_test_state_' + test.state };
@@ -72,27 +72,27 @@ export function enterpriseCarbonTestPresentation(
     (result.bindingId && result.bindingId !== file.geminiEnterprise?.bindingId)
   )
     return undefined;
-  const admission = enterpriseCarbonAdmission(file);
+  const admission = enterpriseHydrogenAdmission(file);
   if (
     result.status !== 'ok' &&
-    canEnableEnterpriseCarbon(file) &&
+    canEnableEnterpriseHydrogen(file) &&
     Date.parse(admission?.test?.checkedAt ?? '') > Date.parse(result.checkedAt)
   )
     return undefined;
   if (result.status === 'ok') {
     const currentProof =
-      canEnableEnterpriseCarbon(file) &&
+      canEnableEnterpriseHydrogen(file) &&
       admission?.test?.status === 'verified' &&
       !admission.test.reason;
     const currentReason = admission?.reason;
-    const availability = enterpriseCarbonAvailabilityPresentation(file);
+    const availability = enterpriseHydrogenAvailabilityPresentation(file);
     return currentProof && (!currentReason || manualDisabledReasons.has(currentReason))
       ? {
           tone: 'success',
           labelKey:
-            availability.labelKey === 'gemini_enterprise.carbon.pending_enable'
-              ? 'gemini_enterprise.carbon.test_success_pending'
-              : 'gemini_enterprise.carbon.test_success',
+            availability.labelKey === 'gemini_enterprise.hydrogen.pending_enable'
+              ? 'gemini_enterprise.hydrogen.test_success_pending'
+              : 'gemini_enterprise.hydrogen.test_success',
         }
       : availability;
   }
@@ -100,18 +100,18 @@ export function enterpriseCarbonTestPresentation(
     return {
       tone: 'neutral',
       labelKey: 'auth_files.model_test_state_cooling',
-      reasonKey: 'gemini_enterprise.carbon.reason_cooling',
+      reasonKey: 'gemini_enterprise.hydrogen.reason_cooling',
     };
   if (manualDisabledReasons.has(result.code))
     return {
       tone: 'neutral',
-      labelKey: 'gemini_enterprise.carbon.disabled',
-      reasonKey: 'gemini_enterprise.carbon.reason_disabled',
+      labelKey: 'gemini_enterprise.hydrogen.disabled',
+      reasonKey: 'gemini_enterprise.hydrogen.reason_disabled',
     };
   if (result.code === 'cancelled' || result.code === 'outcome_unknown')
     return { tone: 'neutral', labelKey: 'auth_files.model_test_state_cancelled' };
-  const reasonKey = enterpriseCarbonReasonKey(result.code);
-  const knownReason = reasonKey !== 'gemini_enterprise.carbon.reason_other';
+  const reasonKey = enterpriseHydrogenReasonKey(result.code);
+  const knownReason = reasonKey !== 'gemini_enterprise.hydrogen.reason_other';
   return {
     tone: 'failure',
     labelKey: 'auth_files.model_test_state_' + result.status,

@@ -23,19 +23,24 @@ import {
   enterpriseCollectionIdentity,
   enterpriseCollectionName,
 } from '../enterpriseAccounts';
+import {
+  enterpriseSubscriptionUnknownReason,
+  groupEnterpriseCollections,
+  type EnterpriseCollectionGroupKind,
+} from '../enterpriseCollectionGroups';
 import { getAuthFileRefreshKey } from '../manualRefresh';
 import type { AuthFileCardProps } from './AuthFileCard';
 import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
 import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
 import { GeminiEnterpriseRegionEditor } from './GeminiEnterpriseRegionEditor';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
-import { useEnterpriseCarbonOperations } from '../hooks/useEnterpriseCarbonOperations';
-import { EnterpriseCarbonOperationsModal } from './EnterpriseCarbonOperationsModal';
+import { useEnterpriseHydrogenOperations } from '../hooks/useEnterpriseHydrogenOperations';
+import { EnterpriseHydrogenOperationsModal } from './EnterpriseHydrogenOperationsModal';
 import {
-  enterpriseCarbonAdmission,
-  enterpriseCarbonSummary,
-  enterpriseCarbonSupported,
-} from '../enterpriseCarbon';
+  enterpriseHydrogenAdmission,
+  enterpriseHydrogenSummary,
+  enterpriseHydrogenSupported,
+} from '../enterpriseHydrogen';
 import statusStyles from './AuthFileCard.module.scss';
 import styles from './GeminiEnterpriseAccount.module.scss';
 
@@ -73,6 +78,9 @@ function CollectionRows({
   useEffect(() => () => request.current?.abort(), []);
   const binding = file.geminiEnterprise;
   const subscriptionTone = enterpriseSubscriptionTone(binding?.modelPolicyState?.subscription);
+  const unknownReason = enterpriseSubscriptionUnknownReason(
+    binding?.modelPolicyState?.subscription
+  );
   const identity = enterpriseCollectionIdentity(file);
   const statusData = statusBarDataFromRecentRequests(file.recentRequests ?? []);
   const hasRecent = statusData.totalSuccess + statusData.totalFailure > 0;
@@ -147,16 +155,23 @@ function CollectionRows({
             <span className={styles.region}>{binding?.location || 'global'}</span>
           </div>
           <EnterpriseModelPolicyStatus snapshot={binding?.modelPolicyState} compact />
-          {enterpriseCarbonSupported(file) && (
+          {unknownReason && (
+            <small className={styles.subscriptionReason} role="status">
+              {t('gemini_enterprise.policy.reason_' + unknownReason, {
+                defaultValue: unknownReason,
+              })}
+            </small>
+          )}
+          {enterpriseHydrogenSupported(file) && (
             <small className="hint">
               {t(
-                'gemini_enterprise.carbon.' +
-                  (enterpriseCarbonAdmission(file)?.enabled ? 'enabled' : 'disabled')
+                'gemini_enterprise.hydrogen.' +
+                  (enterpriseHydrogenAdmission(file)?.enabled ? 'enabled' : 'disabled')
               )}
               {' · '}
               {t(
-                'gemini_enterprise.carbon.' +
-                  (enterpriseCarbonAdmission(file)?.available ? 'available' : 'unavailable')
+                'gemini_enterprise.hydrogen.' +
+                  (enterpriseHydrogenAdmission(file)?.available ? 'available' : 'unavailable')
               )}
             </small>
           )}
@@ -312,15 +327,22 @@ export function GeminiEnterpriseAccount(props: Props) {
   const { t } = useTranslation();
   const { file, disableControls } = props;
   const [expanded, setExpanded] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<EnterpriseCollectionGroupKind>>(
+    () => new Set(['trial'])
+  );
   const [discovering, setDiscovering] = useState(false);
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   const rowsId = useId();
   const children = useMemo(() => enterpriseCollectionFiles(file), [file]);
+  const groups = useMemo(() => groupEnterpriseCollections(children), [children]);
   const projectCount = new Set(children.map((child) => child.geminiEnterprise?.projectId)).size;
-  const carbonSummary = enterpriseCarbonSummary(children);
+  const hydrogenSummary = enterpriseHydrogenSummary(children);
   const account = file.geminiEnterprise;
-  const carbonOperations = useEnterpriseCarbonOperations(file, props.onEnterpriseResourcesSaved);
+  const hydrogenOperations = useEnterpriseHydrogenOperations(
+    file,
+    props.onEnterpriseResourcesSaved
+  );
   const discover = async () => {
     if (disableControls || discovering) return;
     const controller = new AbortController();
@@ -381,7 +403,9 @@ export function GeminiEnterpriseAccount(props: Props) {
         <div className={styles.identity}>
           <h2 title={file.email || file.name}>{file.email || file.name}</h2>
           <p title={file.name}>{file.name}</p>
-          {carbonSummary.supported && <p>{t('gemini_enterprise.carbon.summary', carbonSummary)}</p>}
+          {hydrogenSummary.supported && (
+            <p>{t('gemini_enterprise.hydrogen.summary', hydrogenSummary)}</p>
+          )}
         </div>
         <div className={styles.accountActions}>
           <Button
@@ -455,52 +479,52 @@ export function GeminiEnterpriseAccount(props: Props) {
           onChange={(enabled) => props.onToggleStatus(file, enabled)}
         />
       </div>
-      <div className={styles.carbonActions}>
+      <div className={styles.hydrogenActions}>
         <Button
           size="sm"
           variant="secondary"
           disabled={
             disableControls ||
-            carbonOperations.busy ||
+            hydrogenOperations.busy ||
             discovering ||
-            !account?.googleCarbonConfigureSupported ||
+            !account?.googleHydrogenConfigureSupported ||
             !children.length
           }
-          onClick={() => void carbonOperations.start('configure')}
-          aria-describedby={`${rowsId}-carbon-hint`}
+          onClick={() => void hydrogenOperations.start('configure')}
+          aria-describedby={`${rowsId}-hydrogen-hint`}
         >
-          {t('gemini_enterprise.carbon_batch.configure')}
+          {t('gemini_enterprise.hydrogen_batch.configure')}
         </Button>
         <Button
           size="sm"
           variant="secondary"
           disabled={
             disableControls ||
-            carbonOperations.busy ||
+            hydrogenOperations.busy ||
             discovering ||
-            !carbonSummary.supported ||
+            !hydrogenSummary.supported ||
             !children.length ||
             file.disabled === true
           }
-          onClick={() => void carbonOperations.start('test')}
+          onClick={() => void hydrogenOperations.start('test')}
         >
-          {t('gemini_enterprise.carbon_batch.test')}
+          {t('gemini_enterprise.hydrogen_batch.test')}
         </Button>
-        <p id={`${rowsId}-carbon-hint`} className="hint">
-          {t('gemini_enterprise.carbon_batch.remote_warning')}
+        <p id={`${rowsId}-hydrogen-hint`} className="hint">
+          {t('gemini_enterprise.hydrogen_batch.remote_warning')}
         </p>
-        {!account?.googleCarbonConfigureSupported && (
-          <p className="hint">{t('gemini_enterprise.carbon_batch.unsupported')}</p>
+        {!account?.googleHydrogenConfigureSupported && (
+          <p className="hint">{t('gemini_enterprise.hydrogen_batch.unsupported')}</p>
         )}
       </div>
-      <EnterpriseCarbonOperationsModal
-        {...carbonOperations}
+      <EnterpriseHydrogenOperationsModal
+        {...hydrogenOperations}
         disabled={disableControls}
-        onCancel={carbonOperations.cancel}
-        onClose={carbonOperations.close}
-        onChange={(target, enabled) => void carbonOperations.changeEnabled(target, enabled)}
+        onCancel={hydrogenOperations.cancel}
+        onClose={hydrogenOperations.close}
+        onChange={(target, enabled) => void hydrogenOperations.changeEnabled(target, enabled)}
         onShowModels={(target) => {
-          carbonOperations.close();
+          hydrogenOperations.close();
           props.onShowModels(target);
         }}
       />
@@ -518,17 +542,65 @@ export function GeminiEnterpriseAccount(props: Props) {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {children.map((child) => (
-                    <Fragment key={enterpriseCollectionIdentity(child)}>
-                      <CollectionRows
-                        file={child}
-                        parentDisabled={file.disabled === true}
-                        props={props}
-                      />
+                {groups.map((group) => {
+                  const groupId = rowsId + '-' + group.kind;
+                  const groupExpanded = !collapsedGroups.has(group.kind);
+                  return (
+                    <Fragment key={group.kind}>
+                      <tbody>
+                        <tr className={styles.groupHeading} data-subscription-group={group.kind}>
+                          <td colSpan={3}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className={styles.groupToggle}
+                              aria-expanded={groupExpanded}
+                              aria-controls={groupId}
+                              onClick={() =>
+                                setCollapsedGroups((previous) => {
+                                  const next = new Set(previous);
+                                  if (next.has(group.kind)) next.delete(group.kind);
+                                  else next.add(group.kind);
+                                  return next;
+                                })
+                              }
+                            >
+                              <IconChevronDown
+                                size={14}
+                                aria-hidden="true"
+                                style={{
+                                  transform: groupExpanded ? undefined : 'rotate(-90deg)',
+                                }}
+                              />
+                              <span className={styles.groupLabel}>
+                                {t('gemini_enterprise.collections.group_' + group.kind, {
+                                  count: group.files.length,
+                                })}
+                              </span>
+                              <span className={styles.groupAction}>
+                                {t(
+                                  'gemini_enterprise.collections.' +
+                                    (groupExpanded ? 'collapse_group' : 'expand_group')
+                                )}
+                              </span>
+                            </Button>
+                          </td>
+                        </tr>
+                      </tbody>
+                      <tbody id={groupId} className={styles.groupRows} hidden={!groupExpanded}>
+                        {group.files.map((child) => (
+                          <CollectionRows
+                            key={enterpriseCollectionIdentity(child)}
+                            file={child}
+                            parentDisabled={file.disabled === true}
+                            props={props}
+                          />
+                        ))}
+                      </tbody>
                     </Fragment>
-                  ))}
-                </tbody>
+                  );
+                })}
               </table>
             </div>
           ) : (

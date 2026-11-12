@@ -21,11 +21,11 @@ import { normalizeAuthFileCooldowns, normalizeCooldownTimestamp } from './authFi
 import {
   enterpriseRevision,
   normalizeEnterpriseAccount,
-  normalizeEnterpriseCarbonAdmission,
+  normalizeEnterpriseHydrogenAdmission,
   normalizeEnterpriseModelPolicy,
 } from './enterpriseAccounts';
 import { requireManagementObject } from './managementResponse';
-import type { EnterpriseCarbonAdmission, EnterpriseModelPolicyState } from '@/types/authFile';
+import type { EnterpriseHydrogenAdmission, EnterpriseModelPolicyState } from '@/types/authFile';
 import type { AuthFileModelItem } from '@/features/authFiles/constants';
 
 type AuthFileStatusResponse = { status: string; disabled: boolean };
@@ -565,16 +565,16 @@ export interface AuthFileCooldownResetResponse {
 export type AuthFileModelsSnapshot = {
   models: AuthFileModelItem[];
   testCandidates: AuthFileModelItem[];
-  carbonAdmissionSupported: boolean;
-  carbonAdmission?: EnterpriseCarbonAdmission;
+  hydrogenAdmissionSupported: boolean;
+  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   modelPolicyState?: EnterpriseModelPolicyState;
   revision?: number;
 };
 
 export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSnapshot {
   requireManagementObject(data);
-  const carbonAdmissionSupported = data.carbon_admission_supported === true;
-  const carbonAdmission = normalizeEnterpriseCarbonAdmission(data.carbon_admission);
+  const hydrogenAdmissionSupported = data.hydrogen_admission_supported === true;
+  const hydrogenAdmission = normalizeEnterpriseHydrogenAdmission(data.hydrogen_admission);
   const models = data.models ?? data['models'];
   const result = Array.isArray(models)
     ? models
@@ -582,9 +582,9 @@ export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSn
         .filter((entry) => typeof entry.id === 'string')
         .filter(
           (entry) =>
-            !carbonAdmissionSupported ||
-            (entry.upstream_model || entry.id) !== 'gemini-4-carbon' ||
-            (carbonAdmission?.available === true &&
+            !hydrogenAdmissionSupported ||
+            (entry.upstream_model || entry.id) !== 'gemini-4-hydrogen' ||
+            (hydrogenAdmission?.available === true &&
               entry.test_candidate !== true &&
               entry.business_registered !== false)
         )
@@ -596,7 +596,7 @@ export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSn
         !isRecord(entry) ||
         typeof entry.id !== 'string' ||
         seen.has(entry.id) ||
-        (carbonAdmissionSupported && entry.id === 'gemini-4-carbon') ||
+        (hydrogenAdmissionSupported && entry.id === 'gemini-4-hydrogen') ||
         entry.allowed !== false
       )
         continue;
@@ -625,15 +625,15 @@ export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSn
       : {}),
   }));
   const testCandidates: AuthFileModelItem[] =
-    carbonAdmissionSupported && Array.isArray(data.test_candidates)
+    hydrogenAdmissionSupported && Array.isArray(data.test_candidates)
       ? data.test_candidates
           .filter(isRecord)
-          .filter((entry) => entry.id === 'gemini-4-carbon' && entry.test_candidate === true)
+          .filter((entry) => entry.id === 'gemini-4-hydrogen' && entry.test_candidate === true)
           .slice(0, 1)
           .map((entry) => ({
-            id: 'gemini-4-carbon',
+            id: 'gemini-4-hydrogen',
             type: 'gemini',
-            upstream_model: 'gemini-4-carbon',
+            upstream_model: 'gemini-4-hydrogen',
             test_candidate: true,
             business_registered: entry.business_registered === true,
           }))
@@ -641,8 +641,8 @@ export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSn
   return {
     models: businessModels,
     testCandidates,
-    carbonAdmissionSupported,
-    carbonAdmission,
+    hydrogenAdmissionSupported,
+    hydrogenAdmission,
     modelPolicyState: normalizeEnterpriseModelPolicy(data.model_policy_state),
     revision: enterpriseRevision(data.revision),
   };

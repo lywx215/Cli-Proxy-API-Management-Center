@@ -3,7 +3,7 @@ import { enterpriseCollectionFiles, enterpriseCollectionIdentity } from './enter
 import { enterpriseResources, validEnterpriseResources } from './enterpriseResources';
 import type { ModelTestResult } from './modelTesting';
 
-export function shouldStopCarbonApplicationTests(result: ModelTestResult): boolean {
+export function shouldStopHydrogenApplicationTests(result: ModelTestResult): boolean {
   // Unlike testing several models on one application, this queue owns distinct
   // applications. Only an invalidated request scope stops the remaining work.
   return (
@@ -11,22 +11,22 @@ export function shouldStopCarbonApplicationTests(result: ModelTestResult): boole
     [
       'credential_changed',
       'authorization_changed',
-      'carbon_authorization_changed',
+      'hydrogen_authorization_changed',
       'binding_changed',
-      'carbon_binding_changed',
+      'hydrogen_binding_changed',
       'configuration_changed',
-      'carbon_configuration_changed',
+      'hydrogen_configuration_changed',
       'model_changed',
     ].includes(result.code)
   );
 }
 
-export function carbonApplicationTestFailure(file: AuthFileItem, cause: unknown): ModelTestResult {
+export function hydrogenApplicationTestFailure(file: AuthFileItem, cause: unknown): ModelTestResult {
   const failure = cause && typeof cause === 'object' ? (cause as Partial<ApiError>) : undefined;
   const status = failure?.status;
   return {
     status: 'unavailable',
-    model: 'gemini-4-carbon',
+    model: 'gemini-4-hydrogen',
     authIndex: String(file.authIndex ?? ''),
     resources: enterpriseResources(file.geminiEnterprise),
     checkedAt: new Date().toISOString(),
@@ -41,7 +41,7 @@ export function carbonApplicationTestFailure(file: AuthFileItem, cause: unknown)
   };
 }
 
-export function validCarbonConfigurationApplication(file: AuthFileItem): boolean {
+export function validHydrogenConfigurationApplication(file: AuthFileItem): boolean {
   return Boolean(
     file.geminiEnterprise?.bindingId &&
     !file.geminiEnterprise.missing &&
@@ -51,7 +51,7 @@ export function validCarbonConfigurationApplication(file: AuthFileItem): boolean
   );
 }
 
-export function enterpriseCarbonAccountIdentity(file: AuthFileItem): string {
+export function enterpriseHydrogenAccountIdentity(file: AuthFileItem): string {
   return JSON.stringify([
     file.name,
     file.authIndex,
@@ -66,7 +66,7 @@ export function enterpriseCarbonAccountIdentity(file: AuthFileItem): string {
   ]);
 }
 
-export function carbonApplicationBatches(files: AuthFileItem[], size = 5): AuthFileItem[][] {
+export function hydrogenApplicationBatches(files: AuthFileItem[], size = 5): AuthFileItem[][] {
   const unique = [
     ...new Map(files.map((file) => [file.geminiEnterprise?.bindingId, file])).values(),
   ];
@@ -77,7 +77,7 @@ export function carbonApplicationBatches(files: AuthFileItem[], size = 5): AuthF
 }
 
 // A started application is never replayed, including after an uncertain response.
-export async function runCarbonApplicationTests<T>(
+export async function runHydrogenApplicationTests<T>(
   files: AuthFileItem[],
   signal: AbortSignal,
   execute: (file: AuthFileItem) => Promise<T>,
@@ -87,7 +87,7 @@ export async function runCarbonApplicationTests<T>(
 ): Promise<void> {
   let cursor = 0;
   let stopped = false;
-  const targets = carbonApplicationBatches(files).flat();
+  const targets = hydrogenApplicationBatches(files).flat();
   const worker = async () => {
     while (!signal.aborted && !stopped && cursor < targets.length) {
       const file = targets[cursor++];
@@ -101,7 +101,7 @@ export async function runCarbonApplicationTests<T>(
   await Promise.all([worker(), worker()]);
 }
 
-export function googleCarbonReasonKey(reason?: string): string {
+export function googleHydrogenReasonKey(reason?: string): string {
   const reasons: Record<string, string[]> = {
     assistant_defaults_preserved: ['assistant_defaults_preserved'],
     allowed_models_review_required: ['allowed_models_review_required'],
@@ -137,7 +137,7 @@ export function googleCarbonReasonKey(reason?: string): string {
     unknown: ['request_failed', 'outcome_unknown', 'write_result_unknown', 'cancelled'],
   };
   return (
-    'gemini_enterprise.carbon_batch.reason_' +
+    'gemini_enterprise.hydrogen_batch.reason_' +
     (Object.entries(reasons).find(([, values]) => values.includes(reason ?? ''))?.[0] ?? 'other')
   );
 }

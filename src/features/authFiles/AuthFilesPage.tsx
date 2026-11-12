@@ -52,7 +52,7 @@ import {
 } from '@/features/authFiles/logic';
 import { useAuthFilesData } from '@/features/authFiles/hooks/useAuthFilesData';
 import { useAuthFilesModels } from '@/features/authFiles/hooks/useAuthFilesModels';
-import { ENTERPRISE_CARBON_MODEL } from '@/features/authFiles/enterpriseCarbon';
+import { ENTERPRISE_HYDROGEN_MODEL } from '@/features/authFiles/enterpriseHydrogen';
 import { useAuthFilesOauth } from '@/features/authFiles/hooks/useAuthFilesOauth';
 import { useAuthFilesPrefixProxyEditor } from '@/features/authFiles/hooks/useAuthFilesPrefixProxyEditor';
 import { useAuthFilesStatusBarCache } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
@@ -134,10 +134,10 @@ export function AuthFilesPage() {
     modelTestProgress,
     runModelTests,
     cancelModelTests,
-    carbonSaving,
-    carbonError,
-    carbonVerificationTest,
-    changeCarbonEnabled,
+    hydrogenSaving,
+    hydrogenError,
+    hydrogenVerificationTest,
+    changeHydrogenEnabled,
     enterpriseMutationVersion,
   } = useAuthFilesModels();
 
@@ -184,10 +184,10 @@ export function AuthFilesPage() {
   } = useAuthFilesData({ onFilesMutated: invalidateDerivedCaches });
 
   useEffect(() => syncModelsFile(files), [files, syncModelsFile]);
-  const carbonMutationSeen = useRef(0);
+  const hydrogenMutationSeen = useRef(0);
   useEffect(() => {
-    if (carbonMutationSeen.current === enterpriseMutationVersion) return;
-    carbonMutationSeen.current = enterpriseMutationVersion;
+    if (hydrogenMutationSeen.current === enterpriseMutationVersion) return;
+    hydrogenMutationSeen.current = enterpriseMutationVersion;
     void loadFiles({ background: true });
   }, [enterpriseMutationVersion, loadFiles]);
 
@@ -972,13 +972,13 @@ export function AuthFilesPage() {
         testUnsupported={modelTestUnsupported}
         testProgress={modelTestProgress}
         onTestModels={(models) => void runModelTests(models)}
-        onVerifyCarbon={() => void runModelTests([ENTERPRISE_CARBON_MODEL], true)}
-        carbonVerificationTest={carbonVerificationTest}
+        onVerifyHydrogen={() => void runModelTests([ENTERPRISE_HYDROGEN_MODEL], true)}
+        hydrogenVerificationTest={hydrogenVerificationTest}
         onCancelTests={cancelModelTests}
         controlsDisabled={disableControls}
-        carbonSaving={carbonSaving}
-        carbonError={carbonError}
-        onCarbonChange={(enabled) => void changeCarbonEnabled(enabled)}
+        hydrogenSaving={hydrogenSaving}
+        hydrogenError={hydrogenError}
+        onHydrogenChange={(enabled) => void changeHydrogenEnabled(enabled)}
       />
 
       <AuthFileDetailsSheet

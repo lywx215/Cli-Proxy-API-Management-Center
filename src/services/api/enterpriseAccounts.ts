@@ -2,7 +2,7 @@ import type {
   GeminiEnterpriseAccount,
   GeminiEnterpriseCollection,
   EnterpriseModelPolicyState,
-  EnterpriseCarbonAdmission,
+  EnterpriseHydrogenAdmission,
 } from '@/types/authFile';
 import { isRecord } from '@/utils/helpers';
 import {
@@ -19,9 +19,9 @@ const bool = (value: unknown): boolean | undefined =>
 export const enterpriseRevision = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 
-export function normalizeEnterpriseCarbonAdmission(
+export function normalizeEnterpriseHydrogenAdmission(
   value: unknown
-): EnterpriseCarbonAdmission | undefined {
+): EnterpriseHydrogenAdmission | undefined {
   if (!isRecord(value)) return undefined;
   const raw = isRecord(value.test) ? value.test : undefined;
   const checkedAt = raw && text(raw.checked_at);
@@ -42,7 +42,7 @@ export function normalizeEnterpriseCarbonAdmission(
       : undefined;
   const verified =
     test?.status === 'verified' &&
-    test.upstreamModel === 'gemini-4-carbon' &&
+    test.upstreamModel === 'gemini-4-hydrogen' &&
     test.httpStatus === 200;
   const verificationRequired = bool(value.verification_required);
   const canEnable = value.can_enable === true && (verificationRequired === false || verified);
@@ -110,8 +110,8 @@ export function normalizeEnterpriseModelPolicy(
     mode,
     argonForceEnabled: bool(value.argon_force_enabled),
     allModelsEnabled: bool(value.all_models_enabled),
-    carbonAdmissionSupported: bool(value.carbon_admission_supported),
-    carbonAdmission: normalizeEnterpriseCarbonAdmission(value.carbon_admission),
+    hydrogenAdmissionSupported: bool(value.hydrogen_admission_supported),
+    hydrogenAdmission: normalizeEnterpriseHydrogenAdmission(value.hydrogen_admission),
     effectiveMode: text(value.effective_mode) ?? 'auto',
     status: text(value.status) ?? 'blocked',
     reason: text(value.reason),
@@ -188,9 +188,9 @@ export function normalizeEnterpriseAccount(
         .map((entry) => ({
           ...resources(entry),
           bindingId: text(entry.binding_id)!,
-          carbonAdmissionSupported:
-            bool(entry.carbon_admission_supported) ?? bool(value.carbon_admission_supported),
-          carbonAdmission: normalizeEnterpriseCarbonAdmission(entry.carbon_admission),
+          hydrogenAdmissionSupported:
+            bool(entry.hydrogen_admission_supported) ?? bool(value.hydrogen_admission_supported),
+          hydrogenAdmission: normalizeEnterpriseHydrogenAdmission(entry.hydrogen_admission),
           modelPolicyState: normalizeEnterpriseModelPolicy(entry.model_policy_state),
           revision: enterpriseRevision(entry.revision),
           authIndex: normalizeRecentRequestAuthIndex(entry.auth_index) ?? undefined,
@@ -213,11 +213,11 @@ export function normalizeEnterpriseAccount(
     ...resources(value),
     argonForceSupported: bool(value.argon_force_supported),
     allModelsSupported: bool(value.all_models_supported),
-    carbonAuthorizationRevision: enterpriseRevision(value.carbon_authorization_revision),
-    carbonRegistrationEpoch: enterpriseRevision(value.carbon_registration_epoch),
-    googleCarbonConfigureSupported: value.google_carbon_configure_supported === true,
-    carbonAdmissionSupported: bool(value.carbon_admission_supported),
-    carbonAdmission: normalizeEnterpriseCarbonAdmission(value.carbon_admission),
+    hydrogenAuthorizationRevision: enterpriseRevision(value.hydrogen_authorization_revision),
+    hydrogenRegistrationEpoch: enterpriseRevision(value.hydrogen_registration_epoch),
+    googleHydrogenConfigureSupported: value.google_hydrogen_configure_supported === true,
+    hydrogenAdmissionSupported: bool(value.hydrogen_admission_supported),
+    hydrogenAdmission: normalizeEnterpriseHydrogenAdmission(value.hydrogen_admission),
     clientId: text(value.client_id),
     modelPolicySupported: bool(value.model_policy_supported),
     catalogFallbackSupported: bool(value.catalog_fallback_supported),

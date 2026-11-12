@@ -5,24 +5,24 @@ import { readFileSync } from 'node:fs';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { normalizeEnterpriseAccount } from '@/services/api/enterpriseAccounts';
-import { EnterpriseCarbonAdmission } from '@/features/authFiles/components/EnterpriseCarbonAdmission';
-import { EnterpriseCarbonOperationsModal } from '@/features/authFiles/components/EnterpriseCarbonOperationsModal';
+import { EnterpriseHydrogenAdmission } from '@/features/authFiles/components/EnterpriseHydrogenAdmission';
+import { EnterpriseHydrogenOperationsModal } from '@/features/authFiles/components/EnterpriseHydrogenOperationsModal';
 import { AuthFileModelsModal } from '@/features/authFiles/components/AuthFileModelsModal';
 import {
-  enterpriseCarbonAvailabilityPresentation,
-  enterpriseCarbonTestPresentation,
-} from '@/features/authFiles/enterpriseCarbonPresentation';
+  enterpriseHydrogenAvailabilityPresentation,
+  enterpriseHydrogenTestPresentation,
+} from '@/features/authFiles/enterpriseHydrogenPresentation';
 import type { ModelTestResult, ModelTestState } from '@/features/authFiles/modelTesting';
 import type { AuthFileItem } from '@/types';
 
-const carbon = 'gemini-4-carbon';
-const backendSuccess = 'Carbon completed its fixed-application verification';
+const hydrogen = 'gemini-4-hydrogen';
+const backendSuccess = 'Hydrogen completed its fixed-application verification';
 const checkedAt = '2026-11-07T09:00:00Z';
 const proof = {
   status: 'verified',
   test_id: 'current-server-proof',
   checked_at: checkedAt,
-  upstream_model: carbon,
+  upstream_model: hydrogen,
   http_status: 200,
 };
 const ready = {
@@ -30,7 +30,7 @@ const ready = {
   available: false,
   can_test: true,
   can_enable: true,
-  reason: 'carbon_disabled',
+  reason: 'hydrogen_disabled',
   test: proof,
 };
 
@@ -49,8 +49,8 @@ function target(admission: Record<string, unknown> = ready): AuthFileItem {
         collection_id: 'default_collection',
         engine_id: 'app',
         assistant_id: 'default_assistant',
-        carbon_admission_supported: true,
-        carbon_admission: admission,
+        hydrogen_admission_supported: true,
+        hydrogen_admission: admission,
       }),
       bindingId: 'application-binding',
     },
@@ -62,7 +62,7 @@ function result(change: Partial<ModelTestResult> = {}): ModelTestResult {
     status: 'ok',
     code: 'ok',
     message: backendSuccess,
-    model: carbon,
+    model: hydrogen,
     authIndex: 'application-index',
     bindingId: 'application-binding',
     checkedAt,
@@ -78,7 +78,7 @@ async function translations(locale: string) {
   );
   const i18n = createInstance();
   await i18n.init({ lng: locale, resources: { [locale]: { translation: messages } } });
-  return { i18n, messages: messages.gemini_enterprise.carbon };
+  return { i18n, messages: messages.gemini_enterprise.hydrogen };
 }
 
 async function render(
@@ -90,7 +90,7 @@ async function render(
   const { i18n } = await translations(locale);
   const component =
     view === 'panel'
-      ? createElement(EnterpriseCarbonAdmission, {
+      ? createElement(EnterpriseHydrogenAdmission, {
           file,
           test: state,
           testCandidateAvailable: true,
@@ -105,18 +105,18 @@ async function render(
             file,
             loading: false,
             error: null,
-            models: [{ id: carbon, upstream_model: carbon }],
-            testCandidates: [{ id: carbon, test_candidate: true }],
+            models: [{ id: hydrogen, upstream_model: hydrogen }],
+            testCandidates: [{ id: hydrogen, test_candidate: true }],
             excluded: {},
             testsEnabled: true,
-            carbonVerificationTest: state,
+            hydrogenVerificationTest: state,
             onClose: () => {},
             onCopyText: () => {},
             onTestModels: () => {},
-            onVerifyCarbon: () => {},
-            onCarbonChange: () => {},
+            onVerifyHydrogen: () => {},
+            onHydrogenChange: () => {},
           })
-        : createElement(EnterpriseCarbonOperationsModal, {
+        : createElement(EnterpriseHydrogenOperationsModal, {
             mode: 'test',
             rows: [
               {
@@ -139,45 +139,45 @@ async function render(
   return renderToStaticMarkup(createElement(I18nextProvider, { i18n }, component));
 }
 
-describe('Carbon verification presentation', () => {
+describe('Hydrogen verification presentation', () => {
   test('uses structured success and current manual state without the backend English message', () => {
     const file = target();
     const state: ModelTestState = { state: 'ok', result: result() };
-    expect(enterpriseCarbonAvailabilityPresentation(file)).toEqual({
+    expect(enterpriseHydrogenAvailabilityPresentation(file)).toEqual({
       tone: 'success',
-      labelKey: 'gemini_enterprise.carbon.pending_enable',
-      reasonKey: 'gemini_enterprise.carbon.pending_enable_hint',
+      labelKey: 'gemini_enterprise.hydrogen.pending_enable',
+      reasonKey: 'gemini_enterprise.hydrogen.pending_enable_hint',
     });
-    expect(enterpriseCarbonTestPresentation(file, state)).toEqual({
+    expect(enterpriseHydrogenTestPresentation(file, state)).toEqual({
       tone: 'success',
-      labelKey: 'gemini_enterprise.carbon.test_success_pending',
+      labelKey: 'gemini_enterprise.hydrogen.test_success_pending',
     });
     const enabled = target({ ...ready, enabled: true, available: true, reason: '' });
-    expect(enterpriseCarbonAvailabilityPresentation(enabled).labelKey).toEndWith('.available');
-    expect(enterpriseCarbonTestPresentation(enabled, state)?.tone).toBe('success');
-    expect(enterpriseCarbonTestPresentation(enabled, state)?.labelKey).toEndWith('.test_success');
+    expect(enterpriseHydrogenAvailabilityPresentation(enabled).labelKey).toEndWith('.available');
+    expect(enterpriseHydrogenTestPresentation(enabled, state)?.tone).toBe('success');
+    expect(enterpriseHydrogenTestPresentation(enabled, state)?.labelKey).toEndWith('.test_success');
     const omittedReason = target({ ...ready, reason: undefined });
-    expect(enterpriseCarbonAvailabilityPresentation(omittedReason).labelKey).toEndWith(
+    expect(enterpriseHydrogenAvailabilityPresentation(omittedReason).labelKey).toEndWith(
       '.unavailable'
     );
-    expect(enterpriseCarbonTestPresentation(omittedReason, state)?.tone).toBe('success');
+    expect(enterpriseHydrogenTestPresentation(omittedReason, state)?.tone).toBe('success');
   });
 
   test('pending enablement requires a complete current proof and only fixed manual-off reasons', () => {
-    for (const reason of ['carbon_disabled', 'manual_disabled', 'not_enabled', 'disabled'])
+    for (const reason of ['hydrogen_disabled', 'manual_disabled', 'not_enabled', 'disabled'])
       expect(
-        enterpriseCarbonAvailabilityPresentation(target({ ...ready, reason })).labelKey
+        enterpriseHydrogenAvailabilityPresentation(target({ ...ready, reason })).labelKey
       ).toEndWith('.pending_enable');
     for (const admission of [
       { ...ready, can_enable: false },
       { ...ready, reason: '' },
-      { ...ready, reason: 'Carbon is disabled' },
+      { ...ready, reason: 'Hydrogen is disabled' },
       { ...ready, test: { ...proof, test_id: '' } },
       { ...ready, test: { ...proof, http_status: 500 } },
       { ...ready, test: { ...proof, upstream_model: 'gemini-4-argon' } },
       { ...ready, test: { ...proof, reason: 'needs_review' } },
     ])
-      expect(enterpriseCarbonAvailabilityPresentation(target(admission)).labelKey).toEndWith(
+      expect(enterpriseHydrogenAvailabilityPresentation(target(admission)).labelKey).toEndWith(
         '.unavailable'
       );
   });
@@ -191,10 +191,10 @@ describe('Carbon verification presentation', () => {
       'needs_review',
     ]) {
       const file = target({ ...ready, can_enable: false, reason });
-      const current = enterpriseCarbonAvailabilityPresentation(file);
+      const current = enterpriseHydrogenAvailabilityPresentation(file);
       expect(current.labelKey).toEndWith('.unavailable');
       expect(current.reasonKey).not.toEndWith('reason_disabled');
-      expect(enterpriseCarbonTestPresentation(file, { state: 'ok', result: result() })).toEqual(
+      expect(enterpriseHydrogenTestPresentation(file, { state: 'ok', result: result() })).toEqual(
         current
       );
     }
@@ -203,32 +203,32 @@ describe('Carbon verification presentation', () => {
   test('failure, cooldown, cancellation and manual-off remain separate structured states', () => {
     const file = target();
     const failed = result({ status: 'failed', code: 'model_excluded', message: 'private default' });
-    expect(enterpriseCarbonTestPresentation(file, { state: 'failed', result: failed })).toEqual({
+    expect(enterpriseHydrogenTestPresentation(file, { state: 'failed', result: failed })).toEqual({
       tone: 'failure',
       labelKey: 'auth_files.model_test_state_failed',
-      reasonKey: 'gemini_enterprise.carbon.reason_policy_denied',
+      reasonKey: 'gemini_enterprise.hydrogen.reason_policy_denied',
       detail: undefined,
     });
     for (const state of ['running', 'cancelled'] as const) {
-      const current = enterpriseCarbonTestPresentation(file, { state, result: failed });
+      const current = enterpriseHydrogenTestPresentation(file, { state, result: failed });
       expect(current?.tone).toBe('neutral');
       expect(current?.labelKey).toEndWith('_' + state);
       expect(current?.detail).toBeUndefined();
     }
     expect(
-      enterpriseCarbonTestPresentation(file, {
+      enterpriseHydrogenTestPresentation(file, {
         state: 'cooling',
         result: result({ status: 'cooling', code: 'rate_limited' }),
       })?.tone
     ).toBe('neutral');
     expect(
-      enterpriseCarbonTestPresentation(file, {
+      enterpriseHydrogenTestPresentation(file, {
         state: 'unavailable',
-        result: result({ status: 'unavailable', code: 'carbon_disabled' }),
+        result: result({ status: 'unavailable', code: 'hydrogen_disabled' }),
       })?.labelKey
     ).toEndWith('.disabled');
     expect(
-      enterpriseCarbonTestPresentation(file, {
+      enterpriseHydrogenTestPresentation(file, {
         state: 'failed',
         result: result({ status: 'failed', code: 'ok' }),
       })?.tone
@@ -242,15 +242,15 @@ describe('Carbon verification presentation', () => {
       checkedAt: '2026-11-07T08:59:00Z',
     });
     expect(
-      enterpriseCarbonTestPresentation(target(), { state: 'failed', result: old })
+      enterpriseHydrogenTestPresentation(target(), { state: 'failed', result: old })
     ).toBeUndefined();
     for (const change of [{ authIndex: 'other-index' }, { bindingId: 'other-binding' }])
       expect(
-        enterpriseCarbonTestPresentation(target(), { state: 'ok', result: result(change) })
+        enterpriseHydrogenTestPresentation(target(), { state: 'ok', result: result(change) })
       ).toBeUndefined();
     const newerFailure = { ...old, checkedAt: '2026-11-07T09:01:00Z' };
     expect(
-      enterpriseCarbonTestPresentation(target(), { state: 'failed', result: newerFailure })?.tone
+      enterpriseHydrogenTestPresentation(target(), { state: 'failed', result: newerFailure })?.tone
     ).toBe('failure');
   });
 
@@ -260,7 +260,7 @@ describe('Carbon verification presentation', () => {
       code: 'future_error',
       message: 'Bearer sensitive-value access_token=secret-value <script>unsafe</script>\u0000',
     });
-    const feedback = enterpriseCarbonTestPresentation(target(), {
+    const feedback = enterpriseHydrogenTestPresentation(target(), {
       state: 'failed',
       result: failure,
     });
@@ -286,7 +286,7 @@ describe('Carbon verification presentation', () => {
         expect(html).toContain(messages.test_success);
         expect(html).not.toContain(backendSuccess);
         expect(html).not.toContain('ok:');
-        expect(html).not.toContain('gemini_enterprise.carbon.');
+        expect(html).not.toContain('gemini_enterprise.hydrogen.');
         expect(html).toContain('role="status"');
         expect(html).toContain('aria-live="polite"');
         expect(html).toContain('aria-label=');
@@ -297,7 +297,7 @@ describe('Carbon verification presentation', () => {
   });
 });
 
-describe('Carbon manual admission presentation', () => {
+describe('Hydrogen manual admission presentation', () => {
   test('separates business availability from missing or rejected diagnostic history', () => {
     for (const diagnostic of [
       undefined,
@@ -311,9 +311,9 @@ describe('Carbon manual admission presentation', () => {
         available: true,
         reason: undefined,
       });
-      expect(enterpriseCarbonAvailabilityPresentation(file)).toEqual({
+      expect(enterpriseHydrogenAvailabilityPresentation(file)).toEqual({
         tone: 'success',
-        labelKey: 'gemini_enterprise.carbon.available',
+        labelKey: 'gemini_enterprise.hydrogen.available',
       });
     }
   });

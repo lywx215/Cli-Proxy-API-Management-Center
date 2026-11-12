@@ -8,42 +8,42 @@ import {
   enterpriseCollectionFiles,
   enterpriseCollectionIdentity,
 } from '@/features/authFiles/enterpriseAccounts';
-import { validCarbonConfigurationApplication } from '@/features/authFiles/enterpriseCarbonOperations';
+import { validHydrogenConfigurationApplication } from '@/features/authFiles/enterpriseHydrogenOperations';
 import {
   enterpriseResources,
   serializeEnterpriseResources,
 } from '@/features/authFiles/enterpriseResources';
 
-export type GoogleCarbonConfigureStatus =
+export type GoogleHydrogenConfigureStatus =
   'configured' | 'unchanged' | 'verification_required' | 'failed' | 'changed';
-export type GoogleCarbonConfigureResult = {
+export type GoogleHydrogenConfigureResult = {
   bindingId: string;
   authIndex: string;
   expectedRevision: number;
   revision?: number;
-  status: GoogleCarbonConfigureStatus;
+  status: GoogleHydrogenConfigureStatus;
   reason?: string;
   httpStatus?: number;
 };
-export type GoogleCarbonConfigureResponse = {
+export type GoogleHydrogenConfigureResponse = {
   snapshotId: string;
-  results: GoogleCarbonConfigureResult[];
+  results: GoogleHydrogenConfigureResult[];
   account?: GeminiEnterpriseAccount;
 };
 
-export function normalizeGoogleCarbonConfigureResponse(
+export function normalizeGoogleHydrogenConfigureResponse(
   value: unknown
-): GoogleCarbonConfigureResponse {
+): GoogleHydrogenConfigureResponse {
   requireManagementObject(value);
   if (
-    value.google_carbon_configure_supported !== true ||
+    value.google_hydrogen_configure_supported !== true ||
     typeof value.snapshot_id !== 'string' ||
     !value.snapshot_id.trim() ||
     value.snapshot_id.length > 512 ||
     !Array.isArray(value.applications)
   )
     throw new InvalidManagementResponseError();
-  const results = value.applications.map((entry): GoogleCarbonConfigureResult => {
+  const results = value.applications.map((entry): GoogleHydrogenConfigureResult => {
     if (
       !isRecord(entry) ||
       typeof entry.binding_id !== 'string' ||
@@ -61,7 +61,7 @@ export function normalizeGoogleCarbonConfigureResponse(
       authIndex: entry.auth_index,
       expectedRevision: enterpriseRevision(entry.expected_revision)!,
       revision: enterpriseRevision(entry.revision),
-      status: entry.status as GoogleCarbonConfigureStatus,
+      status: entry.status as GoogleHydrogenConfigureStatus,
       reason: typeof entry.reason === 'string' ? entry.reason : undefined,
       httpStatus: enterpriseRevision(entry.http_status),
     };
@@ -73,16 +73,16 @@ export function normalizeGoogleCarbonConfigureResponse(
   };
 }
 
-export const enterpriseCarbonApi = {
+export const enterpriseHydrogenApi = {
   async configureGoogle(
     file: AuthFileItem,
     applications: AuthFileItem[],
     signal: AbortSignal,
     snapshotId?: string
-  ): Promise<GoogleCarbonConfigureResponse> {
+  ): Promise<GoogleHydrogenConfigureResponse> {
     const assertConnection = guardConfigConnection();
     if (
-      !file.geminiEnterprise?.googleCarbonConfigureSupported ||
+      !file.geminiEnterprise?.googleHydrogenConfigureSupported ||
       !file.geminiEnterprise.accountId ||
       file.geminiEnterprise.revision === undefined ||
       !String(file.authIndex ?? '') ||
@@ -91,7 +91,7 @@ export const enterpriseCarbonApi = {
       (file.type || file.provider) !== 'gemini-enterprise' ||
       applications.some(
         (application) =>
-          !validCarbonConfigurationApplication(application) ||
+          !validHydrogenConfigurationApplication(application) ||
           !enterpriseCollectionFiles(file).some(
             (imported) =>
               enterpriseCollectionIdentity(imported) === enterpriseCollectionIdentity(application)
@@ -99,9 +99,9 @@ export const enterpriseCarbonApi = {
       )
     )
       throw new InvalidManagementResponseError();
-    const response = normalizeGoogleCarbonConfigureResponse(
+    const response = normalizeGoogleHydrogenConfigureResponse(
       await apiClient.post(
-        '/credentials/gemini-enterprise/carbon/configure-google',
+        '/credentials/gemini-enterprise/hydrogen/configure-google',
         {
           name: file.name,
           account_id: file.geminiEnterprise.accountId,

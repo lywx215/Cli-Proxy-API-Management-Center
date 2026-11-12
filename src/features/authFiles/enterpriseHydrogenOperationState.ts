@@ -1,14 +1,14 @@
 import type { AuthFileItem, GeminiEnterpriseAccount } from '@/types';
-import type { GoogleCarbonConfigureResult } from '@/services/api/enterpriseCarbon';
+import type { GoogleHydrogenConfigureResult } from '@/services/api/enterpriseHydrogen';
 import type { ModelTestResult } from './modelTesting';
 import { enterpriseCollectionFiles, enterpriseCollectionIdentity } from './enterpriseAccounts';
-import { enterpriseCarbonAdmission } from './enterpriseCarbon';
-import { enterpriseCarbonAccountIdentity } from './enterpriseCarbonOperations';
+import { enterpriseHydrogenAdmission } from './enterpriseHydrogen';
+import { enterpriseHydrogenAccountIdentity } from './enterpriseHydrogenOperations';
 
-export type CarbonOperationRow = {
+export type HydrogenOperationRow = {
   file: AuthFileItem;
   state: 'pending' | 'running' | 'done' | 'cancelled';
-  configure?: GoogleCarbonConfigureResult;
+  configure?: GoogleHydrogenConfigureResult;
   test?: ModelTestResult;
   reason?: string;
   saving?: boolean;
@@ -36,11 +36,11 @@ function accountRevision(file: AuthFileItem): number | undefined {
     : file.geminiEnterprise?.revision;
 }
 
-export function carbonAuthorizationIdentity(file: AuthFileItem): string {
+export function hydrogenAuthorizationIdentity(file: AuthFileItem): string {
   const account = file.geminiEnterprise;
   const fenced =
-    account?.carbonAuthorizationRevision !== undefined &&
-    account.carbonRegistrationEpoch !== undefined;
+    account?.hydrogenAuthorizationRevision !== undefined &&
+    account.hydrogenRegistrationEpoch !== undefined;
   return JSON.stringify(
     ordered([
       file.name,
@@ -50,20 +50,20 @@ export function carbonAuthorizationIdentity(file: AuthFileItem): string {
       file.email,
       account?.clientId,
       account?.hasRefreshToken,
-      account?.carbonAuthorizationRevision,
-      account?.carbonRegistrationEpoch,
+      account?.hydrogenAuthorizationRevision,
+      account?.hydrogenRegistrationEpoch,
       // An older backend cannot distinguish a proof write from a reauthorization.
       fenced ? undefined : accountRevision(file),
     ])
   );
 }
 
-export function carbonApplicationConfigurationIdentity(file: AuthFileItem): string {
+export function hydrogenApplicationConfigurationIdentity(file: AuthFileItem): string {
   const policy = file.geminiEnterprise?.modelPolicyState;
   const subscription = policy?.subscription;
   return JSON.stringify(
     ordered([
-      carbonAuthorizationIdentity(file),
+      hydrogenAuthorizationIdentity(file),
       enterpriseCollectionIdentity(file),
       Boolean(file.disabled),
       Boolean(file.geminiEnterprise?.effectiveDisabled),
@@ -73,14 +73,14 @@ export function carbonApplicationConfigurationIdentity(file: AuthFileItem): stri
           Object.entries(file.geminiEnterprise.settings).filter(
             ([key]) =>
               ![
-                'carbon_enabled',
-                'carbon_test_evidence',
-                'enterprise_carbon_evidence',
-                'carbon_admission',
-                'carbon_admission_supported',
+                'hydrogen_enabled',
+                'hydrogen_test_evidence',
+                'enterprise_hydrogen_evidence',
+                'hydrogen_admission',
+                'hydrogen_admission_supported',
                 'model_policy_state',
-                'carbon_authorization_revision',
-                'carbon_registration_epoch',
+                'hydrogen_authorization_revision',
+                'hydrogen_registration_epoch',
               ].includes(key)
           )
         ),
@@ -113,45 +113,45 @@ export function carbonApplicationConfigurationIdentity(file: AuthFileItem): stri
   );
 }
 
-export function carbonApplicationPermissionIdentity(file: AuthFileItem): string {
-  const admission = enterpriseCarbonAdmission(file);
+export function hydrogenApplicationPermissionIdentity(file: AuthFileItem): string {
+  const admission = enterpriseHydrogenAdmission(file);
   const invalidReason = [
     'configuration_changed',
     'binding_changed',
     'authorization_changed',
-    'carbon_configuration_changed',
-    'carbon_binding_changed',
-    'carbon_authorization_changed',
+    'hydrogen_configuration_changed',
+    'hydrogen_binding_changed',
+    'hydrogen_authorization_changed',
   ].includes(admission?.reason ?? '')
     ? admission?.reason
     : admission?.test?.status === 'verified' && admission.canTest && !admission.canEnable
       ? 'evidence_invalid'
       : undefined;
   return JSON.stringify([
-    carbonApplicationConfigurationIdentity(file),
+    hydrogenApplicationConfigurationIdentity(file),
     admission?.canTest,
     admission?.canTest ? invalidReason : admission?.reason,
   ]);
 }
 
-export function carbonOperationScopeIdentity(
+export function hydrogenOperationScopeIdentity(
   file: AuthFileItem,
   mode: 'configure' | 'test'
 ): string {
   return JSON.stringify([
-    carbonAuthorizationIdentity(file),
+    hydrogenAuthorizationIdentity(file),
     Boolean(file.disabled),
-    mode === 'configure' ? enterpriseCarbonAccountIdentity(file) : undefined,
+    mode === 'configure' ? enterpriseHydrogenAccountIdentity(file) : undefined,
     enterpriseCollectionFiles(file)
       .map((child) => [
         child.geminiEnterprise?.bindingId,
-        carbonApplicationPermissionIdentity(child),
+        hydrogenApplicationPermissionIdentity(child),
       ])
       .sort(([a], [b]) => String(a).localeCompare(String(b))),
   ]);
 }
 
-export function olderCarbonAccountSnapshot(current: AuthFileItem, incoming: AuthFileItem): boolean {
+export function olderHydrogenAccountSnapshot(current: AuthFileItem, incoming: AuthFileItem): boolean {
   if (
     current.name !== incoming.name ||
     String(current.authIndex) !== String(incoming.authIndex) ||
@@ -162,8 +162,8 @@ export function olderCarbonAccountSnapshot(current: AuthFileItem, incoming: Auth
   const next = incoming.geminiEnterprise;
   // Runtime fences have no ordering across service restarts.
   if (
-    previous?.carbonRegistrationEpoch !== next?.carbonRegistrationEpoch ||
-    previous?.carbonAuthorizationRevision !== next?.carbonAuthorizationRevision ||
+    previous?.hydrogenRegistrationEpoch !== next?.hydrogenRegistrationEpoch ||
+    previous?.hydrogenAuthorizationRevision !== next?.hydrogenAuthorizationRevision ||
     current.email !== incoming.email ||
     previous?.clientId !== next?.clientId
   )
@@ -174,28 +174,28 @@ export function olderCarbonAccountSnapshot(current: AuthFileItem, incoming: Auth
 }
 
 function olderEvidence(current: AuthFileItem, incoming: AuthFileItem): boolean {
-  const before = enterpriseCarbonAdmission(current)?.test;
-  const after = enterpriseCarbonAdmission(incoming)?.test;
+  const before = enterpriseHydrogenAdmission(current)?.test;
+  const after = enterpriseHydrogenAdmission(incoming)?.test;
   if (!before || before.testId === after?.testId) return false;
   return !after || Date.parse(after.checkedAt) < Date.parse(before.checkedAt);
 }
 
-function explicitCarbonInvalidation(file: AuthFileItem): boolean {
+function explicitHydrogenInvalidation(file: AuthFileItem): boolean {
   return [
     'configuration_changed',
     'binding_changed',
     'authorization_changed',
-    'carbon_configuration_changed',
-    'carbon_binding_changed',
-    'carbon_authorization_changed',
-  ].includes(enterpriseCarbonAdmission(file)?.reason ?? '');
+    'hydrogen_configuration_changed',
+    'hydrogen_binding_changed',
+    'hydrogen_authorization_changed',
+  ].includes(enterpriseHydrogenAdmission(file)?.reason ?? '');
 }
 
-export function protectCarbonAccountEvidence(
+export function protectHydrogenAccountEvidence(
   current: AuthFileItem,
   incoming: AuthFileItem
 ): AuthFileItem {
-  if (carbonAuthorizationIdentity(current) !== carbonAuthorizationIdentity(incoming))
+  if (hydrogenAuthorizationIdentity(current) !== hydrogenAuthorizationIdentity(incoming))
     return incoming;
   const previous = new Map(
     enterpriseCollectionFiles(current).map((child) => [child.geminiEnterprise?.bindingId, child])
@@ -205,9 +205,9 @@ export function protectCarbonAccountEvidence(
     const before = previous.get(child.geminiEnterprise?.bindingId);
     if (
       before &&
-      carbonApplicationConfigurationIdentity(before) ===
-        carbonApplicationConfigurationIdentity(child) &&
-      !explicitCarbonInvalidation(child) &&
+      hydrogenApplicationConfigurationIdentity(before) ===
+        hydrogenApplicationConfigurationIdentity(child) &&
+      !explicitHydrogenInvalidation(child) &&
       olderEvidence(before, child)
     )
       retained.set(child.geminiEnterprise?.bindingId ?? '', before);
@@ -216,13 +216,13 @@ export function protectCarbonAccountEvidence(
   const account = incoming.geminiEnterprise!;
   const withEvidence = (value: GeminiEnterpriseAccount, before: AuthFileItem) => ({
     ...value,
-    carbonAdmissionSupported: before.geminiEnterprise?.carbonAdmissionSupported,
-    carbonAdmission: enterpriseCarbonAdmission(before),
+    hydrogenAdmissionSupported: before.geminiEnterprise?.hydrogenAdmissionSupported,
+    hydrogenAdmission: enterpriseHydrogenAdmission(before),
     modelPolicyState: value.modelPolicyState
       ? {
           ...value.modelPolicyState,
-          carbonAdmissionSupported: before.geminiEnterprise?.carbonAdmissionSupported,
-          carbonAdmission: enterpriseCarbonAdmission(before),
+          hydrogenAdmissionSupported: before.geminiEnterprise?.hydrogenAdmissionSupported,
+          hydrogenAdmission: enterpriseHydrogenAdmission(before),
         }
       : undefined,
   });
@@ -244,34 +244,34 @@ export function protectCarbonAccountEvidence(
   };
 }
 
-export function mergeCarbonTestResult(
+export function mergeHydrogenTestResult(
   current: AuthFileItem,
   target: AuthFileItem,
   result: ModelTestResult
 ): AuthFileItem {
-  if (!result.carbonAdmission || result.carbonAdmissionSupported !== true) return current;
+  if (!result.hydrogenAdmission || result.hydrogenAdmissionSupported !== true) return current;
   const latest = enterpriseCollectionFiles(current).find(
     (child) => child.geminiEnterprise?.bindingId === target.geminiEnterprise?.bindingId
   );
   if (
     !latest ||
-    carbonApplicationPermissionIdentity(latest) !== carbonApplicationPermissionIdentity(target)
+    hydrogenApplicationPermissionIdentity(latest) !== hydrogenApplicationPermissionIdentity(target)
   )
     return current;
   const returned = {
     ...latest,
-    geminiEnterprise: { ...latest.geminiEnterprise, carbonAdmission: result.carbonAdmission },
+    geminiEnterprise: { ...latest.geminiEnterprise, hydrogenAdmission: result.hydrogenAdmission },
   };
   if (olderEvidence(latest, returned)) return current;
   const update = (account: GeminiEnterpriseAccount) => ({
     ...account,
-    carbonAdmissionSupported: true,
-    carbonAdmission: result.carbonAdmission,
+    hydrogenAdmissionSupported: true,
+    hydrogenAdmission: result.hydrogenAdmission,
     modelPolicyState: account.modelPolicyState
       ? {
           ...account.modelPolicyState,
-          carbonAdmissionSupported: true,
-          carbonAdmission: result.carbonAdmission,
+          hydrogenAdmissionSupported: true,
+          hydrogenAdmission: result.hydrogenAdmission,
         }
       : undefined,
   });
@@ -290,7 +290,7 @@ export function mergeCarbonTestResult(
   };
 }
 
-export function confirmedCarbonSwitch(
+export function confirmedHydrogenSwitch(
   target: AuthFileItem,
   current: AuthFileItem,
   enabled: boolean
@@ -299,13 +299,13 @@ export function confirmedCarbonSwitch(
   if (
     revision === undefined ||
     current.geminiEnterprise?.revision !== revision + 1 ||
-    enterpriseCarbonAdmission(current)?.enabled !== enabled
+    enterpriseHydrogenAdmission(current)?.enabled !== enabled
   )
     return false;
   if (
     enabled &&
-    enterpriseCarbonAdmission(current)?.test?.testId !==
-      enterpriseCarbonAdmission(target)?.test?.testId
+    enterpriseHydrogenAdmission(current)?.test?.testId !==
+      enterpriseHydrogenAdmission(target)?.test?.testId
   )
     return false;
   const expected = {
@@ -313,17 +313,17 @@ export function confirmedCarbonSwitch(
     geminiEnterprise: { ...target.geminiEnterprise, revision: current.geminiEnterprise.revision },
   };
   return (
-    carbonApplicationPermissionIdentity(expected) === carbonApplicationPermissionIdentity(current)
+    hydrogenApplicationPermissionIdentity(expected) === hydrogenApplicationPermissionIdentity(current)
   );
 }
 
 function unavailableRowFile(file: AuthFileItem): AuthFileItem {
-  const admission = enterpriseCarbonAdmission(file);
+  const admission = enterpriseHydrogenAdmission(file);
   return {
     ...file,
     geminiEnterprise: {
       ...file.geminiEnterprise,
-      carbonAdmission: admission
+      hydrogenAdmission: admission
         ? {
             ...admission,
             available: false,
@@ -336,14 +336,14 @@ function unavailableRowFile(file: AuthFileItem): AuthFileItem {
   };
 }
 
-export function synchronizeCarbonOperationRows(
-  rows: CarbonOperationRow[],
+export function synchronizeHydrogenOperationRows(
+  rows: HydrogenOperationRow[],
   previous: AuthFileItem,
   current: AuthFileItem,
   confirmedBindings: ReadonlySet<string> = new Set()
-): CarbonOperationRow[] {
+): HydrogenOperationRow[] {
   const authorizationChanged =
-    carbonAuthorizationIdentity(previous) !== carbonAuthorizationIdentity(current) ||
+    hydrogenAuthorizationIdentity(previous) !== hydrogenAuthorizationIdentity(current) ||
     Boolean(previous.disabled) !== Boolean(current.disabled);
   const children = new Map(
     enterpriseCollectionFiles(current).map((child) => [child.geminiEnterprise?.bindingId, child])
@@ -356,13 +356,13 @@ export function synchronizeCarbonOperationRows(
       !authorizationChanged &&
       (confirmedBindings.has(key) ||
         (row.saveRequestedEnabled !== undefined &&
-          confirmedCarbonSwitch(row.file, latest, row.saveRequestedEnabled)));
+          confirmedHydrogenSwitch(row.file, latest, row.saveRequestedEnabled)));
     const changed =
       authorizationChanged ||
       !latest ||
       (!confirmed &&
-        carbonApplicationPermissionIdentity(row.file) !==
-          carbonApplicationPermissionIdentity(latest));
+        hydrogenApplicationPermissionIdentity(row.file) !==
+          hydrogenApplicationPermissionIdentity(latest));
     if (changed)
       return {
         ...row,

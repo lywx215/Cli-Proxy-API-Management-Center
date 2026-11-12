@@ -7,21 +7,21 @@ import type { AuthFileItem } from '@/types';
 import type { ModelTestState } from '../modelTesting';
 import { sanitizeModelTestMessage } from '../modelTesting';
 import {
-  canEnableEnterpriseCarbon,
-  canTestEnterpriseCarbon,
-  enterpriseCarbonAdmission,
-  enterpriseCarbonSupported,
-  enterpriseCarbonReasonKey,
-  enterpriseCarbonEvidenceStatus,
-  ENTERPRISE_CARBON_MODEL,
-} from '../enterpriseCarbon';
+  canEnableEnterpriseHydrogen,
+  canTestEnterpriseHydrogen,
+  enterpriseHydrogenAdmission,
+  enterpriseHydrogenSupported,
+  enterpriseHydrogenReasonKey,
+  enterpriseHydrogenEvidenceStatus,
+  ENTERPRISE_HYDROGEN_MODEL,
+} from '../enterpriseHydrogen';
 import {
-  enterpriseCarbonAvailabilityPresentation,
-  enterpriseCarbonTestPresentation,
-} from '../enterpriseCarbonPresentation';
+  enterpriseHydrogenAvailabilityPresentation,
+  enterpriseHydrogenTestPresentation,
+} from '../enterpriseHydrogenPresentation';
 import styles from './AuthFileModelsModal.module.scss';
 
-export function EnterpriseCarbonAdmission({
+export function EnterpriseHydrogenAdmission({
   file,
   disabled = false,
   saving = false,
@@ -48,59 +48,59 @@ export function EnterpriseCarbonAdmission({
 }) {
   const { t } = useTranslation();
   const hintId = useId();
-  const supported = enterpriseCarbonSupported(file);
-  const admission = enterpriseCarbonAdmission(file);
+  const supported = enterpriseHydrogenSupported(file);
+  const admission = enterpriseHydrogenAdmission(file);
   const evidence = admission?.test;
   const enabled = admission?.enabled === true;
   const running = test?.state === 'running';
-  const canTest = testCandidateAvailable && canTestEnterpriseCarbon(file);
-  const evidenceKey = enterpriseCarbonEvidenceStatus(admission);
-  const availability = enterpriseCarbonAvailabilityPresentation(file);
-  const feedback = enterpriseCarbonTestPresentation(file, test);
-  const pendingEnable = availability.labelKey === 'gemini_enterprise.carbon.pending_enable';
+  const canTest = testCandidateAvailable && canTestEnterpriseHydrogen(file);
+  const evidenceKey = enterpriseHydrogenEvidenceStatus(admission);
+  const availability = enterpriseHydrogenAvailabilityPresentation(file);
+  const feedback = enterpriseHydrogenTestPresentation(file, test);
+  const pendingEnable = availability.labelKey === 'gemini_enterprise.hydrogen.pending_enable';
   return (
     <section
-      className={styles.carbon}
-      aria-label={t('gemini_enterprise.carbon.label')}
+      className={styles.hydrogen}
+      aria-label={t('gemini_enterprise.hydrogen.label')}
       aria-busy={saving || running}
     >
-      <div className={styles.carbonHeading}>
-        <strong>{ENTERPRISE_CARBON_MODEL}</strong>
+      <div className={styles.hydrogenHeading}>
+        <strong>{ENTERPRISE_HYDROGEN_MODEL}</strong>
         <Button
           size="sm"
           variant="ghost"
-          aria-label={t('auth_files.model_test_copy', { model: ENTERPRISE_CARBON_MODEL })}
+          aria-label={t('auth_files.model_test_copy', { model: ENTERPRISE_HYDROGEN_MODEL })}
           onClick={onCopy}
         >
           {t('common.copy')}
         </Button>
         <span className="hint">
-          {t('gemini_enterprise.carbon.' + (admission?.available ? 'business_model' : 'candidate'))}
+          {t('gemini_enterprise.hydrogen.' + (admission?.available ? 'business_model' : 'candidate'))}
         </span>
       </div>
       <p id={hintId} className="hint">
         {t(
-          'gemini_enterprise.carbon.' +
+          'gemini_enterprise.hydrogen.' +
             (admission?.verificationRequired === false ? 'manual_hint' : 'hint')
         )}
       </p>
       {!supported ? (
-        <p role="status">{t('gemini_enterprise.carbon.unsupported')}</p>
+        <p role="status">{t('gemini_enterprise.hydrogen.unsupported')}</p>
       ) : (
         <>
-          <div className={styles.carbonControls}>
+          <div className={styles.hydrogenControls}>
             <ToggleSwitch
               checked={enabled}
               disabled={
                 disabled ||
                 saving ||
                 !onChange ||
-                (!enabled && (testBusy || !canEnableEnterpriseCarbon(file)))
+                (!enabled && (testBusy || !canEnableEnterpriseHydrogen(file)))
               }
               onChange={(value) => onChange?.(value)}
-              ariaLabel={t('gemini_enterprise.carbon.toggle')}
+              ariaLabel={t('gemini_enterprise.hydrogen.toggle')}
               ariaDescribedBy={hintId}
-              label={t('gemini_enterprise.carbon.' + (enabled ? 'enabled' : 'disabled'))}
+              label={t('gemini_enterprise.hydrogen.' + (enabled ? 'enabled' : 'disabled'))}
             />
             <Button
               size="sm"
@@ -110,9 +110,9 @@ export function EnterpriseCarbonAdmission({
               }
               loading={running}
               onClick={onTest}
-              aria-label={t('gemini_enterprise.carbon.test_label')}
+              aria-label={t('gemini_enterprise.hydrogen.test_label')}
             >
-              {t('gemini_enterprise.carbon.' + (evidence ? 'retest' : 'test'))}
+              {t('gemini_enterprise.hydrogen.' + (evidence ? 'retest' : 'test'))}
             </Button>
           </div>
           <p
@@ -125,13 +125,13 @@ export function EnterpriseCarbonAdmission({
                 <IconCheckCircle2 size={14} aria-hidden="true" />{' '}
               </>
             )}
-            {saving ? t('gemini_enterprise.carbon.saving') : t(availability.labelKey)}
+            {saving ? t('gemini_enterprise.hydrogen.saving') : t(availability.labelKey)}
             {(!pendingEnable || running) && (
               <>
                 {' · '}
                 {running
                   ? t('auth_files.model_test_state_running')
-                  : t('gemini_enterprise.carbon.status_' + evidenceKey)}
+                  : t('gemini_enterprise.hydrogen.status_' + evidenceKey)}
               </>
             )}
           </p>
@@ -142,14 +142,14 @@ export function EnterpriseCarbonAdmission({
           )}
           {evidence && (
             <p className="hint">
-              {t('gemini_enterprise.carbon.checked_at')}{' '}
+              {t('gemini_enterprise.hydrogen.checked_at')}{' '}
               <time dateTime={evidence.checkedAt}>
                 {new Date(evidence.checkedAt).toLocaleString()}
               </time>
               {evidence.upstreamModel && (
                 <>
                   {' '}
-                  · {t('gemini_enterprise.carbon.actual_model')}{' '}
+                  · {t('gemini_enterprise.hydrogen.actual_model')}{' '}
                   <code>{evidence.upstreamModel}</code>
                 </>
               )}
@@ -159,16 +159,16 @@ export function EnterpriseCarbonAdmission({
           {evidence?.reason && evidence.reason !== admission?.reason && (
             <p className="hint">
               {admission?.verificationRequired === false
-                ? t('gemini_enterprise.carbon.diagnostic_detail', {
-                    reason: t(enterpriseCarbonReasonKey(evidence.reason)),
+                ? t('gemini_enterprise.hydrogen.diagnostic_detail', {
+                    reason: t(enterpriseHydrogenReasonKey(evidence.reason)),
                   })
-                : t(enterpriseCarbonReasonKey(evidence.reason))}
+                : t(enterpriseHydrogenReasonKey(evidence.reason))}
             </p>
           )}
           {!enabled &&
             admission?.verificationRequired !== false &&
-            !canEnableEnterpriseCarbon(file) && (
-              <p className="hint">{t('gemini_enterprise.carbon.enable_requires_test')}</p>
+            !canEnableEnterpriseHydrogen(file) && (
+              <p className="hint">{t('gemini_enterprise.hydrogen.enable_requires_test')}</p>
             )}
           {error && (
             <p className={styles.testFailure} role="alert">

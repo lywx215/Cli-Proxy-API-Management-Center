@@ -6,48 +6,48 @@ import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
 import { apiClient } from '@/services/api/client';
 import {
-  enterpriseCarbonApi,
-  normalizeGoogleCarbonConfigureResponse,
-} from '@/services/api/enterpriseCarbon';
+  enterpriseHydrogenApi,
+  normalizeGoogleHydrogenConfigureResponse,
+} from '@/services/api/enterpriseHydrogen';
 import {
   normalizeEnterpriseAccount,
   normalizeEnterpriseModelPolicy,
 } from '@/services/api/enterpriseAccounts';
 import { enterpriseCollectionFiles } from '@/features/authFiles/enterpriseAccounts';
 import {
-  carbonApplicationBatches,
-  carbonApplicationTestFailure,
-  enterpriseCarbonAccountIdentity,
-  runCarbonApplicationTests,
-  validCarbonConfigurationApplication,
-  shouldStopCarbonApplicationTests,
-  googleCarbonReasonKey,
-} from '@/features/authFiles/enterpriseCarbonOperations';
+  hydrogenApplicationBatches,
+  hydrogenApplicationTestFailure,
+  enterpriseHydrogenAccountIdentity,
+  runHydrogenApplicationTests,
+  validHydrogenConfigurationApplication,
+  shouldStopHydrogenApplicationTests,
+  googleHydrogenReasonKey,
+} from '@/features/authFiles/enterpriseHydrogenOperations';
 import {
   enterprisePolicyPreview,
   enterprisePolicyRoutingPaused,
   readEnterprisePolicy,
 } from '@/features/authFiles/enterpriseModelPolicy';
-import { EnterpriseCarbonOperationsModal } from '@/features/authFiles/components/EnterpriseCarbonOperationsModal';
+import { EnterpriseHydrogenOperationsModal } from '@/features/authFiles/components/EnterpriseHydrogenOperationsModal';
 import { GeminiEnterpriseAccount } from '@/features/authFiles/components/GeminiEnterpriseAccount';
 import { InvalidManagementResponseError } from '@/services/api/managementResponse';
 import type { AuthFileItem } from '@/types';
 import type { ModelTestResult } from '@/features/authFiles/modelTesting';
 
 afterEach(() => mock.restore());
-const carbon = 'gemini-4-carbon';
+const hydrogen = 'gemini-4-hydrogen';
 const verified = {
   enabled: false,
   available: false,
   can_test: true,
   can_enable: true,
-  reason: 'carbon_disabled',
+  reason: 'hydrogen_disabled',
   test: {
     test_id: 'saved-proof',
     status: 'verified',
     http_status: 200,
     checked_at: '2026-11-07T15:00:00Z',
-    upstream_model: carbon,
+    upstream_model: hydrogen,
   },
 };
 function account(count = 7): AuthFileItem {
@@ -58,8 +58,8 @@ function account(count = 7): AuthFileItem {
     geminiEnterprise: normalizeEnterpriseAccount({
       account_id: 'account',
       revision: 3,
-      google_carbon_configure_supported: true,
-      carbon_admission_supported: true,
+      google_hydrogen_configure_supported: true,
+      hydrogen_admission_supported: true,
       collections: Array.from({ length: count }, (_, index) => ({
         binding_id: `binding-${index}`,
         auth_index: `index-${index}`,
@@ -69,7 +69,7 @@ function account(count = 7): AuthFileItem {
         collection_id: 'default_collection',
         engine_id: `app-${index}`,
         assistant_id: 'default_assistant',
-        carbon_admission: verified,
+        hydrogen_admission: verified,
       })),
     }),
   };
@@ -85,7 +85,7 @@ const response = (files: AuthFileItem[]) => ({
   status: 'completed',
   snapshot_id: 'opaque-snapshot',
   snapshot_expires_at: '2026-11-07T15:15:00Z',
-  google_carbon_configure_supported: true,
+  google_hydrogen_configure_supported: true,
   applications: files.map(applicationResult),
 });
 async function render(mode: 'configure' | 'test', locale = 'en', implicitAssistant = false) {
@@ -99,7 +99,7 @@ async function render(mode: 'configure' | 'test', locale = 'en', implicitAssista
     createElement(
       I18nextProvider,
       { i18n },
-      createElement(EnterpriseCarbonOperationsModal, {
+      createElement(EnterpriseHydrogenOperationsModal, {
         mode,
         busy: false,
         error: false,
@@ -120,7 +120,7 @@ async function render(mode: 'configure' | 'test', locale = 'en', implicitAssista
             },
             test: {
               status: 'ok',
-              model: carbon,
+              model: hydrogen,
               authIndex: 'index-0',
               checkedAt: '2026-11-07T15:00:00Z',
               elapsedMs: 1,
@@ -137,30 +137,30 @@ async function render(mode: 'configure' | 'test', locale = 'en', implicitAssista
   );
 }
 
-describe('credential Carbon operations', () => {
+describe('credential Hydrogen operations', () => {
   test('batches only imported bindings, caps each configuration batch at five and isolates revisions', () => {
     const file = account(12);
     const children = enterpriseCollectionFiles(file);
     expect(
-      carbonApplicationBatches([...children, children[0]], 999).map((batch) => batch.length)
+      hydrogenApplicationBatches([...children, children[0]], 999).map((batch) => batch.length)
     ).toEqual([5, 5, 2]);
-    expect(enterpriseCarbonAccountIdentity(file)).not.toBe(
-      enterpriseCarbonAccountIdentity({ ...file, disabled: true })
+    expect(enterpriseHydrogenAccountIdentity(file)).not.toBe(
+      enterpriseHydrogenAccountIdentity({ ...file, disabled: true })
     );
     const changed = account(12);
     changed.geminiEnterprise!.collections![0].revision = 99;
-    expect(enterpriseCarbonAccountIdentity(file)).not.toBe(
-      enterpriseCarbonAccountIdentity(changed)
+    expect(enterpriseHydrogenAccountIdentity(file)).not.toBe(
+      enterpriseHydrogenAccountIdentity(changed)
     );
-    expect(normalizeEnterpriseAccount({})?.googleCarbonConfigureSupported).toBe(false);
+    expect(normalizeEnterpriseAccount({})?.googleHydrogenConfigureSupported).toBe(false);
     expect(
-      validCarbonConfigurationApplication({
+      validHydrogenConfigurationApplication({
         ...children[0],
         geminiEnterprise: { ...children[0].geminiEnterprise, missing: true },
       })
     ).toBe(false);
-    expect(validCarbonConfigurationApplication({ ...children[0], authIndex: '' })).toBe(false);
-    expect(children.every(validCarbonConfigurationApplication)).toBe(true);
+    expect(validHydrogenConfigurationApplication({ ...children[0], authIndex: '' })).toBe(false);
+    expect(children.every(validHydrogenConfigurationApplication)).toBe(true);
   });
 
   test('posts fixed account and application revisions and reuses only the returned opaque snapshot', async () => {
@@ -169,9 +169,9 @@ describe('credential Carbon operations', () => {
     const post = spyOn(apiClient, 'post').mockResolvedValue(response(children.slice(0, 5)));
     const signal = new AbortController().signal;
     expect(
-      (await enterpriseCarbonApi.configureGoogle(file, children.slice(0, 5), signal)).results
+      (await enterpriseHydrogenApi.configureGoogle(file, children.slice(0, 5), signal)).results
     ).toHaveLength(5);
-    expect(post.mock.calls[0][0]).toBe('/credentials/gemini-enterprise/carbon/configure-google');
+    expect(post.mock.calls[0][0]).toBe('/credentials/gemini-enterprise/hydrogen/configure-google');
     expect(post.mock.calls[0][1]).toMatchObject({
       name: 'synthetic.json',
       auth_index: 'root-index',
@@ -192,7 +192,7 @@ describe('credential Carbon operations', () => {
     });
     expect(post.mock.calls[0][1]).not.toHaveProperty('snapshot_id');
     post.mockResolvedValue(response(children.slice(5)));
-    await enterpriseCarbonApi.configureGoogle(file, children.slice(5), signal, 'opaque-snapshot');
+    await enterpriseHydrogenApi.configureGoogle(file, children.slice(5), signal, 'opaque-snapshot');
     expect(post.mock.calls[1][1]).toHaveProperty('snapshot_id', 'opaque-snapshot');
     for (const malformed of [
       { ...response(children.slice(5)), snapshot_id: 'other' },
@@ -200,23 +200,23 @@ describe('credential Carbon operations', () => {
     ]) {
       post.mockResolvedValue(malformed);
       await expect(
-        enterpriseCarbonApi.configureGoogle(file, children.slice(5), signal, 'opaque-snapshot')
+        enterpriseHydrogenApi.configureGoogle(file, children.slice(5), signal, 'opaque-snapshot')
       ).rejects.toBeInstanceOf(InvalidManagementResponseError);
     }
     expect(
-      file.geminiEnterprise?.collections?.every((child) => child.carbonAdmission?.enabled === false)
+      file.geminiEnterprise?.collections?.every((child) => child.hydrogenAdmission?.enabled === false)
     ).toBe(true);
   });
 
   test('fails closed on unsupported and malformed configuration responses without exposing arbitrary fields', () => {
     expect(() =>
-      normalizeGoogleCarbonConfigureResponse({
+      normalizeGoogleHydrogenConfigureResponse({
         ...response([]),
-        google_carbon_configure_supported: false,
+        google_hydrogen_configure_supported: false,
       })
     ).toThrow();
     expect(() =>
-      normalizeGoogleCarbonConfigureResponse({
+      normalizeGoogleHydrogenConfigureResponse({
         ...response([]),
         applications: [{ status: 'configured' }],
       })
@@ -224,7 +224,7 @@ describe('credential Carbon operations', () => {
     const target = enterpriseCollectionFiles(account(1));
     expect(
       JSON.stringify(
-        normalizeGoogleCarbonConfigureResponse({
+        normalizeGoogleHydrogenConfigureResponse({
           ...response(target),
           secret: 'never-echo',
           applications: [{ ...applicationResult(target[0]), token: 'never-echo' }],
@@ -235,7 +235,7 @@ describe('credential Carbon operations', () => {
 
   test('keeps an implicit Assistant range pending actual verification without inventing model permission', () => {
     const targets = enterpriseCollectionFiles(account(1));
-    const result = normalizeGoogleCarbonConfigureResponse({
+    const result = normalizeGoogleHydrogenConfigureResponse({
       ...response(targets),
       applications: [
         {
@@ -252,9 +252,9 @@ describe('credential Carbon operations', () => {
       httpStatus: 200,
     });
     expect(result.account).toBeUndefined();
-    expect(targets[0].geminiEnterprise?.carbonAdmission?.enabled).toBe(false);
-    expect(googleCarbonReasonKey(result.results[0].reason)).toBe(
-      'gemini_enterprise.carbon_batch.reason_assistant_defaults_preserved'
+    expect(targets[0].geminiEnterprise?.hydrogenAdmission?.enabled).toBe(false);
+    expect(googleHydrogenReasonKey(result.results[0].reason)).toBe(
+      'gemini_enterprise.hydrogen_batch.reason_assistant_defaults_preserved'
     );
   });
 
@@ -271,7 +271,7 @@ describe('credential Carbon operations', () => {
         })
     );
     await expect(
-      enterpriseCarbonApi.configureGoogle(
+      enterpriseHydrogenApi.configureGoogle(
         file,
         [{ ...applications[0], authIndex: 'foreign' }],
         new AbortController().signal
@@ -280,7 +280,7 @@ describe('credential Carbon operations', () => {
     expect(post).not.toHaveBeenCalled();
     for (const changeConnection of [false, true]) {
       const controller = new AbortController();
-      const pending = enterpriseCarbonApi.configureGoogle(file, applications, controller.signal);
+      const pending = enterpriseHydrogenApi.configureGoogle(file, applications, controller.signal);
       if (changeConnection) connection += 2;
       else controller.abort();
       finish(response(applications));
@@ -295,7 +295,7 @@ describe('credential Carbon operations', () => {
     const done: string[] = [];
     let active = 0,
       peak = 0;
-    const run = runCarbonApplicationTests(
+    const run = runHydrogenApplicationTests(
       targets,
       new AbortController().signal,
       async (file) => {
@@ -326,7 +326,7 @@ describe('credential Carbon operations', () => {
     const waiting: Array<() => void> = [];
     const started: string[] = [];
     const done: string[] = [];
-    const run = runCarbonApplicationTests(
+    const run = runHydrogenApplicationTests(
       enterpriseCollectionFiles(account()),
       controller.signal,
       async () => {
@@ -345,7 +345,7 @@ describe('credential Carbon operations', () => {
 
   test('an explicit scope invalidation stops new scheduling while started calls finish once', async () => {
     let calls = 0;
-    await runCarbonApplicationTests(
+    await runHydrogenApplicationTests(
       enterpriseCollectionFiles(account()),
       new AbortController().signal,
       async () => {
@@ -359,10 +359,10 @@ describe('credential Carbon operations', () => {
     expect(calls).toBe(2);
   });
 
-  test('only explicit request scope changes stop Carbon applications, not an HTTP status alone', () => {
+  test('only explicit request scope changes stop Hydrogen applications, not an HTTP status alone', () => {
     const result: ModelTestResult = {
       status: 'failed',
-      model: carbon,
+      model: hydrogen,
       authIndex: 'index-0',
       checkedAt: '2026-11-07T15:00:00Z',
       elapsedMs: 0,
@@ -372,20 +372,20 @@ describe('credential Carbon operations', () => {
     };
     for (const httpStatus of [0, 400, 401, 403, 404, 408, 409, 429, 500, 502, 503]) {
       for (const status of ['failed', 'unavailable', 'cooling'] as const)
-        expect(shouldStopCarbonApplicationTests({ ...result, status, httpStatus })).toBe(false);
+        expect(shouldStopHydrogenApplicationTests({ ...result, status, httpStatus })).toBe(false);
     }
     for (const code of [
       'credential_changed',
       'authorization_changed',
-      'carbon_authorization_changed',
+      'hydrogen_authorization_changed',
       'binding_changed',
-      'carbon_binding_changed',
+      'hydrogen_binding_changed',
       'configuration_changed',
-      'carbon_configuration_changed',
+      'hydrogen_configuration_changed',
       'model_changed',
     ])
-      expect(shouldStopCarbonApplicationTests({ ...result, code })).toBe(true);
-    expect(shouldStopCarbonApplicationTests({ ...result, status: 'ok', httpStatus: 200 })).toBe(
+      expect(shouldStopHydrogenApplicationTests({ ...result, code })).toBe(true);
+    expect(shouldStopHydrogenApplicationTests({ ...result, status: 'ok', httpStatus: 200 })).toBe(
       false
     );
   });
@@ -404,14 +404,14 @@ describe('credential Carbon operations', () => {
       ['generation_failed', 502],
       ['request_failed', 0],
     ] as const;
-    await runCarbonApplicationTests(
+    await runHydrogenApplicationTests(
       targets,
       new AbortController().signal,
       async (file) => {
         const index = targets.indexOf(file);
         const failure = failures[index - 1];
         return {
-          ...carbonApplicationTestFailure(file, null),
+          ...hydrogenApplicationTestFailure(file, null),
           status: index === 0 || index > failures.length ? 'ok' : 'unavailable',
           code: failure?.[0] ?? 'ok',
           httpStatus: failure?.[1] ?? 200,
@@ -419,14 +419,14 @@ describe('credential Carbon operations', () => {
       },
       (file) => starts.push(file.geminiEnterprise!.bindingId!),
       (file, result) => results.push([file.geminiEnterprise!.bindingId!, result]),
-      shouldStopCarbonApplicationTests
+      shouldStopHydrogenApplicationTests
     );
     expect(starts).toHaveLength(18);
     expect(new Set(starts).size).toBe(18);
     expect(results).toHaveLength(18);
     expect(results.find(([id]) => id === 'binding-1')?.[1].code).toBe('subscription_unverified');
     expect(results.find(([id]) => id === 'binding-17')?.[1].status).toBe('ok');
-    expect(targets.every((file) => file.geminiEnterprise?.carbonAdmission?.enabled === false)).toBe(
+    expect(targets.every((file) => file.geminiEnterprise?.hydrogenAdmission?.enabled === false)).toBe(
       true
     );
   });
@@ -435,7 +435,7 @@ describe('credential Carbon operations', () => {
     const targets = enterpriseCollectionFiles(account(7));
     const calls = new Map<string, number>();
     const results: ModelTestResult[] = [];
-    await runCarbonApplicationTests(
+    await runHydrogenApplicationTests(
       targets,
       new AbortController().signal,
       async (file) => {
@@ -445,18 +445,18 @@ describe('credential Carbon operations', () => {
           if (targets.indexOf(file) % 2)
             throw Object.assign(new Error('synthetic'), { status: 503 });
           return {
-            ...carbonApplicationTestFailure(file, null),
+            ...hydrogenApplicationTestFailure(file, null),
             status: 'ok',
             httpStatus: 200,
             code: 'ok',
           } satisfies ModelTestResult;
         } catch (cause) {
-          return carbonApplicationTestFailure(file, cause);
+          return hydrogenApplicationTestFailure(file, cause);
         }
       },
       () => {},
       (_, result) => results.push(result),
-      shouldStopCarbonApplicationTests
+      shouldStopHydrogenApplicationTests
     );
     expect(calls.size).toBe(7);
     expect([...calls.values()]).toEqual(Array(7).fill(1));
@@ -469,7 +469,7 @@ describe('credential Carbon operations', () => {
     const starts: string[] = [];
     const done: string[] = [];
     let finish!: () => void;
-    const run = runCarbonApplicationTests(
+    const run = runHydrogenApplicationTests(
       targets,
       new AbortController().signal,
       async (file) => {
@@ -478,7 +478,7 @@ describe('credential Carbon operations', () => {
             finish = resolve;
           });
         return {
-          ...carbonApplicationTestFailure(file, null),
+          ...hydrogenApplicationTestFailure(file, null),
           code: file === targets[0] ? 'credential_changed' : 'ok',
           status: file === targets[0] ? 'unavailable' : 'ok',
           httpStatus: file === targets[0] ? 409 : 200,
@@ -486,7 +486,7 @@ describe('credential Carbon operations', () => {
       },
       (file) => starts.push(file.geminiEnterprise!.bindingId!),
       (file) => done.push(file.geminiEnterprise!.bindingId!),
-      shouldStopCarbonApplicationTests
+      shouldStopHydrogenApplicationTests
     );
     await Promise.resolve();
     expect(starts).toEqual(['binding-0', 'binding-1']);
@@ -500,7 +500,7 @@ describe('credential Carbon operations', () => {
   test('failure normalization accepts unknown rejections without copying secret error text', () => {
     const file = enterpriseCollectionFiles(account(1))[0];
     for (const cause of [null, undefined, 'private-token', { message: 'private-token' }]) {
-      const result = carbonApplicationTestFailure(file, cause);
+      const result = hydrogenApplicationTestFailure(file, cause);
       expect(result).toMatchObject({
         status: 'unavailable',
         code: 'request_failed',
@@ -508,29 +508,29 @@ describe('credential Carbon operations', () => {
         message: '',
       });
       expect(JSON.stringify(result)).not.toContain('private-token');
-      expect(shouldStopCarbonApplicationTests(result)).toBe(false);
+      expect(shouldStopHydrogenApplicationTests(result)).toBe(false);
     }
     expect(
-      carbonApplicationTestFailure(file, { status: 409, apiCode: 'credential_changed' })
+      hydrogenApplicationTestFailure(file, { status: 409, apiCode: 'credential_changed' })
     ).toMatchObject({ httpStatus: 409, code: 'credential_changed' });
   });
 
-  test('an independently admitted trial Carbon app stays routable when Argon is excluded', () => {
+  test('an independently admitted trial Hydrogen app stays routable when Argon is excluded', () => {
     const state = normalizeEnterpriseModelPolicy({
       mode: 'argon_only',
       effective_mode: 'argon_only',
       status: 'ok',
       enforced_allowed_models: null,
       catalog_known: true,
-      excluded_models: ['gemini-4-argon'],
-      effective_models: [carbon],
+      excluded_models: ['gemini-4-argon', 'gemini-4-carbon'],
+      effective_models: [hydrogen],
       catalog_models: [
-        { id: carbon, allowed: true },
+        { id: hydrogen, allowed: true },
         { id: 'gemini-4-argon', allowed: false },
       ],
       subscription: { status: 'ok', free_trial: true, edition: 'business_standard' },
-      carbon_admission_supported: true,
-      carbon_admission: { ...verified, enabled: true, available: true },
+      hydrogen_admission_supported: true,
+      hydrogen_admission: { ...verified, enabled: true, available: true },
     })!;
     expect(enterprisePolicyRoutingPaused(state)).toBe(false);
     expect(
@@ -539,14 +539,14 @@ describe('credential Carbon operations', () => {
         state,
         state.excludedModels
       )
-    ).toEqual([carbon]);
+    ).toEqual([hydrogen]);
     expect(
       enterprisePolicyRoutingPaused({
         ...state,
-        carbonAdmission: { ...state.carbonAdmission!, available: false },
+        hydrogenAdmission: { ...state.hydrogenAdmission!, available: false },
       })
     ).toBe(true);
-    expect(enterprisePolicyRoutingPaused({ ...state, enforcedExcludedModels: [carbon] })).toBe(
+    expect(enterprisePolicyRoutingPaused({ ...state, enforcedExcludedModels: [hydrogen] })).toBe(
       true
     );
     expect(
@@ -563,9 +563,9 @@ describe('credential Carbon operations', () => {
     expect(configured).toContain('Google settings configured');
     expect(configured).not.toContain('type="checkbox"');
     const tested = await render('test');
-    expect(tested).toContain('Carbon verification succeeded');
+    expect(tested).toContain('Hydrogen verification succeeded');
     expect(tested).toContain('Verification passed; enable manually');
-    expect(tested).toContain('Carbon disabled');
+    expect(tested).toContain('Hydrogen disabled');
     expect(tested).toContain('Verification passed');
     expect(tested).not.toMatch(/<input[^>]*checked=""/);
     expect(tested).toContain('aria-describedby=');
@@ -576,7 +576,7 @@ describe('credential Carbon operations', () => {
     for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
       const messages = JSON.parse(
         readFileSync(new URL(`../src/i18n/locales/${locale}.json`, import.meta.url), 'utf8')
-      ).gemini_enterprise.carbon_batch;
+      ).gemini_enterprise.hydrogen_batch;
       const html = await render('configure', locale, true);
       expect(html).toContain(messages.status_verification_required);
       expect(html).toContain(
@@ -587,7 +587,7 @@ describe('credential Carbon operations', () => {
       expect(html).not.toContain(messages.status_failed);
       expect(html).not.toContain(messages.reason_allowed_models_review_required);
       expect(html).not.toContain('type="checkbox"');
-      expect(html).not.toContain('carbon_batch.reason_');
+      expect(html).not.toContain('hydrogen_batch.reason_');
       expect(html).toContain('role="status"');
     }
   });
@@ -622,16 +622,16 @@ describe('credential Carbon operations', () => {
         )
       );
     const enabled = renderCard(account(1));
-    expect(enabled).toContain('Configure Google Carbon');
-    expect(enabled).toContain('Batch test Carbon');
+    expect(enabled).toContain('Configure Google Hydrogen');
+    expect(enabled).toContain('Batch test Hydrogen');
     expect(enabled).toContain('changes remote Google model settings');
     expect(enabled).toContain('aria-describedby=');
     const legacy = account(1);
-    legacy.geminiEnterprise!.googleCarbonConfigureSupported = false;
+    legacy.geminiEnterprise!.googleHydrogenConfigureSupported = false;
     expect(renderCard(legacy)).toMatch(
-      /<button[^>]*disabled=""[^>]*><span>Configure Google Carbon/
+      /<button[^>]*disabled=""[^>]*><span>Configure Google Hydrogen/
     );
-    expect(renderCard(legacy)).toContain('does not support configuring Google Carbon');
+    expect(renderCard(legacy)).toContain('does not support configuring Google Hydrogen');
   });
 
   test('all six languages expose matching messages and labelled native progress and switches', async () => {
@@ -640,12 +640,12 @@ describe('credential Carbon operations', () => {
       const resource = JSON.parse(
         readFileSync(new URL(`../src/i18n/locales/${locale}.json`, import.meta.url), 'utf8')
       );
-      keys ??= Object.keys(resource.gemini_enterprise.carbon_batch).sort();
-      expect(Object.keys(resource.gemini_enterprise.carbon_batch).sort()).toEqual(keys);
+      keys ??= Object.keys(resource.gemini_enterprise.hydrogen_batch).sort();
+      expect(Object.keys(resource.gemini_enterprise.hydrogen_batch).sort()).toEqual(keys);
       const html = await render('test', locale);
       expect(html).toContain('<progress');
       expect(html).toContain('aria-label=');
-      expect(html).not.toContain('gemini_enterprise.carbon_batch.');
+      expect(html).not.toContain('gemini_enterprise.hydrogen_batch.');
     }
   });
 });

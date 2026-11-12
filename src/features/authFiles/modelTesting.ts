@@ -3,7 +3,7 @@ import {
   enterpriseForcesArgon,
   enterprisePolicyRoutingPaused,
 } from './enterpriseModelPolicy';
-import type { AuthFileItem, EnterpriseCarbonAdmission } from '@/types';
+import type { AuthFileItem, EnterpriseHydrogenAdmission } from '@/types';
 import { isModelExcluded, type AuthFileModelItem } from './constants';
 import { enterpriseCollectionIdentity } from './enterpriseAccounts';
 import { cooldownRemainingSeconds } from './cooldowns';
@@ -18,9 +18,9 @@ import type { EnterpriseResources } from './enterpriseResources';
 
 export type ModelTestStatus = 'ok' | 'failed' | 'cooling' | 'unavailable';
 export type ModelTestResult = {
-  carbonAdmissionSupported?: boolean;
-  carbonAdmission?: EnterpriseCarbonAdmission;
-  carbonTestId?: string;
+  hydrogenAdmissionSupported?: boolean;
+  hydrogenAdmission?: EnterpriseHydrogenAdmission;
+  hydrogenTestId?: string;
   expectedRevision?: number;
   status: ModelTestStatus;
   model: string;
@@ -124,11 +124,11 @@ export function modelTestIdentity(file: AuthFileItem): string {
   return JSON.stringify([
     enterpriseCollectionIdentity(file),
     ...((file.type || file.provider) === 'gemini-enterprise' &&
-    (file.geminiEnterprise?.carbonAuthorizationRevision !== undefined ||
-      file.geminiEnterprise?.carbonRegistrationEpoch !== undefined)
+    (file.geminiEnterprise?.hydrogenAuthorizationRevision !== undefined ||
+      file.geminiEnterprise?.hydrogenRegistrationEpoch !== undefined)
       ? [
-          file.geminiEnterprise?.carbonAuthorizationRevision,
-          file.geminiEnterprise?.carbonRegistrationEpoch,
+          file.geminiEnterprise?.hydrogenAuthorizationRevision,
+          file.geminiEnterprise?.hydrogenRegistrationEpoch,
         ]
       : []),
     file.geminiEnterprise?.modelPolicyState?.effectiveMode,
@@ -141,8 +141,8 @@ export function modelTestIdentity(file: AuthFileItem): string {
     file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedExcludedModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedReason,
-    file.geminiEnterprise?.carbonAdmissionSupported,
-    file.geminiEnterprise?.carbonAdmission,
+    file.geminiEnterprise?.hydrogenAdmissionSupported,
+    file.geminiEnterprise?.hydrogenAdmission,
     file.geminiEnterprise?.modelPolicyState?.allowedModels,
     file.geminiEnterprise?.modelPolicyState?.excludedModels,
     file.geminiEnterprise?.modelPolicyState?.globalExcludedModels,

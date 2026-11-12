@@ -2,44 +2,44 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AuthFileItem, GeminiEnterpriseAccount } from '@/types';
 import { apiClient } from '@/services/api/client';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { enterpriseCarbonApi } from '@/services/api/enterpriseCarbon';
+import { enterpriseHydrogenApi } from '@/services/api/enterpriseHydrogen';
 import { authFileModelTestsApi } from '@/services/api/authFileModelTests';
 import { geminiEnterpriseApi } from '@/services/api/geminiEnterprise';
 import { enterpriseCollectionFiles } from '../enterpriseAccounts';
 import {
-  canEnableEnterpriseCarbon,
-  canTestEnterpriseCarbon,
-  enterpriseCarbonAdmission,
-  ENTERPRISE_CARBON_MODEL,
-} from '../enterpriseCarbon';
+  canEnableEnterpriseHydrogen,
+  canTestEnterpriseHydrogen,
+  enterpriseHydrogenAdmission,
+  ENTERPRISE_HYDROGEN_MODEL,
+} from '../enterpriseHydrogen';
 import {
-  carbonApplicationBatches,
-  carbonApplicationTestFailure,
-  runCarbonApplicationTests,
-  validCarbonConfigurationApplication,
-  shouldStopCarbonApplicationTests,
-} from '../enterpriseCarbonOperations';
+  hydrogenApplicationBatches,
+  hydrogenApplicationTestFailure,
+  runHydrogenApplicationTests,
+  validHydrogenConfigurationApplication,
+  shouldStopHydrogenApplicationTests,
+} from '../enterpriseHydrogenOperations';
 import type { ModelTestResult } from '../modelTesting';
 import {
-  carbonAuthorizationIdentity,
-  carbonApplicationPermissionIdentity,
-  carbonOperationScopeIdentity,
-  confirmedCarbonSwitch,
-  olderCarbonAccountSnapshot,
-  protectCarbonAccountEvidence,
-  mergeCarbonTestResult,
-  synchronizeCarbonOperationRows,
-  type CarbonOperationRow,
-} from '../enterpriseCarbonOperationState';
-export type { CarbonOperationRow } from '../enterpriseCarbonOperationState';
+  hydrogenAuthorizationIdentity,
+  hydrogenApplicationPermissionIdentity,
+  hydrogenOperationScopeIdentity,
+  confirmedHydrogenSwitch,
+  olderHydrogenAccountSnapshot,
+  protectHydrogenAccountEvidence,
+  mergeHydrogenTestResult,
+  synchronizeHydrogenOperationRows,
+  type HydrogenOperationRow,
+} from '../enterpriseHydrogenOperationState';
+export type { HydrogenOperationRow } from '../enterpriseHydrogenOperationState';
 
-export type CarbonOperationMode = 'configure' | 'test';
-export function useEnterpriseCarbonOperations(
+export type HydrogenOperationMode = 'configure' | 'test';
+export function useEnterpriseHydrogenOperations(
   file: AuthFileItem,
   onSaved?: (file: AuthFileItem) => Promise<void> | void
 ) {
-  const [mode, setMode] = useState<CarbonOperationMode | null>(null);
-  const [rows, setRows] = useState<CarbonOperationRow[]>([]);
+  const [mode, setMode] = useState<HydrogenOperationMode | null>(null);
+  const [rows, setRows] = useState<HydrogenOperationRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const request = useRef<AbortController | null>(null);
@@ -47,8 +47,8 @@ export function useEnterpriseCarbonOperations(
   const saveTargets = useRef(
     new Map<string, { file: AuthFileItem; account: AuthFileItem; enabled: boolean }>()
   );
-  const operationMode = useRef<CarbonOperationMode>('test');
-  const expectedIdentity = useRef(carbonOperationScopeIdentity(file, 'test'));
+  const operationMode = useRef<HydrogenOperationMode>('test');
+  const expectedIdentity = useRef(hydrogenOperationScopeIdentity(file, 'test'));
   const fileRef = useRef(file);
 
   const cancel = useCallback(() => {
@@ -76,9 +76,9 @@ export function useEnterpriseCarbonOperations(
   }, [cancel]);
   useEffect(() => {
     const previous = fileRef.current;
-    if (olderCarbonAccountSnapshot(previous, file)) return;
-    const incoming = protectCarbonAccountEvidence(previous, file);
-    const identity = carbonOperationScopeIdentity(incoming, operationMode.current);
+    if (olderHydrogenAccountSnapshot(previous, file)) return;
+    const incoming = protectHydrogenAccountEvidence(previous, file);
+    const identity = hydrogenOperationScopeIdentity(incoming, operationMode.current);
     if (identity !== expectedIdentity.current) {
       cancel();
     }
@@ -88,15 +88,15 @@ export function useEnterpriseCarbonOperations(
     saveTargets.current.forEach((saved, key) => {
       const latest = children.find((child) => child.geminiEnterprise?.bindingId === key);
       const sameAuthorization =
-        carbonAuthorizationIdentity(saved.account) === carbonAuthorizationIdentity(incoming) &&
+        hydrogenAuthorizationIdentity(saved.account) === hydrogenAuthorizationIdentity(incoming) &&
         Boolean(saved.account.disabled) === Boolean(incoming.disabled);
-      if (latest && sameAuthorization && confirmedCarbonSwitch(saved.file, latest, saved.enabled))
+      if (latest && sameAuthorization && confirmedHydrogenSwitch(saved.file, latest, saved.enabled))
         confirmed.add(key);
       else if (
         !latest ||
         !sameAuthorization ||
-        carbonApplicationPermissionIdentity(saved.file) !==
-          carbonApplicationPermissionIdentity(latest)
+        hydrogenApplicationPermissionIdentity(saved.file) !==
+          hydrogenApplicationPermissionIdentity(latest)
       ) {
         saves.current.get(key)?.abort();
         saves.current.delete(key);
@@ -107,7 +107,7 @@ export function useEnterpriseCarbonOperations(
     expectedIdentity.current = identity;
     fileRef.current = incoming;
     setRows((currentRows) =>
-      synchronizeCarbonOperationRows(currentRows, previous, incoming, confirmed).map((row) =>
+      synchronizeHydrogenOperationRows(currentRows, previous, incoming, confirmed).map((row) =>
         invalidSaves.has(row.file.geminiEnterprise?.bindingId ?? '')
           ? { ...row, saving: false, saveFailed: true }
           : row
@@ -134,7 +134,7 @@ export function useEnterpriseCarbonOperations(
     };
   }, [close]);
 
-  const updateRow = (target: AuthFileItem, change: Partial<CarbonOperationRow>) =>
+  const updateRow = (target: AuthFileItem, change: Partial<HydrogenOperationRow>) =>
     setRows((previous) =>
       previous.map((row) =>
         row.file.geminiEnterprise?.bindingId === target.geminiEnterprise?.bindingId
@@ -148,19 +148,19 @@ export function useEnterpriseCarbonOperations(
   ) => {
     const previous = fileRef.current;
     const candidate = { ...previous, geminiEnterprise: account };
-    const next = olderCarbonAccountSnapshot(previous, candidate) ? previous : candidate;
-    expectedIdentity.current = carbonOperationScopeIdentity(next, operationMode.current);
+    const next = olderHydrogenAccountSnapshot(previous, candidate) ? previous : candidate;
+    expectedIdentity.current = hydrogenOperationScopeIdentity(next, operationMode.current);
     fileRef.current = next;
     setRows((currentRows) =>
-      synchronizeCarbonOperationRows(currentRows, previous, next, confirmedBindings)
+      synchronizeHydrogenOperationRows(currentRows, previous, next, confirmedBindings)
     );
     return next;
   };
 
-  const start = async (operation: CarbonOperationMode) => {
+  const start = async (operation: HydrogenOperationMode) => {
     if (request.current || saves.current.size) return;
     const selected = fileRef.current;
-    if (operation === 'configure' && !selected.geminiEnterprise?.googleCarbonConfigureSupported)
+    if (operation === 'configure' && !selected.geminiEnterprise?.googleHydrogenConfigureSupported)
       return;
     const targets = enterpriseCollectionFiles(selected);
     if (!targets.length) return;
@@ -168,17 +168,17 @@ export function useEnterpriseCarbonOperations(
     request.current = controller;
     const connection = apiClient.getConnectionRevision();
     operationMode.current = operation;
-    const identity = carbonOperationScopeIdentity(selected, operation);
+    const identity = hydrogenOperationScopeIdentity(selected, operation);
     expectedIdentity.current = identity;
     const ownsRequest = () =>
       request.current === controller && connection === apiClient.getConnectionRevision();
     const current = () =>
       !controller.signal.aborted &&
       ownsRequest() &&
-      carbonOperationScopeIdentity(fileRef.current, operation) === expectedIdentity.current;
+      hydrogenOperationScopeIdentity(fileRef.current, operation) === expectedIdentity.current;
     setRows(
       targets.map((target) =>
-        operation === 'configure' && !validCarbonConfigurationApplication(target)
+        operation === 'configure' && !validHydrogenConfigurationApplication(target)
           ? {
               file: target,
               state: 'done',
@@ -200,12 +200,12 @@ export function useEnterpriseCarbonOperations(
     try {
       if (operation === 'configure') {
         let snapshotId: string | undefined;
-        for (const batch of carbonApplicationBatches(
-          targets.filter(validCarbonConfigurationApplication)
+        for (const batch of hydrogenApplicationBatches(
+          targets.filter(validHydrogenConfigurationApplication)
         )) {
           if (!current()) break;
           batch.forEach((target) => updateRow(target, { state: 'running' }));
-          const result = await enterpriseCarbonApi.configureGoogle(
+          const result = await enterpriseHydrogenApi.configureGoogle(
             selected,
             batch,
             controller.signal,
@@ -222,7 +222,7 @@ export function useEnterpriseCarbonOperations(
           if (result.results.some((entry) => entry.status === 'changed')) break;
         }
       } else {
-        await runCarbonApplicationTests(
+        await runHydrogenApplicationTests(
           targets,
           controller.signal,
           async (target) => {
@@ -236,29 +236,29 @@ export function useEnterpriseCarbonOperations(
               );
               if (
                 !latest ||
-                carbonApplicationPermissionIdentity(latest) !==
-                  carbonApplicationPermissionIdentity(target)
+                hydrogenApplicationPermissionIdentity(latest) !==
+                  hydrogenApplicationPermissionIdentity(target)
               ) {
                 controller.abort();
                 throw new DOMException('Application changed', 'AbortError');
               }
-              if (!canTestEnterpriseCarbon(latest))
+              if (!canTestEnterpriseHydrogen(latest))
                 return {
                   status: 'unavailable',
-                  model: ENTERPRISE_CARBON_MODEL,
+                  model: ENTERPRISE_HYDROGEN_MODEL,
                   authIndex: String(target.authIndex ?? ''),
                   checkedAt: new Date().toISOString(),
                   elapsedMs: 0,
                   httpStatus: 0,
-                  code: enterpriseCarbonAdmission(latest)?.reason || 'test_required',
+                  code: enterpriseHydrogenAdmission(latest)?.reason || 'test_required',
                 } as ModelTestResult;
               return await authFileModelTestsApi.test(
                 latest,
-                ENTERPRISE_CARBON_MODEL,
+                ENTERPRISE_HYDROGEN_MODEL,
                 controller.signal
               );
             } catch (cause) {
-              return carbonApplicationTestFailure(target, cause);
+              return hydrogenApplicationTestFailure(target, cause);
             }
           },
           (target) => {
@@ -267,23 +267,23 @@ export function useEnterpriseCarbonOperations(
           (target, result) => {
             if (!current()) return;
             const previous = fileRef.current;
-            const next = mergeCarbonTestResult(previous, target, result);
-            if (result.carbonAdmission && next === previous) return;
+            const next = mergeHydrogenTestResult(previous, target, result);
+            if (result.hydrogenAdmission && next === previous) return;
             fileRef.current = next;
-            expectedIdentity.current = carbonOperationScopeIdentity(next, operation);
+            expectedIdentity.current = hydrogenOperationScopeIdentity(next, operation);
             const latest =
               enterpriseCollectionFiles(next).find(
                 (child) => child.geminiEnterprise?.bindingId === target.geminiEnterprise?.bindingId
               ) ?? target;
             setRows((currentRows) =>
-              synchronizeCarbonOperationRows(currentRows, previous, next).map((row) =>
+              synchronizeHydrogenOperationRows(currentRows, previous, next).map((row) =>
                 row.file.geminiEnterprise?.bindingId === target.geminiEnterprise?.bindingId
                   ? { ...row, state: 'done', test: result, file: latest, reason: result.code }
                   : row
               )
             );
           },
-          shouldStopCarbonApplicationTests
+          shouldStopHydrogenApplicationTests
         );
       }
     } catch {
@@ -316,11 +316,11 @@ export function useEnterpriseCarbonOperations(
     if (
       !key ||
       !latest ||
-      carbonApplicationPermissionIdentity(latest) !== carbonApplicationPermissionIdentity(target) ||
+      hydrogenApplicationPermissionIdentity(latest) !== hydrogenApplicationPermissionIdentity(target) ||
       request.current ||
       saves.current.size ||
-      enterpriseCarbonAdmission(latest)?.enabled === enabled ||
-      (enabled && !canEnableEnterpriseCarbon(latest))
+      enterpriseHydrogenAdmission(latest)?.enabled === enabled ||
+      (enabled && !canEnableEnterpriseHydrogen(latest))
     )
       return;
     const controller = new AbortController();
@@ -334,7 +334,7 @@ export function useEnterpriseCarbonOperations(
         controller.signal.aborted ||
         saves.current.get(key) !== controller ||
         connection !== apiClient.getConnectionRevision() ||
-        carbonAuthorizationIdentity(selected) !== carbonAuthorizationIdentity(fileRef.current) ||
+        hydrogenAuthorizationIdentity(selected) !== hydrogenAuthorizationIdentity(fileRef.current) ||
         Boolean(selected.disabled) !== Boolean(fileRef.current.disabled)
       )
         return false;
@@ -343,9 +343,9 @@ export function useEnterpriseCarbonOperations(
       );
       return Boolean(
         currentTarget &&
-        (carbonApplicationPermissionIdentity(currentTarget) ===
-          carbonApplicationPermissionIdentity(requested) ||
-          confirmedCarbonSwitch(requested, currentTarget, enabled))
+        (hydrogenApplicationPermissionIdentity(currentTarget) ===
+          hydrogenApplicationPermissionIdentity(requested) ||
+          confirmedHydrogenSwitch(requested, currentTarget, enabled))
       );
     };
     updateRow(requested, { saving: true, saveFailed: false, saveRequestedEnabled: enabled });
@@ -353,9 +353,9 @@ export function useEnterpriseCarbonOperations(
       const account = await geminiEnterpriseApi.updateCollection(
         requested,
         {
-          fields: { carbon_enabled: enabled },
-          ...(enabled && enterpriseCarbonAdmission(requested)?.verificationRequired !== false
-            ? { carbonTestId: enterpriseCarbonAdmission(requested)?.test?.testId }
+          fields: { hydrogen_enabled: enabled },
+          ...(enabled && enterpriseHydrogenAdmission(requested)?.verificationRequired !== false
+            ? { hydrogenTestId: enterpriseHydrogenAdmission(requested)?.test?.testId }
             : {}),
         },
         controller.signal
@@ -367,8 +367,8 @@ export function useEnterpriseCarbonOperations(
       );
       if (
         !next ||
-        carbonAuthorizationIdentity(nextFile) !== carbonAuthorizationIdentity(selected) ||
-        !confirmedCarbonSwitch(requested, next, enabled)
+        hydrogenAuthorizationIdentity(nextFile) !== hydrogenAuthorizationIdentity(selected) ||
+        !confirmedHydrogenSwitch(requested, next, enabled)
       )
         throw new Error('state_unknown');
       const adopted = adoptAccount(account, new Set([key]));
@@ -381,7 +381,7 @@ export function useEnterpriseCarbonOperations(
         const latestTarget = enterpriseCollectionFiles(fileRef.current).find(
           (child) => child.geminiEnterprise?.bindingId === key
         );
-        const confirmed = latestTarget && confirmedCarbonSwitch(requested, latestTarget, enabled);
+        const confirmed = latestTarget && confirmedHydrogenSwitch(requested, latestTarget, enabled);
         updateRow(requested, {
           saving: false,
           saveFailed: !confirmed,
