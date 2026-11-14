@@ -52,7 +52,6 @@ import {
 } from '@/features/authFiles/logic';
 import { useAuthFilesData } from '@/features/authFiles/hooks/useAuthFilesData';
 import { useAuthFilesModels } from '@/features/authFiles/hooks/useAuthFilesModels';
-import { ENTERPRISE_HYDROGEN_MODEL } from '@/features/authFiles/enterpriseHydrogen';
 import { useAuthFilesOauth } from '@/features/authFiles/hooks/useAuthFilesOauth';
 import { useAuthFilesPrefixProxyEditor } from '@/features/authFiles/hooks/useAuthFilesPrefixProxyEditor';
 import { useAuthFilesStatusBarCache } from '@/features/authFiles/hooks/useAuthFilesStatusBarCache';
@@ -118,7 +117,6 @@ export function AuthFilesPage() {
     modelsModalOpen,
     modelsLoading,
     modelsList,
-    modelsTestCandidates,
     modelsFileName,
     modelsFileType,
     modelsError,
@@ -134,11 +132,6 @@ export function AuthFilesPage() {
     modelTestProgress,
     runModelTests,
     cancelModelTests,
-    hydrogenSaving,
-    hydrogenError,
-    hydrogenVerificationTest,
-    changeHydrogenEnabled,
-    enterpriseMutationVersion,
   } = useAuthFilesModels();
 
   const invalidateDerivedCaches = useCallback(
@@ -184,12 +177,6 @@ export function AuthFilesPage() {
   } = useAuthFilesData({ onFilesMutated: invalidateDerivedCaches });
 
   useEffect(() => syncModelsFile(files), [files, syncModelsFile]);
-  const hydrogenMutationSeen = useRef(0);
-  useEffect(() => {
-    if (hydrogenMutationSeen.current === enterpriseMutationVersion) return;
-    hydrogenMutationSeen.current = enterpriseMutationVersion;
-    void loadFiles({ background: true });
-  }, [enterpriseMutationVersion, loadFiles]);
 
   const handleWebSaved = useCallback(async () => {
     invalidateDerivedCaches();
@@ -962,7 +949,6 @@ export function AuthFilesPage() {
         loading={modelsLoading}
         error={modelsError}
         models={modelsList}
-        testCandidates={modelsTestCandidates}
         excluded={excluded}
         onClose={closeModelsModal}
         onCopyText={copyTextWithNotification}
@@ -972,13 +958,7 @@ export function AuthFilesPage() {
         testUnsupported={modelTestUnsupported}
         testProgress={modelTestProgress}
         onTestModels={(models) => void runModelTests(models)}
-        onVerifyHydrogen={() => void runModelTests([ENTERPRISE_HYDROGEN_MODEL], true)}
-        hydrogenVerificationTest={hydrogenVerificationTest}
         onCancelTests={cancelModelTests}
-        controlsDisabled={disableControls}
-        hydrogenSaving={hydrogenSaving}
-        hydrogenError={hydrogenError}
-        onHydrogenChange={(enabled) => void changeHydrogenEnabled(enabled)}
       />
 
       <AuthFileDetailsSheet

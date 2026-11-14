@@ -9,12 +9,6 @@ import type { AuthFileModelItem } from '../constants';
 import { enterpriseResources } from '../enterpriseResources';
 import { useEnterpriseWebRuntime } from '../enterpriseWeb/useEnterpriseWebRuntime';
 import {
-  canTestEnterpriseHydrogen,
-  enterpriseHydrogenAdmission,
-  ENTERPRISE_HYDROGEN_MODEL,
-  isEnterpriseHydrogenModel,
-} from '../enterpriseHydrogen';
-import {
   canTestEnterpriseFile,
   cancelModelTest,
   enterpriseModelCooldown,
@@ -27,20 +21,13 @@ import {
   type ModelTestState,
 } from '../modelTesting';
 
-export function useAuthFileModelTests(
-  file: AuthFileItem | null,
-  models: AuthFileModelItem[],
-  onHydrogenResult?: (result: ModelTestResult, file: AuthFileItem) => void,
-  lastHydrogenTest?: ModelTestState
-) {
+export function useAuthFileModelTests(file: AuthFileItem | null, models: AuthFileModelItem[]) {
   const isWeb = (file?.type || file?.provider) === 'gemini-enterprise-web';
-  const isOAuth = (file?.type || file?.provider) === 'gemini-enterprise';
   const webRuntime = useEnterpriseWebRuntime(isWeb);
   const channelReady = !isWeb || Boolean(webRuntime.status?.enabled && !webRuntime.error);
   const { t } = useTranslation();
   const [results, setResults] = useState<Record<string, ModelTestState>>({});
   const [busy, setBusy] = useState(false);
-  const [hydrogenVerificationRunning, setHydrogenVerificationRunning] = useState(false);
   const [unsupported, setUnsupported] = useState(false);
   const [progress, setProgress] = useState({ completed: 0, total: 0 });
   const request = useRef<AbortController | null>(null);
@@ -58,7 +45,6 @@ export function useAuthFileModelTests(
     request.current?.abort();
     request.current = null;
     setBusy(false);
-    setHydrogenVerificationRunning(false);
     setResults((previous) =>
       Object.fromEntries(
         Object.entries(previous).map(([id, result]) => [id, cancelModelTest(result)])
@@ -93,26 +79,15 @@ export function useAuthFileModelTests(
   }, [reset]);
 
   const run = useCallback(
-    async (requestedModels: string[], verifyHydrogen = false) => {
-      if (
-        !file ||
-        (verifyHydrogen ? !canTestEnterpriseHydrogen(file) : !canTestEnterpriseFile(file)) ||
-        !channelReady ||
-        unsupported ||
-        request.current
-      )
+    async (requestedModels: string[]) => {
+      if (!file || !canTestEnterpriseFile(file) || !channelReady || unsupported || request.current)
         return;
-      const findModel = (id: string) =>
-        models.find((model) => model.id === id && (model.test_candidate === true) === verifyHydrogen);
+      const findModel = (id: string) => models.find((model) => model.id === id);
       const canRun = (target: AuthFileItem, id: string) => {
         const model = findModel(id);
-        if (!model || enterpriseModelCooldown(target, id, resultsRef.current[id])) return false;
-        const hydrogen = isOAuth && isEnterpriseHydrogenModel(model);
-        if (hydrogen && enterpriseModelCooldown(target, ENTERPRISE_HYDROGEN_MODEL, lastHydrogenTest))
+        if (!model || enterpriseModelCooldown(target, model.upstream_model || id, resultsRef.current[id]))
           return false;
-        if (verifyHydrogen) return hydrogen && canTestEnterpriseHydrogen(target);
         return (
-          (!hydrogen || enterpriseHydrogenAdmission(target)?.available === true) &&
           model.policy_allowed !== false &&
           isEnterpriseTextModel(model) &&
           !isEnterpriseModelExcluded(target, model.upstream_model || id)
@@ -132,7 +107,6 @@ export function useAuthFileModelTests(
       let completed = 0;
       let refreshedQuota = false;
       setBusy(true);
-      if (verifyHydrogen) setHydrogenVerificationRunning(true);
       setProgress({ completed, total: ids.length });
       try {
         await runSerialModelTests(
@@ -182,7 +156,7 @@ export function useAuthFileModelTests(
             }
           },
           (model) => {
-            if (current() && !verifyHydrogen)
+            if (current())
               setResults((previous) => ({
                 ...previous,
                 [model]: { ...previous[model], state: 'running' },
@@ -196,10 +170,6 @@ export function useAuthFileModelTests(
             }
             completed += 1;
             setProgress({ completed, total: ids.length });
-            if (verifyHydrogen) {
-              onHydrogenResult?.(result, file);
-              return;
-            }
             setResults((previous) => ({
               ...previous,
               [model]: {
@@ -219,11 +189,10 @@ export function useAuthFileModelTests(
         if (request.current === controller) {
           request.current = null;
           setBusy(false);
-          setHydrogenVerificationRunning(false);
         }
       }
     },
-    [file, models, unsupported, t, channelReady, isWeb, isOAuth, onHydrogenResult, lastHydrogenTest]
+    [file, models, unsupported, t, channelReady, isWeb]
   );
 
   return {
@@ -232,7 +201,6 @@ export function useAuthFileModelTests(
     modelTestBusy: busy,
     modelTestUnsupported: unsupported,
     modelTestProgress: progress,
-    hydrogenVerificationRunning,
     runModelTests: run,
     cancelModelTests: cancel,
     resetModelTests: reset,

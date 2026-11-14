@@ -67,28 +67,9 @@ export interface GeminiEnterpriseResources {
 
 export type EnterpriseModelPolicyMode =
   'auto' | 'catalog' | 'argon_only' | 'exclude_argon' | 'custom';
-export type EnterpriseHydrogenTestEvidence = {
-  testId: string;
-  status: string;
-  checkedAt: string;
-  upstreamModel: string;
-  httpStatus?: number;
-  reason?: string;
-};
-export type EnterpriseHydrogenAdmission = {
-  enabled: boolean;
-  available: boolean;
-  canTest: boolean;
-  canEnable: boolean;
-  verificationRequired?: boolean;
-  reason?: string;
-  test?: EnterpriseHydrogenTestEvidence;
-};
 export type EnterpriseModelPolicyState = {
   argonForceEnabled?: boolean;
   allModelsEnabled?: boolean;
-  hydrogenAdmissionSupported?: boolean;
-  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   mode: EnterpriseModelPolicyMode;
   effectiveMode: string;
   status: string;
@@ -134,8 +115,6 @@ export type EnterpriseModelPolicyState = {
 };
 
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
-  hydrogenAdmissionSupported?: boolean;
-  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   modelPolicyState?: EnterpriseModelPolicyState;
   bindingId: string;
   revision?: number;
@@ -157,11 +136,8 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   argonForceSupported?: boolean;
   allModelsSupported?: boolean;
-  hydrogenAuthorizationRevision?: number;
-  hydrogenRegistrationEpoch?: number;
-  googleHydrogenConfigureSupported?: boolean;
-  hydrogenAdmissionSupported?: boolean;
-  hydrogenAdmission?: EnterpriseHydrogenAdmission;
+  authorizationRevision?: number;
+  registrationEpoch?: number;
   modelPolicySupported?: boolean;
   catalogFallbackSupported?: boolean;
   modelPolicyState?: EnterpriseModelPolicyState;

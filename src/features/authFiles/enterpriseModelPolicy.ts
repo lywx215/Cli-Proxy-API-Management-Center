@@ -1,8 +1,23 @@
 import type { EnterpriseModelPolicyMode, EnterpriseModelPolicyState } from '@/types/authFile';
 import { isModelExcluded } from './constants';
 
-const ARGON_MODEL = 'gemini-4-argon';
-const ARGON_FAMILY_MODELS = [ARGON_MODEL, 'gemini-4-carbon'];
+const ARGON_FAMILY_MODELS = ['gemini-4-argon', 'gemini-4-carbon'];
+export const ENTERPRISE_HYDROGEN_MODEL = 'gemini-4-hydrogen';
+const PAID_MODEL_GROUP = [...ARGON_FAMILY_MODELS, ENTERPRISE_HYDROGEN_MODEL];
+
+function isConfirmedPaid(snapshot?: EnterpriseModelPolicyState): boolean {
+  const subscription = snapshot?.subscription;
+  return (
+    (subscription?.status === 'ok' || subscription?.status === 'stale') &&
+    subscription.freeTrial === false
+  );
+}
+
+export function enterpriseModelPolicyLabel(mode: string, snapshot?: EnterpriseModelPolicyState) {
+  const paidGroup =
+    isConfirmedPaid(snapshot) && (mode === 'argon_only' || mode === 'exclude_argon');
+  return 'gemini_enterprise.policy.mode_' + mode + (paidGroup ? '_paid' : '');
+}
 
 export const ENTERPRISE_MODEL_POLICIES = [
   'auto',
@@ -51,7 +66,7 @@ export function enterprisePolicyRoutingPaused(snapshot?: EnterpriseModelPolicySt
     snapshot.effectiveMode,
     snapshot.allowedModels,
     snapshot.enforcedAllowedModels,
-    snapshot.hydrogenAdmissionSupported === true && snapshot.hydrogenAdmission?.available === true
+    isConfirmedPaid(snapshot)
   );
   return Boolean(
     candidates &&
@@ -71,13 +86,17 @@ export function enterpriseForcesArgon(
   snapshot: EnterpriseModelPolicyState | undefined,
   model: string
 ): boolean {
-  return snapshot?.argonForceEnabled === true && ARGON_FAMILY_MODELS.includes(model.replace(/^models\//, ''));
+  return (
+    snapshot?.argonForceEnabled === true &&
+    ARGON_FAMILY_MODELS.includes(model.replace(/^models\//, ''))
+  );
 }
 
 export function enterpriseEnforcedModelAllowed(
   snapshot: EnterpriseModelPolicyState | undefined,
   model: string
 ): boolean {
+  if (model === ENTERPRISE_HYDROGEN_MODEL && !isConfirmedPaid(snapshot)) return false;
   if (snapshot?.enforcedExcludedModels?.includes(model)) return false;
   return (
     !Array.isArray(snapshot?.enforcedAllowedModels) ||
@@ -107,11 +126,10 @@ function finitePolicyCandidates(
   mode: string,
   allowed: string[] | null,
   enforced: string[] | null,
-  hydrogenAvailable = false
+  paid: boolean
 ): string[] | null {
   if (enforced !== null) return enforced;
-  if (mode === 'argon_only')
-    return hydrogenAvailable ? [...ARGON_FAMILY_MODELS, 'gemini-4-hydrogen'] : ARGON_FAMILY_MODELS;
+  if (mode === 'argon_only') return paid ? PAID_MODEL_GROUP : ARGON_FAMILY_MODELS;
   return mode === 'custom' ? allowed : null;
 }
 
@@ -123,19 +141,16 @@ function policyAllowsModel(
   snapshot: EnterpriseModelPolicyState
 ): boolean {
   if (!enterpriseEnforcedModelAllowed(snapshot, id)) return false;
-  if (id === 'gemini-4-hydrogen' && snapshot.hydrogenAdmissionSupported === true) {
-    if (snapshot.hydrogenAdmission?.available !== true) return false;
-    if (mode === 'custom' && allowed && !allowed.includes(id)) return false;
-    return !isModelExcluded(id, 'gemini-enterprise', { 'gemini-enterprise': excluded });
-  }
-  if (mode === 'argon_only' && !ARGON_FAMILY_MODELS.includes(id)) return false;
-  if (mode === 'exclude_argon' && ARGON_FAMILY_MODELS.includes(id)) return false;
+  const group = isConfirmedPaid(snapshot) ? PAID_MODEL_GROUP : ARGON_FAMILY_MODELS;
+  if (mode === 'argon_only' && !group.includes(id)) return false;
+  if (mode === 'exclude_argon' && group.includes(id)) return false;
   if (mode === 'custom' && allowed && !allowed.includes(id)) return false;
   if (
     (mode === 'argon_only' ||
       mode === 'exclude_argon' ||
       (mode === 'custom' && allowed) ||
       excluded.length > 0 ||
+      (snapshot.enforcedExcludedModels?.length ?? 0) > 0 ||
       Array.isArray(snapshot.enforcedAllowedModels)) &&
     isAutoModel(id)
   )
@@ -223,11 +238,18 @@ export function enterprisePolicyPreview(
       effective,
       allowed,
       snapshot.enforcedAllowedModels,
-      snapshot.hydrogenAdmissionSupported === true && snapshot.hydrogenAdmission?.available === true
+      isConfirmedPaid(snapshot)
     );
     if (candidates && !candidates.some(allows)) return forced;
   }
   if (!snapshot.catalogKnown) return forced.length ? forced : null;
-  const models = snapshot.catalogModels.map((entry) => entry.id).filter(allows);
+  const models = snapshot.catalogModels
+    .filter(
+      (entry) =>
+        !snapshot.enforcedExcludedModels?.length ||
+        entry.displayName?.trim().toLowerCase() !== 'auto'
+    )
+    .map((entry) => entry.id)
+    .filter(allows);
   return [...new Set([...models, ...forced])];
 }

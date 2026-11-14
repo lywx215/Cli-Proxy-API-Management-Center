@@ -21,11 +21,10 @@ import { normalizeAuthFileCooldowns, normalizeCooldownTimestamp } from './authFi
 import {
   enterpriseRevision,
   normalizeEnterpriseAccount,
-  normalizeEnterpriseHydrogenAdmission,
   normalizeEnterpriseModelPolicy,
 } from './enterpriseAccounts';
 import { requireManagementObject } from './managementResponse';
-import type { EnterpriseHydrogenAdmission, EnterpriseModelPolicyState } from '@/types/authFile';
+import type { EnterpriseModelPolicyState } from '@/types/authFile';
 import type { AuthFileModelItem } from '@/features/authFiles/constants';
 
 type AuthFileStatusResponse = { status: string; disabled: boolean };
@@ -564,30 +563,17 @@ export interface AuthFileCooldownResetResponse {
 
 export type AuthFileModelsSnapshot = {
   models: AuthFileModelItem[];
-  testCandidates: AuthFileModelItem[];
-  hydrogenAdmissionSupported: boolean;
-  hydrogenAdmission?: EnterpriseHydrogenAdmission;
   modelPolicyState?: EnterpriseModelPolicyState;
   revision?: number;
 };
 
 export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSnapshot {
   requireManagementObject(data);
-  const hydrogenAdmissionSupported = data.hydrogen_admission_supported === true;
-  const hydrogenAdmission = normalizeEnterpriseHydrogenAdmission(data.hydrogen_admission);
   const models = data.models ?? data['models'];
   const result = Array.isArray(models)
     ? models
         .filter(isRecord)
-        .filter((entry) => typeof entry.id === 'string')
-        .filter(
-          (entry) =>
-            !hydrogenAdmissionSupported ||
-            (entry.upstream_model || entry.id) !== 'gemini-4-hydrogen' ||
-            (hydrogenAdmission?.available === true &&
-              entry.test_candidate !== true &&
-              entry.business_registered !== false)
-        )
+        .filter((entry) => typeof entry.id === 'string' && entry.test_candidate !== true && entry.business_registered !== false)
     : [];
   const seen = new Set(result.map((entry) => entry.id));
   if (data.model_policy_supported === true && Array.isArray(data.catalog_models)) {
@@ -596,7 +582,6 @@ export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSn
         !isRecord(entry) ||
         typeof entry.id !== 'string' ||
         seen.has(entry.id) ||
-        (hydrogenAdmissionSupported && entry.id === 'gemini-4-hydrogen') ||
         entry.allowed !== false
       )
         continue;
@@ -624,25 +609,8 @@ export function normalizeAuthFileModelsSnapshot(data: unknown): AuthFileModelsSn
       ? { upstream_listed: entry.upstream_listed }
       : {}),
   }));
-  const testCandidates: AuthFileModelItem[] =
-    hydrogenAdmissionSupported && Array.isArray(data.test_candidates)
-      ? data.test_candidates
-          .filter(isRecord)
-          .filter((entry) => entry.id === 'gemini-4-hydrogen' && entry.test_candidate === true)
-          .slice(0, 1)
-          .map((entry) => ({
-            id: 'gemini-4-hydrogen',
-            type: 'gemini',
-            upstream_model: 'gemini-4-hydrogen',
-            test_candidate: true,
-            business_registered: entry.business_registered === true,
-          }))
-      : [];
   return {
     models: businessModels,
-    testCandidates,
-    hydrogenAdmissionSupported,
-    hydrogenAdmission,
     modelPolicyState: normalizeEnterpriseModelPolicy(data.model_policy_state),
     revision: enterpriseRevision(data.revision),
   };

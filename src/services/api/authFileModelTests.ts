@@ -11,12 +11,9 @@ import {
   validEnterpriseResources,
 } from '@/features/authFiles/enterpriseResources';
 import { isRecord } from '@/utils/helpers';
-import { enterpriseRevision, normalizeEnterpriseHydrogenAdmission } from './enterpriseAccounts';
+import { enterpriseRevision } from './enterpriseAccounts';
 import { EnterpriseWebClientError, isClassifiedWebPolicy } from './geminiEnterpriseWeb';
-import {
-  canTestEnterpriseHydrogen,
-  ENTERPRISE_HYDROGEN_MODEL,
-} from '@/features/authFiles/enterpriseHydrogen';
+import { ENTERPRISE_HYDROGEN_MODEL } from '@/features/authFiles/enterpriseModelPolicy';
 
 const STATUSES: readonly string[] = ['ok', 'failed', 'cooling', 'unavailable'];
 
@@ -120,10 +117,6 @@ export function normalizeModelTestResult(value: unknown): ModelTestResult {
     message: sanitizeModelTestMessage(text('message')),
     bindingId: text('binding_id') || undefined,
     revision: enterpriseRevision(value.revision),
-    hydrogenAdmissionSupported: value.hydrogen_admission_supported === true ? true : undefined,
-    hydrogenAdmission: normalizeEnterpriseHydrogenAdmission(value.hydrogen_admission),
-    hydrogenTestId: text('hydrogen_test_id') || undefined,
-    expectedRevision: enterpriseRevision(value.expected_revision),
     retryAfterSeconds:
       typeof retry === 'number' && Number.isFinite(retry) && retry >= 0 ? retry : undefined,
   };
@@ -192,10 +185,7 @@ export const authFileModelTestsApi = {
         throw new InvalidManagementResponseError();
       return result;
     }
-    const verifyHydrogen = expectedUpstreamModel === ENTERPRISE_HYDROGEN_MODEL;
-    if (verifyHydrogen && !canTestEnterpriseHydrogen(file)) {
-      throw new InvalidManagementResponseError();
-    }
+    const hydrogenDirect = expectedUpstreamModel === ENTERPRISE_HYDROGEN_MODEL;
     const expected = enterpriseResources(file.geminiEnterprise);
     const result = normalizeModelTestResult(
       await apiClient.post(
@@ -206,6 +196,7 @@ export const authFileModelTestsApi = {
           model,
           expected: serializeEnterpriseResources(expected),
           ...(expectedUpstreamModel === 'gemini-4-carbon' ? { carbon_direct: true } : {}),
+          ...(hydrogenDirect ? { hydrogen_direct: true } : {}),
           ...(file.geminiEnterprise?.bindingId
             ? {
                 binding_id: file.geminiEnterprise.bindingId,
@@ -221,20 +212,10 @@ export const authFileModelTestsApi = {
     if (
       result.authIndex !== String(file.authIndex ?? '') ||
       result.model !== model ||
+      (hydrogenDirect && result.upstreamModel !== expectedUpstreamModel) ||
       (file.geminiEnterprise?.bindingId &&
         (result.bindingId !== file.geminiEnterprise.bindingId ||
-          (verifyHydrogen
-            ? result.hydrogenAdmissionSupported !== true ||
-              !result.hydrogenAdmission ||
-              result.expectedRevision === undefined ||
-              result.expectedRevision !== file.geminiEnterprise.revision ||
-              result.revision === undefined ||
-              result.revision !== result.expectedRevision ||
-              (result.status === 'ok' &&
-                (result.hydrogenAdmission.test?.status !== 'verified' ||
-                  result.hydrogenAdmission.test.upstreamModel !== 'gemini-4-hydrogen' ||
-                  result.hydrogenAdmission.test.testId !== result.hydrogenTestId))
-            : result.revision !== file.geminiEnterprise.revision))) ||
+          result.revision !== file.geminiEnterprise.revision)) ||
       !result.resources ||
       !sameEnterpriseResources(result.resources, expected)
     ) {

@@ -34,13 +34,6 @@ import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
 import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
 import { GeminiEnterpriseRegionEditor } from './GeminiEnterpriseRegionEditor';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
-import { useEnterpriseHydrogenOperations } from '../hooks/useEnterpriseHydrogenOperations';
-import { EnterpriseHydrogenOperationsModal } from './EnterpriseHydrogenOperationsModal';
-import {
-  enterpriseHydrogenAdmission,
-  enterpriseHydrogenSummary,
-  enterpriseHydrogenSupported,
-} from '../enterpriseHydrogen';
 import statusStyles from './AuthFileCard.module.scss';
 import styles from './GeminiEnterpriseAccount.module.scss';
 
@@ -91,8 +84,6 @@ function CollectionRows({
     !parentDisabled &&
     !unavailable &&
     enterprisePolicyRoutingPaused(binding?.modelPolicyState);
-  const argonForceEnabled =
-    binding?.modelPolicyState?.argonForceEnabled ?? binding?.settings?.argon_force_enabled === true;
   const allModelsEnabled =
     binding?.modelPolicyState?.allModelsEnabled ?? binding?.settings?.all_models_enabled === true;
   const modelSwitchDisabled =
@@ -162,19 +153,6 @@ function CollectionRows({
               })}
             </small>
           )}
-          {enterpriseHydrogenSupported(file) && (
-            <small className="hint">
-              {t(
-                'gemini_enterprise.hydrogen.' +
-                  (enterpriseHydrogenAdmission(file)?.enabled ? 'enabled' : 'disabled')
-              )}
-              {' · '}
-              {t(
-                'gemini_enterprise.hydrogen.' +
-                  (enterpriseHydrogenAdmission(file)?.available ? 'available' : 'unavailable')
-              )}
-            </small>
-          )}
         </td>
         <td>
           <GeminiEnterpriseQuota file={file} disableControls={props.disableControls} compact />
@@ -208,18 +186,6 @@ function CollectionRows({
                   : t('gemini_enterprise.collections.' + status)}
               </span>
             </div>
-            {binding?.argonForceSupported === true && binding.bindingId && (
-              <div className={styles.modelSwitchRow}>
-                <ToggleSwitch
-                  checked={argonForceEnabled}
-                  label={t('gemini_enterprise.policy.force_argon')}
-                  onChange={(enabled) =>
-                    void saveCollection({ fields: { argon_force_enabled: enabled } })
-                  }
-                  disabled={modelSwitchDisabled}
-                />
-              </div>
-            )}
             {binding?.allModelsSupported === true && binding.bindingId && (
               <div className={styles.modelSwitchRow}>
                 <ToggleSwitch
@@ -337,12 +303,7 @@ export function GeminiEnterpriseAccount(props: Props) {
   const children = useMemo(() => enterpriseCollectionFiles(file), [file]);
   const groups = useMemo(() => groupEnterpriseCollections(children), [children]);
   const projectCount = new Set(children.map((child) => child.geminiEnterprise?.projectId)).size;
-  const hydrogenSummary = enterpriseHydrogenSummary(children);
   const account = file.geminiEnterprise;
-  const hydrogenOperations = useEnterpriseHydrogenOperations(
-    file,
-    props.onEnterpriseResourcesSaved
-  );
   const discover = async () => {
     if (disableControls || discovering) return;
     const controller = new AbortController();
@@ -403,9 +364,6 @@ export function GeminiEnterpriseAccount(props: Props) {
         <div className={styles.identity}>
           <h2 title={file.email || file.name}>{file.email || file.name}</h2>
           <p title={file.name}>{file.name}</p>
-          {hydrogenSummary.supported && (
-            <p>{t('gemini_enterprise.hydrogen.summary', hydrogenSummary)}</p>
-          )}
         </div>
         <div className={styles.accountActions}>
           <Button
@@ -479,55 +437,6 @@ export function GeminiEnterpriseAccount(props: Props) {
           onChange={(enabled) => props.onToggleStatus(file, enabled)}
         />
       </div>
-      <div className={styles.hydrogenActions}>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={
-            disableControls ||
-            hydrogenOperations.busy ||
-            discovering ||
-            !account?.googleHydrogenConfigureSupported ||
-            !children.length
-          }
-          onClick={() => void hydrogenOperations.start('configure')}
-          aria-describedby={`${rowsId}-hydrogen-hint`}
-        >
-          {t('gemini_enterprise.hydrogen_batch.configure')}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={
-            disableControls ||
-            hydrogenOperations.busy ||
-            discovering ||
-            !hydrogenSummary.supported ||
-            !children.length ||
-            file.disabled === true
-          }
-          onClick={() => void hydrogenOperations.start('test')}
-        >
-          {t('gemini_enterprise.hydrogen_batch.test')}
-        </Button>
-        <p id={`${rowsId}-hydrogen-hint`} className="hint">
-          {t('gemini_enterprise.hydrogen_batch.remote_warning')}
-        </p>
-        {!account?.googleHydrogenConfigureSupported && (
-          <p className="hint">{t('gemini_enterprise.hydrogen_batch.unsupported')}</p>
-        )}
-      </div>
-      <EnterpriseHydrogenOperationsModal
-        {...hydrogenOperations}
-        disabled={disableControls}
-        onCancel={hydrogenOperations.cancel}
-        onClose={hydrogenOperations.close}
-        onChange={(target, enabled) => void hydrogenOperations.changeEnabled(target, enabled)}
-        onShowModels={(target) => {
-          hydrogenOperations.close();
-          props.onShowModels(target);
-        }}
-      />
       {expanded && (
         <div id={rowsId}>
           {children.length ? (

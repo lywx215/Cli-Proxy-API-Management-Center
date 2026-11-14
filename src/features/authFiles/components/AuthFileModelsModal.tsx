@@ -1,11 +1,5 @@
 import { EnterpriseCatalogStatus } from './EnterpriseCatalogFields';
 import { EnterpriseModelPolicyStatus } from './EnterpriseModelPolicyFields';
-import { EnterpriseHydrogenAdmission } from './EnterpriseHydrogenAdmission';
-import {
-  enterpriseHydrogenAdmission,
-  ENTERPRISE_HYDROGEN_MODEL,
-  isEnterpriseHydrogenModel,
-} from '../enterpriseHydrogen';
 import { useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -38,7 +32,6 @@ export type AuthFileModelsModalProps = {
   loading: boolean;
   error: 'unsupported' | null;
   models: AuthFileModelItem[];
-  testCandidates?: AuthFileModelItem[];
   excluded: Record<string, string[]>;
   onClose: () => void;
   onCopyText: (text: string) => void;
@@ -48,13 +41,7 @@ export type AuthFileModelsModalProps = {
   testUnsupported?: boolean;
   testProgress?: { completed: number; total: number };
   onTestModels?: (models: string[]) => void;
-  onVerifyHydrogen?: () => void;
-  hydrogenVerificationTest?: ModelTestState;
   onCancelTests?: () => void;
-  controlsDisabled?: boolean;
-  hydrogenSaving?: boolean;
-  hydrogenError?: string | null;
-  onHydrogenChange?: (enabled: boolean) => void;
 };
 
 export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
@@ -67,7 +54,6 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
     loading,
     error,
     models,
-    testCandidates = [],
     excluded,
     onClose,
     onCopyText,
@@ -77,13 +63,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
     testUnsupported = false,
     testProgress = { completed: 0, total: 0 },
     onTestModels,
-    onVerifyHydrogen,
-    hydrogenVerificationTest,
     onCancelTests,
-    controlsDisabled = false,
-    hydrogenSaving = false,
-    hydrogenError,
-    onHydrogenChange,
   } = props;
   const now = useSyncExternalStore(
     open ? cooldownClock.subscribe : noSubscribe,
@@ -104,27 +84,16 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
       Boolean(file && isEnterpriseModelExcluded(file, upstreamModel))
     );
   };
-  const cooling = (id: string, test = testResults[id]) =>
-    file
-      ? enterpriseModelCooldown(file, id, test, now)
+  const modelCooldown = (model: AuthFileModelItem) => {
+    const test = testResults[model.id];
+    return file
+      ? enterpriseModelCooldown(file, model.upstream_model || model.id, test, now)
       : Math.max(0, Math.ceil(((test?.cooldownUntilMs ?? 0) - now) / 1000));
-  const hydrogenCooldown = Math.max(
-    cooling(ENTERPRISE_HYDROGEN_MODEL),
-    cooling(ENTERPRISE_HYDROGEN_MODEL, hydrogenVerificationTest)
-  );
-  const modelCooldown = (model: AuthFileModelItem) =>
-    Math.max(cooling(model.id), isOAuth && isEnterpriseHydrogenModel(model) ? hydrogenCooldown : 0);
-  const hydrogenAvailable = enterpriseHydrogenAdmission(file)?.available === true;
-  const displayedModels = models.filter(
-    (model) => !isOAuth || !isEnterpriseHydrogenModel(model) || hydrogenAvailable
-  );
-  const testableModels = displayedModels.filter(
+  };
+  const testableModels = models.filter(
     (model) => isEnterpriseTextModel(model) && !isExcluded(model) && !modelCooldown(model)
   );
   const testableIds = testableModels.map((model) => model.id);
-  const hydrogenCandidateAvailable = testCandidates.some(
-    (model) => model.id === ENTERPRISE_HYDROGEN_MODEL && model.test_candidate === true
-  );
   const binding = file?.geminiEnterprise;
 
   return (
@@ -135,7 +104,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
       width={showTests ? 780 : 520}
       title={
         t('auth_files.models_title') +
-        (showTests ? ' · ' + displayedModels.length : ' - ' + fileName)
+        (showTests ? ' · ' + models.length : ' - ' + fileName)
       }
       footer={
         <>
@@ -196,26 +165,11 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
           </p>
         </section>
       )}
-      {isOAuth && file && !loading && !error && (
-        <EnterpriseHydrogenAdmission
-          file={file}
-          disabled={controlsDisabled}
-          saving={hydrogenSaving}
-          testBusy={testBusy}
-          test={hydrogenVerificationTest}
-          error={hydrogenError}
-          testCandidateAvailable={hydrogenCandidateAvailable}
-          cooldownSeconds={hydrogenCooldown}
-          onTest={onVerifyHydrogen}
-          onChange={onHydrogenChange}
-          onCopy={() => onCopyText(ENTERPRISE_HYDROGEN_MODEL)}
-        />
-      )}
-      {showTests && !loading && !error && (displayedModels.length > 0 || testBusy) && (
+      {showTests && !loading && !error && (models.length > 0 || testBusy) && (
         <div className={styles.testToolbar}>
           <span>
             {t(isWeb ? 'enterprise_web.available_count' : 'gemini_enterprise.models.text_count', {
-              count: displayedModels.filter(isEnterpriseTextModel).length,
+              count: models.filter(isEnterpriseTextModel).length,
             })}
           </span>
           <div className={styles.testActions}>
@@ -227,7 +181,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!testsEnabled || testUnsupported || !testableIds.length || hydrogenSaving}
+                disabled={!testsEnabled || testUnsupported || !testableIds.length}
                 onClick={() => onTestModels?.(testableIds)}
               >
                 {t('auth_files.model_test_all')}
@@ -239,7 +193,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
               </span>
             )}
           </div>
-          {displayedModels.length > 0 && (!testsEnabled || testUnsupported) && (
+          {models.length > 0 && (!testsEnabled || testUnsupported) && (
             <p className="hint">
               {t(
                 testUnsupported
@@ -261,7 +215,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
           title={t('auth_files.models_unsupported')}
           description={t('auth_files.models_unsupported_desc')}
         />
-      ) : displayedModels.length === 0 ? (
+      ) : models.length === 0 ? (
         <EmptyState
           title={t('auth_files.models_empty')}
           description={t(
@@ -282,7 +236,7 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
             </div>
           )}
           <div className={styles.list}>
-            {displayedModels.map((model) => {
+            {models.map((model) => {
               const excludedModel = isExcluded(model);
               const textModel = isEnterpriseTextModel(model);
               const test = testResults[model.id];
@@ -380,7 +334,6 @@ export function AuthFileModelsModal(props: AuthFileModelsModalProps) {
                           !testsEnabled ||
                           testUnsupported ||
                           testBusy ||
-                          hydrogenSaving ||
                           excludedModel ||
                           !textModel ||
                           cooldown > 0

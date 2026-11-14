@@ -3,7 +3,7 @@ import {
   enterpriseForcesArgon,
   enterprisePolicyRoutingPaused,
 } from './enterpriseModelPolicy';
-import type { AuthFileItem, EnterpriseHydrogenAdmission } from '@/types';
+import type { AuthFileItem } from '@/types';
 import { isModelExcluded, type AuthFileModelItem } from './constants';
 import { enterpriseCollectionIdentity } from './enterpriseAccounts';
 import { cooldownRemainingSeconds } from './cooldowns';
@@ -18,10 +18,6 @@ import type { EnterpriseResources } from './enterpriseResources';
 
 export type ModelTestStatus = 'ok' | 'failed' | 'cooling' | 'unavailable';
 export type ModelTestResult = {
-  hydrogenAdmissionSupported?: boolean;
-  hydrogenAdmission?: EnterpriseHydrogenAdmission;
-  hydrogenTestId?: string;
-  expectedRevision?: number;
   status: ModelTestStatus;
   model: string;
   authIndex: string;
@@ -123,14 +119,8 @@ export function modelTestIdentity(file: AuthFileItem): string {
     ]);
   return JSON.stringify([
     enterpriseCollectionIdentity(file),
-    ...((file.type || file.provider) === 'gemini-enterprise' &&
-    (file.geminiEnterprise?.hydrogenAuthorizationRevision !== undefined ||
-      file.geminiEnterprise?.hydrogenRegistrationEpoch !== undefined)
-      ? [
-          file.geminiEnterprise?.hydrogenAuthorizationRevision,
-          file.geminiEnterprise?.hydrogenRegistrationEpoch,
-        ]
-      : []),
+    file.geminiEnterprise?.authorizationRevision,
+    file.geminiEnterprise?.registrationEpoch,
     file.geminiEnterprise?.modelPolicyState?.effectiveMode,
     file.geminiEnterprise?.modelPolicyState?.status,
     file.geminiEnterprise?.modelPolicyState?.argonForceEnabled,
@@ -141,8 +131,8 @@ export function modelTestIdentity(file: AuthFileItem): string {
     file.geminiEnterprise?.modelPolicyState?.enforcedAllowedModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedExcludedModels,
     file.geminiEnterprise?.modelPolicyState?.enforcedReason,
-    file.geminiEnterprise?.hydrogenAdmissionSupported,
-    file.geminiEnterprise?.hydrogenAdmission,
+    file.geminiEnterprise?.modelPolicyState?.subscription.status,
+    file.geminiEnterprise?.modelPolicyState?.subscription.freeTrial,
     file.geminiEnterprise?.modelPolicyState?.allowedModels,
     file.geminiEnterprise?.modelPolicyState?.excludedModels,
     file.geminiEnterprise?.modelPolicyState?.globalExcludedModels,

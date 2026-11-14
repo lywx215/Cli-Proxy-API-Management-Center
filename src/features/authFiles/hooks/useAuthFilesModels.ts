@@ -3,21 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { authFilesApi } from '@/services/api';
 import type { AuthFileModelsSnapshot } from '@/services/api/authFiles';
 import { antigravityEnterpriseBindingFiles } from '@/services/api/antigravityEnterprise';
-import { geminiEnterpriseApi } from '@/services/api/geminiEnterprise';
 import { useNotificationStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import type { AuthFileModelItem } from '@/features/authFiles/constants';
-import { modelTestIdentity, type ModelTestResult, type ModelTestState } from '../modelTesting';
+import { modelTestIdentity } from '../modelTesting';
 import { useAuthFileModelTests } from './useAuthFileModelTests';
 import { apiClient } from '@/services/api/client';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { enterpriseCollectionFiles } from '../enterpriseAccounts';
-import {
-  canEnableEnterpriseHydrogen,
-  enterpriseHydrogenAdmission,
-  enterpriseHydrogenTargetIdentity,
-  sameEnterpriseNonHydrogenState,
-} from '../enterpriseHydrogen';
 
 type ModelsError = 'unsupported' | null;
 
@@ -30,8 +23,6 @@ const applyModelsSnapshot = (
     ? {
         ...item.geminiEnterprise,
         ...(snapshot.modelPolicyState ? { modelPolicyState: snapshot.modelPolicyState } : {}),
-        hydrogenAdmissionSupported: snapshot.hydrogenAdmissionSupported,
-        hydrogenAdmission: snapshot.hydrogenAdmission,
       }
     : undefined,
 });
@@ -40,7 +31,6 @@ export type UseAuthFilesModelsResult = {
   modelsModalOpen: boolean;
   modelsLoading: boolean;
   modelsList: AuthFileModelItem[];
-  modelsTestCandidates: AuthFileModelItem[];
   modelsFileName: string;
   modelsFileType: string;
   modelsError: ModelsError;
@@ -50,11 +40,6 @@ export type UseAuthFilesModelsResult = {
   /** Invalidate derived caches after credential changes. */
   invalidateModels: (names?: string[]) => void;
   syncModelsFile: (files: AuthFileItem[]) => void;
-  hydrogenSaving: boolean;
-  hydrogenError: string | null;
-  hydrogenVerificationTest?: ModelTestState;
-  changeHydrogenEnabled: (enabled: boolean) => Promise<void>;
-  enterpriseMutationVersion: number;
 } & ReturnType<typeof useAuthFileModelTests>;
 
 export function useAuthFilesModels(): UseAuthFilesModelsResult {
@@ -64,75 +49,25 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   const [modelsModalOpen, setModelsModalOpen] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsList, setModelsList] = useState<AuthFileModelItem[]>([]);
-  const [modelsTestCandidates, setModelsTestCandidates] = useState<AuthFileModelItem[]>([]);
   const [modelsFileName, setModelsFileName] = useState('');
   const [modelsFileType, setModelsFileType] = useState('');
   const [modelsError, setModelsError] = useState<ModelsError>(null);
   const [modelsFile, setModelsFile] = useState<AuthFileItem | null>(null);
-  const [hydrogenSaving, setHydrogenSaving] = useState(false);
-  const [hydrogenError, setHydrogenError] = useState<string | null>(null);
-  const [lastHydrogenTest, setLastHydrogenTest] = useState<ModelTestState>();
-  const [enterpriseMutationVersion, setEnterpriseMutationVersion] = useState(0);
   const modelsFileRef = useRef<AuthFileItem | null>(null);
-  const hydrogenRequest = useRef<AbortController | null>(null);
-  const reloadSelected = useRef<(file: AuthFileItem) => Promise<void>>(null);
   const modelsCacheRef = useRef<Map<string, AuthFileModelsSnapshot>>(new Map());
   const modelsCacheVersionRef = useRef(0);
   const modelsFileVersionRef = useRef<Map<string, number>>(new Map());
   const activeModelsRequestIdRef = useRef(0);
   const listRequest = useRef<AbortController | null>(null);
 
-  const acceptHydrogenResult = useCallback((result: ModelTestResult, tested: AuthFileItem) => {
-    const selected = modelsFileRef.current;
-    if (
-      !selected ||
-      enterpriseHydrogenTargetIdentity(selected) !== enterpriseHydrogenTargetIdentity(tested)
-    )
-      return;
-    const next =
-      result.hydrogenAdmissionSupported === true && result.hydrogenAdmission
-        ? {
-            ...selected,
-            geminiEnterprise: {
-              ...selected.geminiEnterprise,
-              revision: result.revision,
-              hydrogenAdmissionSupported: true,
-              hydrogenAdmission: result.hydrogenAdmission,
-            },
-          }
-        : selected;
-    modelsFileRef.current = next;
-    setModelsFile(next);
-    setLastHydrogenTest({
-      state: result.status,
-      result,
-      ...(result.retryAfterSeconds
-        ? { cooldownUntilMs: Date.now() + result.retryAfterSeconds * 1000 }
-        : {}),
-    });
-    modelsCacheRef.current.clear();
-    setEnterpriseMutationVersion((value) => value + 1);
-    void reloadSelected.current?.(next);
-  }, []);
-  const tests = useAuthFileModelTests(
-    modelsFile,
-    [...modelsList, ...modelsTestCandidates],
-    acceptHydrogenResult,
-    lastHydrogenTest
-  );
+  const tests = useAuthFileModelTests(modelsFile, modelsList);
   const { resetModelTests } = tests;
 
   const closeModelsModal = useCallback(() => {
     resetModelTests();
     listRequest.current?.abort();
-    hydrogenRequest.current?.abort();
-    hydrogenRequest.current = null;
-    setHydrogenSaving(false);
-    setHydrogenError(null);
-    setLastHydrogenTest(undefined);
     modelsFileRef.current = null;
     setModelsFile(null);
-    setModelsTestCandidates([]);
     activeModelsRequestIdRef.current += 1;
     setModelsModalOpen(false);
     setModelsLoading(false);
@@ -175,31 +110,12 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
           file.name === selected.name &&
           String(file.authIndex ?? '') === String(selected.authIndex ?? '')
       );
-      if (
-        current &&
-        modelTestIdentity(current) !== modelTestIdentity(selected) &&
-        sameEnterpriseNonHydrogenState(current, selected)
-      ) {
-        setLastHydrogenTest((previous) =>
-          previous?.result?.hydrogenTestId &&
-          previous.result.hydrogenTestId !== enterpriseHydrogenAdmission(current)?.test?.testId
-            ? undefined
-            : previous
-        );
-        modelsFileRef.current = current;
-        setModelsFile(current);
-        void reloadSelected.current?.(current);
-      } else if (!current || modelTestIdentity(current) !== modelTestIdentity(selected)) {
+      if (!current || modelTestIdentity(current) !== modelTestIdentity(selected)) {
         resetModelTests();
-        hydrogenRequest.current?.abort();
-        hydrogenRequest.current = null;
-        setHydrogenSaving(false);
-        setLastHydrogenTest(undefined);
         listRequest.current?.abort();
         activeModelsRequestIdRef.current += 1;
         setModelsModalOpen(false);
         setModelsList([]);
-        setModelsTestCandidates([]);
         setModelsLoading(false);
         modelsFileRef.current = null;
         setModelsFile(null);
@@ -212,15 +128,15 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   );
 
   const showModels = useCallback(
-    async (item: AuthFileItem, preserveHydrogenResult = false) => {
+    async (item: AuthFileItem) => {
       resetModelTests();
       listRequest.current?.abort();
       const controller = new AbortController();
       listRequest.current = controller;
       modelsFileRef.current = item;
       setModelsFile(item);
-      setHydrogenError(null);
-      if (!preserveHydrogenResult) setLastHydrogenTest(undefined);
+      // OAuth aliases and catalog labels can change without changing a collection's revision.
+      const cacheable = (item.type || item.provider) !== 'gemini-enterprise';
       const revision = apiClient.getConnectionRevision();
       const cacheKey = `${item.name.trim()}\0${revision}:${modelTestIdentity(item)}`;
       const requestId = ++activeModelsRequestIdRef.current;
@@ -228,17 +144,15 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
       setModelsFileName(item.name);
       setModelsFileType(item.type || item.provider || '');
       setModelsList([]);
-      setModelsTestCandidates([]);
       setModelsError(null);
       setModelsModalOpen(true);
 
-      const cached = modelsCacheRef.current.get(cacheKey);
+      const cached = cacheable ? modelsCacheRef.current.get(cacheKey) : undefined;
       if (cached) {
         const selected = applyModelsSnapshot(item, cached);
         modelsFileRef.current = selected;
         setModelsFile(selected);
         setModelsList(cached.models);
-        setModelsTestCandidates(cached.testCandidates);
         setModelsLoading(false);
         return;
       }
@@ -260,12 +174,11 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
           signal: controller.signal,
         });
         if (isRequestCurrent() && isCacheCurrent() && isConnectionCurrent()) {
-          modelsCacheRef.current.set(cacheKey, snapshot);
+          if (cacheable) modelsCacheRef.current.set(cacheKey, snapshot);
           const selected = applyModelsSnapshot(item, snapshot);
           modelsFileRef.current = selected;
           setModelsFile(selected);
           setModelsList(snapshot.models);
-          setModelsTestCandidates(snapshot.testCandidates);
         }
       } catch (err) {
         if (!isRequestCurrent() || !isCacheCurrent() || !isConnectionCurrent()) return;
@@ -287,66 +200,6 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
   );
 
   useEffect(() => {
-    reloadSelected.current = (item) => showModels(item, true);
-  }, [showModels]);
-
-  const changeHydrogenEnabled = useCallback(
-    async (enabled: boolean) => {
-      const selected = modelsFileRef.current;
-      if (!selected || hydrogenRequest.current || (enabled && !canEnableEnterpriseHydrogen(selected)))
-        return;
-      if (!enabled) tests.cancelModelTests();
-      const controller = new AbortController();
-      hydrogenRequest.current = controller;
-      const connection = apiClient.getConnectionRevision();
-      const identity = enterpriseHydrogenTargetIdentity(selected);
-      const current = () =>
-        !controller.signal.aborted &&
-        hydrogenRequest.current === controller &&
-        connection === apiClient.getConnectionRevision() &&
-        modelsFileRef.current !== null &&
-        enterpriseHydrogenTargetIdentity(modelsFileRef.current) === identity;
-      setHydrogenSaving(true);
-      setHydrogenError(null);
-      try {
-        const account = await geminiEnterpriseApi.updateCollection(
-          selected,
-          {
-            fields: { hydrogen_enabled: enabled },
-            ...(enabled && enterpriseHydrogenAdmission(selected)?.verificationRequired !== false
-              ? { hydrogenTestId: enterpriseHydrogenAdmission(selected)?.test?.testId }
-              : {}),
-          },
-          controller.signal
-        );
-        if (!current()) return;
-        const next = enterpriseCollectionFiles({ ...selected, geminiEnterprise: account }).find(
-          (item) => item.geminiEnterprise?.bindingId === selected.geminiEnterprise?.bindingId
-        );
-        if (!next || enterpriseHydrogenAdmission(next)?.enabled !== enabled)
-          throw new Error(t('gemini_enterprise.hydrogen.state_unknown'));
-        modelsCacheRef.current.clear();
-        modelsFileRef.current = next;
-        setModelsFile(next);
-        setLastHydrogenTest(undefined);
-        setEnterpriseMutationVersion((value) => value + 1);
-        await showModels(next);
-      } catch {
-        if (current()) {
-          setHydrogenError(t('gemini_enterprise.hydrogen.save_failed'));
-          setEnterpriseMutationVersion((value) => value + 1);
-        }
-      } finally {
-        if (hydrogenRequest.current === controller) {
-          hydrogenRequest.current = null;
-          setHydrogenSaving(false);
-        }
-      }
-    },
-    [showModels, tests, t]
-  );
-
-  useEffect(() => {
     const unsubscribe = useAuthStore.subscribe((state, previous) => {
       if (
         !state.isAuthenticated ||
@@ -360,7 +213,6 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     return () => {
       unsubscribe();
       listRequest.current?.abort();
-      hydrogenRequest.current?.abort();
     };
   }, [closeModelsModal, invalidateModels]);
 
@@ -368,7 +220,6 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     modelsModalOpen,
     modelsLoading,
     modelsList,
-    modelsTestCandidates,
     modelsFileName,
     modelsFileType,
     modelsError,
@@ -378,10 +229,5 @@ export function useAuthFilesModels(): UseAuthFilesModelsResult {
     invalidateModels,
     syncModelsFile,
     ...tests,
-    hydrogenVerificationTest: tests.hydrogenVerificationRunning ? { state: 'running' } : lastHydrogenTest,
-    hydrogenSaving,
-    hydrogenError,
-    changeHydrogenEnabled,
-    enterpriseMutationVersion,
   };
 }

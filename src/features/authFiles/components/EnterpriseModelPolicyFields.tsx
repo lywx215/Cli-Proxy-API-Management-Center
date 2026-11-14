@@ -5,6 +5,7 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import type { EnterpriseModelPolicyState } from '@/types/authFile';
 import {
   ENTERPRISE_MODEL_POLICIES,
+  enterpriseModelPolicyLabel,
   enterprisePolicyError,
   enterprisePolicyModelSelectable,
   enterprisePolicyPreview,
@@ -56,18 +57,15 @@ export function EnterpriseModelPolicyStatus({
               ? t('gemini_enterprise.policy.paid')
               : null,
           paidRestricted ? t('gemini_enterprise.policy.paid_restricted_short') : null,
-          t('gemini_enterprise.policy.mode_' + snapshot.effectiveMode, {
+          t(enterpriseModelPolicyLabel(snapshot.effectiveMode, snapshot), {
             defaultValue: snapshot.effectiveMode,
           }),
-          argonForced ? subscription.state : null,
           allModelsEnabled ? t('gemini_enterprise.policy.all_models_enabled') : null,
-          argonForced
-            ? t('gemini_enterprise.policy.argon_forced')
-            : paused
-              ? t('gemini_enterprise.policy.paused')
-              : snapshot.status === 'stale'
-                ? t('gemini_enterprise.policy.stale')
-                : null,
+          paused
+            ? t('gemini_enterprise.policy.paused')
+            : snapshot.status === 'stale'
+              ? t('gemini_enterprise.policy.stale')
+              : null,
         ]
           .filter(Boolean)
           .join(' · ')}
@@ -77,11 +75,10 @@ export function EnterpriseModelPolicyStatus({
     <div className="hint" role="status">
       <div>
         {t('gemini_enterprise.policy.effective')}:{' '}
-        {t('gemini_enterprise.policy.mode_' + snapshot.effectiveMode, {
+        {t(enterpriseModelPolicyLabel(snapshot.effectiveMode, snapshot), {
           defaultValue: snapshot.effectiveMode,
         })}
       </div>
-      {argonForced && <div>{t('gemini_enterprise.policy.argon_forced')}</div>}
       {allModelsEnabled && <div>{t('gemini_enterprise.policy.all_models_enabled')}</div>}
       {showSubscription && (
         <>
@@ -92,7 +89,6 @@ export function EnterpriseModelPolicyStatus({
                   defaultValue: subscription.edition,
                 })
               : t('gemini_enterprise.policy.unknown')}
-            {argonForced && subscription.state && <> · {subscription.state}</>}
           </div>
           {(subscription.freeTrial !== null || paidRestricted) && (
             <div>
@@ -110,7 +106,7 @@ export function EnterpriseModelPolicyStatus({
             </div>
           ) : null}
           {paused && <div>{t('gemini_enterprise.policy.paused')}</div>}
-          {!argonForced && snapshot.status === 'stale' && (
+          {snapshot.status === 'stale' && (
             <div>{t('gemini_enterprise.policy.stale')}</div>
           )}
           {reason && (
@@ -154,7 +150,7 @@ export function EnterpriseModelPolicyFields({
         value={draft.mode}
         options={ENTERPRISE_MODEL_POLICIES.map((mode) => ({
           value: mode,
-          label: t('gemini_enterprise.policy.mode_' + mode),
+          label: t(enterpriseModelPolicyLabel(mode, snapshot)),
         }))}
         disabled={disabled}
         ariaLabelledBy={labelId}

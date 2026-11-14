@@ -31,7 +31,13 @@ import type { AuthFileItem } from '@/types';
 
 afterEach(() => mock.restore());
 
-const paidModels = ['gemini-4-argon', 'gemini-4-hydrogen', 'gemini-3-pro-image', 'veo-3.1'];
+const paidModels = [
+  'gemini-4-argon',
+  'gemini-4-carbon',
+  'gemini-4-hydrogen',
+  'gemini-3-pro-image',
+  'veo-3.1',
+];
 const catalog = [
   ...paidModels,
   'gemini-3.8-flash',
@@ -112,9 +118,9 @@ describe('Enterprise mandatory subscription model limits', () => {
       const draft = readEnterprisePolicy({ model_policy: mode });
       const expected =
         mode === 'argon_only'
-          ? ['gemini-4-argon']
+          ? ['gemini-4-argon', 'gemini-4-carbon', 'gemini-4-hydrogen']
           : mode === 'exclude_argon'
-            ? ['gemini-4-hydrogen', 'gemini-3-pro-image', 'veo-3.1']
+            ? ['gemini-3-pro-image', 'veo-3.1']
             : paidModels;
       expect(enterprisePolicyPreview(draft, policy, [])).toEqual(expected);
     }
@@ -168,7 +174,9 @@ describe('Enterprise mandatory subscription model limits', () => {
     };
     draft.mode = 'argon_only';
     expect(enterprisePolicyPreview(draft, unrestrictedTrial, ['gemini-4-argon'])).toBeNull();
-    expect(enterprisePolicyPreview(draft, unrestrictedTrial, ['gemini-4-argon', 'gemini-4-carbon'])).toEqual([]);
+    expect(
+      enterprisePolicyPreview(draft, unrestrictedTrial, ['gemini-4-argon', 'gemini-4-carbon'])
+    ).toEqual([]);
     expect(
       enterprisePolicyPreview(draft, { ...unrestrictedTrial, enforcedAllowedModels: undefined }, [
         'gemini-4-argon',
@@ -203,19 +211,22 @@ describe('Enterprise mandatory subscription model limits', () => {
     });
     expect(
       enterprisePolicyPreview(readEnterprisePolicy({ model_policy: 'catalog' }), legacy, [])
-    ).toEqual(catalog);
+    ).toEqual(catalog.filter((id) => id !== 'gemini-4-hydrogen'));
     expect(enterprisePolicyPreview(readEnterprisePolicy({}), legacy, [])).toEqual([]);
     const trial = snapshot({
       enforced_allowed_models: null,
+      enforced_excluded_models: ['gemini-4-hydrogen'],
       enforced_reason: '',
       subscription: { status: 'ok', edition: 'enterprise_plus', free_trial: true },
     });
     expect(enterprisePolicyPreview(readEnterprisePolicy({}), trial, [])).toEqual(
-      catalog.filter((id) => !['gemini-4-argon', 'auto'].includes(id))
+      catalog.filter(
+        (id) => !['gemini-4-argon', 'gemini-4-carbon', 'gemini-4-hydrogen', 'auto'].includes(id)
+      )
     );
     expect(
       enterprisePolicyPreview(readEnterprisePolicy({ model_policy: 'catalog' }), trial, [])
-    ).toEqual(catalog);
+    ).toEqual(catalog.filter((id) => id !== 'gemini-4-hydrogen' && id !== 'auto'));
   });
 
   test('retains paid and trial restrictions while using a stale confirmed subscription', () => {
@@ -237,28 +248,31 @@ describe('Enterprise mandatory subscription model limits', () => {
     );
   });
 
-  test('Hydrogen follows explicit subscription restrictions without extending the Argon policy template', () => {
+  test('Hydrogen follows the paid model group and is unavailable in every trial mode', () => {
     const blocked = snapshot({ enforced_excluded_models: ['gemini-4-hydrogen'] });
     expect(blocked.enforcedExcludedModels).toEqual(['gemini-4-hydrogen']);
     expect(enterpriseEnforcedModelAllowed(blocked, 'gemini-4-hydrogen')).toBe(false);
     expect(modelTestIdentity(policyFile(blocked))).not.toBe(modelTestIdentity(policyFile()));
-    for (const mode of ['auto', 'catalog', 'custom'] as const) {
+    for (const mode of ENTERPRISE_MODEL_POLICIES) {
       const draft = readEnterprisePolicy({ model_policy: mode });
-      expect(enterprisePolicyPreview(draft, snapshot(), [])).toContain('gemini-4-hydrogen');
+      expect(enterprisePolicyPreview(draft, snapshot(), [])?.includes('gemini-4-hydrogen')).toBe(
+        mode !== 'exclude_argon'
+      );
       const trial = snapshot({
         enforced_allowed_models: undefined,
         subscription: { status: 'ok', edition: 'business_standard', free_trial: true },
       });
-      if (mode === 'auto')
-        expect(enterprisePolicyPreview(draft, trial, [])).not.toContain('gemini-4-hydrogen');
-      else expect(enterprisePolicyPreview(draft, trial, [])).toContain('gemini-4-hydrogen');
-      expect(enterprisePolicyModelSelectable('gemini-4-hydrogen', trial, [])).toBe(true);
+      expect(enterprisePolicyPreview(draft, trial, [])).not.toContain('gemini-4-hydrogen');
+      expect(enterprisePolicyModelSelectable('gemini-4-hydrogen', trial, [])).toBe(false);
     }
     const excluded = readEnterprisePolicy({ model_policy: 'exclude_argon' });
     expect(enterprisePolicyPreview(excluded, snapshot(), [])).not.toContain('gemini-4-argon');
-    expect(enterprisePolicyPreview(excluded, snapshot(), [])).toContain('gemini-4-hydrogen');
+    expect(enterprisePolicyPreview(excluded, snapshot(), [])).not.toContain('gemini-4-hydrogen');
     const argon = readEnterprisePolicy({ model_policy: 'argon_only' });
-    expect(enterprisePolicyPreview(argon, snapshot(), ['gemini-4-c*'])).toEqual(['gemini-4-argon']);
+    expect(enterprisePolicyPreview(argon, snapshot(), ['gemini-4-c*'])).toEqual([
+      'gemini-4-argon',
+      'gemini-4-hydrogen',
+    ]);
     expect(enterpriseEnforcedModelAllowed(snapshot(), 'gemini-4-hydrogen-future')).toBe(false);
   });
 
