@@ -84,7 +84,7 @@
     "error_network": "Kết nối mạng thất bại, vui lòng kiểm tra mạng hoặc địa chỉ máy chủ",
     "error_timeout": "Kết nối hết thời gian chờ, máy chủ không phản hồi",
     "error_unauthorized": "Xác thực thất bại, key quản lý bị thiếu hoặc không hợp lệ",
-    "error_forbidden": "Truy cập bị từ chối, quản lý từ xa bị tắt, key quản lý chưa được cấu hình, hoặc IP này bị cấm tạm thời",
+    "error_forbidden": "Truy cập bị từ chối. Quản lý từ xa chưa bật hoặc key quản lý chưa được cấu hình.",
     "error_not_found": "Không tìm thấy Management API, hãy xác nhận địa chỉ máy chủ trỏ đến backend CLIProxyAPI",
     "error_server": "Backend gặp lỗi khi xử lý yêu cầu quản lý, hãy kiểm tra log máy chủ",
     "error_cors": "Yêu cầu cross-origin bị chặn, vui lòng kiểm tra cấu hình máy chủ",
@@ -3291,6 +3291,19 @@
     "reauthorize": "Ủy quyền lại",
     "binding_details": "Tài nguyên và ứng dụng đã lưu",
     "models_hint": "Danh sách mô hình do máy chủ khám phá.",
+    "quota_summary": {
+      "failed": "Không đọc được {{count}} nhóm hạn mức",
+      "overall": "Tổng hạn mức còn lại của mọi thông tin xác thực",
+      "credential": "Tổng hạn mức còn lại của thông tin xác thực này",
+      "calculation": "Chỉ tính ứng dụng trả phí hiện dùng được. Mỗi nhóm hạn mức dùng chung chỉ tính một lần. Lấy giới hạn hằng ngày trừ mức dùng đã báo cáo của từng nhóm, tối thiểu là 0.",
+      "coverage": "Có số liệu cho {{known}} / {{total}} nhóm hạn mức trả phí",
+      "empty": "Không có nhóm hạn mức trả phí để tính tổng",
+      "stale": "Đang dùng số liệu trước đó cho {{count}} nhóm hạn mức",
+      "unidentified": "Chưa xác định được nhóm hạn mức cho {{count}} ứng dụng trả phí",
+      "refresh": "Cập nhật hạn mức",
+      "refresh_all": "Cập nhật tổng hạn mức còn lại của mọi thông tin xác thực",
+      "refresh_one": "Cập nhật tổng hạn mức còn lại của thông tin xác thực này"
+    },
     "quota": {
       "not_provided": "Chưa cung cấp",
       "partial": "Một số số liệu hạn mức chưa khả dụng. Vẫn hiển thị giá trị đã biết.",

@@ -29,8 +29,11 @@ import {
   type EnterpriseCollectionGroupKind,
 } from '../enterpriseCollectionGroups';
 import { getAuthFileRefreshKey } from '../manualRefresh';
+import { enterpriseQuotaKey } from '../geminiEnterpriseQuota';
+import type { EnterprisePaidQuotaPool, EnterprisePaidQuotaScope } from '../enterpriseQuotaSummary';
 import type { AuthFileCardProps } from './AuthFileCard';
 import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
+import { GeminiEnterpriseQuotaSummary } from './GeminiEnterpriseQuotaSummary';
 import {
   GeminiEnterpriseBinding,
   GeminiEnterpriseReauthorizeLink,
@@ -56,7 +59,10 @@ type Props = Pick<
   | 'onDelete'
   | 'onToggleStatus'
   | 'onToggleSelect'
->;
+> & {
+  quotaScope?: EnterprisePaidQuotaScope;
+  quotaPools?: ReadonlyMap<string, EnterprisePaidQuotaPool>;
+};
 
 function CollectionRows({
   file,
@@ -158,7 +164,12 @@ function CollectionRows({
           )}
         </td>
         <td>
-          <GeminiEnterpriseQuota file={file} disableControls={props.disableControls} compact />
+          <GeminiEnterpriseQuota
+            file={file}
+            disableControls={props.disableControls}
+            paidPool={props.quotaPools?.get(enterpriseQuotaKey(file))}
+            compact
+          />
         </td>
         <td className={styles.rowActions}>
           <div className={styles.rowControls}>
@@ -297,7 +308,7 @@ export function GeminiEnterpriseAccount(props: Props) {
   const { file, disableControls } = props;
   const [expanded, setExpanded] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<EnterpriseCollectionGroupKind>>(
-    () => new Set(['trial'])
+    () => new Set(['trial', 'unknown'])
   );
   const [discovering, setDiscovering] = useState(false);
   const request = useRef<AbortController | null>(null);
@@ -441,6 +452,9 @@ export function GeminiEnterpriseAccount(props: Props) {
           onChange={(enabled) => props.onToggleStatus(file, enabled)}
         />
       </div>
+      {props.quotaScope && (
+        <GeminiEnterpriseQuotaSummary scope={props.quotaScope} disabled={disableControls} />
+      )}
       {expanded && (
         <div id={rowsId}>
           {children.length ? (

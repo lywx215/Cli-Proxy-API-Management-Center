@@ -1,0 +1,45 @@
+.overall,
+.credential {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.credential {
+  margin: 0 12px 8px;
+  padding: 6px 8px;
+}
+
+.info {
+  min-width: 0;
+}
+
+.balance,
+.coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-size: 12px;
+}
+
+.balance strong {
+  color: var(--text-primary);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.coverage {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.overall .balance strong {
+  font-size: 16px;
+}

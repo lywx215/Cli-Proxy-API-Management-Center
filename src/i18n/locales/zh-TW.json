@@ -84,7 +84,7 @@
     "error_network": "網路連線失敗，請檢查網路或伺服器位址",
     "error_timeout": "連線逾時，伺服器無回應",
     "error_unauthorized": "驗證失敗，管理金鑰缺失或無效",
-    "error_forbidden": "存取被拒絕，遠端管理未啟用、管理金鑰未設定或 IP 被暫時封鎖",
+    "error_forbidden": "存取被拒絕，遠端管理未啟用或管理金鑰未設定",
     "error_not_found": "找不到 v8 Management API，請檢查服務位址並將 CLIProxyAPI 升級至 v8 或更新版本；不再支援 v0 介面。",
     "error_legacy_backend": "目前後端可使用 v0 管理介面，但不支援 v8。請將 CLIProxyAPI 升級至 v8 或更新版本後再使用此管理頁面。",
     "error_server": "後端處理管理介面時發生錯誤，請查看服務日誌",
@@ -3311,6 +3311,19 @@
     "reauthorize": "重新授權",
     "binding_details": "已儲存的資源與應用程式",
     "models_hint": "模型清單來自後端探索。",
+    "quota_summary": {
+      "failed": "{{count}} 個額度池讀取失敗",
+      "overall": "全部憑證總剩餘額度",
+      "credential": "此憑證總剩餘額度",
+      "calculation": "只統計目前可用的付費應用。共用額度池只計一次，每池以每日上限減已回報用量，最低為 0。",
+      "coverage": "已有 {{known}} / {{total}} 個付費額度池的讀數",
+      "empty": "沒有可彙總的付費額度池",
+      "stale": "{{count}} 個額度池使用上次讀數",
+      "unidentified": "{{count}} 個付費應用尚無法識別額度池",
+      "refresh": "更新額度",
+      "refresh_all": "更新全部憑證總剩餘額度",
+      "refresh_one": "更新此憑證總剩餘額度"
+    },
     "quota": {
       "not_provided": "未提供",
       "partial": "部分額度讀值暫時無法取得，仍會顯示已知資料。",

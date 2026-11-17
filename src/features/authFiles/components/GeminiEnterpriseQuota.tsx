@@ -7,6 +7,11 @@ import type { GeminiEnterpriseQuotaState } from '@/types/geminiEnterpriseQuota';
 import { useQuotaStore } from '@/stores/useQuotaStore';
 import { useNow } from '@/hooks/useNow';
 import {
+  enterprisePaidQuotaPoolState,
+  refreshEnterprisePaidQuota,
+  type EnterprisePaidQuotaPool,
+} from '../enterpriseQuotaSummary';
+import {
   enterpriseQuotaKey,
   loadGeminiEnterpriseQuota,
   shouldLoadGeminiEnterpriseQuota,
@@ -87,15 +92,29 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
 export function GeminiEnterpriseQuota({
   file,
   disableControls,
+  paidPool,
   compact = false,
 }: {
   file: AuthFileItem;
   disableControls: boolean;
+  paidPool?: EnterprisePaidQuotaPool;
   compact?: boolean;
 }) {
   const { t, i18n } = useTranslation();
   const key = enterpriseQuotaKey(file);
-  const state = useQuotaStore((store) => store.geminiEnterpriseQuota[key]);
+  const now = useNow(Boolean(paidPool));
+  const state = useQuotaStore((store) =>
+    paidPool
+      ? enterprisePaidQuotaPoolState(paidPool, store.geminiEnterpriseQuota, now)
+      : store.geminiEnterpriseQuota[key]
+  );
+  const loading = useQuotaStore((store) =>
+    paidPool
+      ? paidPool.files.some(
+          (member) => store.geminiEnterpriseQuota[enterpriseQuotaKey(member)]?.loading
+        )
+      : store.geminiEnterpriseQuota[key]?.loading === true
+  );
   const observation = state?.data?.selectedPool?.usageUpdatedAt || state?.data?.observedAt;
   const observationTitle = observation
     ? t(
@@ -106,24 +125,24 @@ export function GeminiEnterpriseQuota({
       )
     : undefined;
   useEffect(() => {
-    if (!disableControls && shouldLoadGeminiEnterpriseQuota(state, Date.now())) {
+    if (!paidPool && !disableControls && shouldLoadGeminiEnterpriseQuota(state, Date.now())) {
       void loadGeminiEnterpriseQuota(file);
     }
-  }, [disableControls, file, state]);
+  }, [disableControls, file, paidPool, state]);
 
   useEffect(() => {
-    if (disableControls || state?.loading || !state?.data?.resetAt) return;
+    if (paidPool || disableControls || state?.loading || !state?.data?.resetAt) return;
     const delay = Date.parse(state.data.resetAt) - Date.now();
     if (delay <= 0 || delay > 2_147_000_000) return;
     const timer = window.setTimeout(() => void loadGeminiEnterpriseQuota(file, true), delay + 1000);
     return () => window.clearTimeout(timer);
-  }, [disableControls, file, state]);
+  }, [disableControls, file, paidPool, state]);
 
   return (
     <section
       className={[styles.quota, compact ? styles.compact : ''].filter(Boolean).join(' ')}
       aria-label={t('gemini_enterprise.quota.title')}
-      aria-busy={state?.loading}
+      aria-busy={loading}
       title={compact ? observationTitle : undefined}
     >
       <div className={styles.header}>
@@ -131,8 +150,12 @@ export function GeminiEnterpriseQuota({
         <Button
           variant="secondary"
           size="sm"
-          disabled={disableControls || state?.loading}
-          onClick={() => void loadGeminiEnterpriseQuota(file, true)}
+          disabled={disableControls || loading}
+          onClick={() =>
+            paidPool
+              ? void refreshEnterprisePaidQuota([paidPool], true)
+              : void loadGeminiEnterpriseQuota(file, true)
+          }
           title={[t('gemini_enterprise.quota.refresh'), compact && observationTitle]
             .filter(Boolean)
             .join('\n')}

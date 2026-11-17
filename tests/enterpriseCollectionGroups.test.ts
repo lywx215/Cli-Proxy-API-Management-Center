@@ -181,7 +181,7 @@ describe('Enterprise application subscription groups', () => {
 
 describe('Enterprise application group rendering', () => {
   for (const locale of ['en', 'zh-CN', 'zh-TW', 'ru', 'vi', 'ko']) {
-    test(`orders groups and hides complete trial rows with translated controls in ${locale}`, async () => {
+    test(`shows paid rows and collapses trial and unknown groups by default in ${locale}`, async () => {
       const translations = JSON.parse(readFileSync(`src/i18n/locales/${locale}.json`, 'utf8'));
       const i18n = createInstance();
       await i18n.init({ lng: locale, resources: { [locale]: { translation: translations } } });
@@ -199,8 +199,8 @@ describe('Enterprise application group rendering', () => {
       ]);
       const bodies = [...markup.matchAll(/<tbody id="([^"]+)"([^>]*)>([\s\S]*?)<\/tbody>/g)];
       expect(bodies).toHaveLength(3);
-      bodies.forEach((body, index) => {
-        const expanded = index !== 1;
+      bodies.forEach((body) => {
+        const expanded = body[1].endsWith('-paid');
         expect(markup).toContain(`aria-expanded="${expanded}" aria-controls="${body[1]}"`);
         expect(body[2].includes('hidden=""')).toBe(!expanded);
         expect(body[3].match(/<tr\b/g)).toHaveLength(4);

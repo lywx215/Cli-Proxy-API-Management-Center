@@ -15,6 +15,8 @@ const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
 const bool = (value: unknown): boolean | undefined =>
   typeof value === 'boolean' ? value : undefined;
+const projectNumber = (value: unknown): string | undefined =>
+  typeof value === 'string' && /^[1-9]\d*$/.test(value) ? value : undefined;
 export const enterpriseRevision = (value: unknown): number | undefined =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 
@@ -148,6 +150,7 @@ export function normalizeEnterpriseAccount(
           ...resources(entry),
           bindingId: text(entry.binding_id)!,
           modelPolicyState: normalizeEnterpriseModelPolicy(entry.model_policy_state),
+          quotaProjectNumber: projectNumber(entry.quota_project_number),
           revision: enterpriseRevision(entry.revision),
           authIndex: normalizeRecentRequestAuthIndex(entry.auth_index) ?? undefined,
           projectName: text(entry.project_name),

@@ -30,6 +30,8 @@ import {
 import { AuthFileCard } from '@/features/authFiles/components/AuthFileCard';
 import { AntigravityEnterpriseAccount } from './components/AntigravityEnterpriseAccount';
 import { GeminiEnterpriseAccount } from './components/GeminiEnterpriseAccount';
+import { GeminiEnterpriseQuotaSummary } from './components/GeminiEnterpriseQuotaSummary';
+import { buildEnterprisePaidQuotaIndex } from './enterpriseQuotaSummary';
 import type { AuthFileItem } from '@/types';
 import { AuthFileDetailsSheet } from '@/features/authFiles/components/AuthFileDetailsSheet';
 import { getAuthFileRefreshKey } from '@/features/authFiles/manualRefresh';
@@ -431,6 +433,20 @@ export function AuthFilesPage() {
 
   /* Filter, sort and pagination memos. */
 
+  const enterpriseFiles = useMemo(
+    () =>
+      files.filter(
+        (file) =>
+          file.geminiEnterprise &&
+          normalizeProviderKey(String(file.type ?? file.provider ?? '')) === 'gemini-enterprise'
+      ),
+    [files]
+  );
+  const enterpriseQuota = useMemo(
+    () => buildEnterprisePaidQuotaIndex(enterpriseFiles),
+    [enterpriseFiles]
+  );
+
   const existingTypes = useMemo(() => {
     const types = new Set<string>(['all']);
     files.forEach((file) => {
@@ -766,6 +782,16 @@ export function AuthFilesPage() {
           </div>
         )}
 
+        {!loading &&
+          enterpriseFiles.length > 0 &&
+          (normalizedFilter === 'all' || normalizedFilter === 'gemini-enterprise') && (
+            <GeminiEnterpriseQuotaSummary
+              scope={enterpriseQuota.all}
+              disabled={disableControls || !isCurrentLayer}
+              overall
+            />
+          )}
+
         {loading ? (
           <div className={gridClasses} aria-hidden="true">
             {Array.from({ length: SKELETON_CARD_COUNT }, (_, index) => (
@@ -830,6 +856,8 @@ export function AuthFilesPage() {
                 <GeminiEnterpriseAccount
                   key={getQuotaCacheKey(file)}
                   file={file}
+                  quotaScope={enterpriseQuota.byCredential.get(file)}
+                  quotaPools={enterpriseQuota.byCollection}
                   selected={selectedFiles.has(file.name)}
                   disableControls={disableControls}
                   deleting={deleting}

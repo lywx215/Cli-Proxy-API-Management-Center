@@ -116,6 +116,7 @@ export type EnterpriseModelPolicyState = {
 
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
   modelPolicyState?: EnterpriseModelPolicyState;
+  quotaProjectNumber?: string;
   bindingId: string;
   revision?: number;
   authIndex?: string;
@@ -170,6 +171,7 @@ export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   accountAuthIndex?: string;
   accountRevision?: number;
   projectName?: string;
+  quotaProjectNumber?: string;
   effectiveDisabled?: boolean;
   missing?: boolean;
   settings?: Record<string, unknown>;

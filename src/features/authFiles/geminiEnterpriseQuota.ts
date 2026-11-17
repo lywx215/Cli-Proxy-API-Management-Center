@@ -1,6 +1,7 @@
 import type { AuthFileItem } from '@/types';
 import type { GeminiEnterpriseQuotaState } from '@/types/geminiEnterpriseQuota';
 import type { GeminiEnterpriseQuotaData } from '@/types/geminiEnterpriseQuota';
+import { apiClient } from '@/services/api/client';
 import {
   geminiEnterpriseApi,
   normalizeGeminiEnterpriseQuota,
@@ -16,6 +17,15 @@ import { enterpriseCollectionIdentity } from './enterpriseAccounts';
 export const enterpriseQuotaKey = (file: AuthFileItem) =>
   `${file.name}\0${enterpriseCollectionIdentity(file)}`;
 
+const pacificDay = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Los_Angeles',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+export const enterpriseQuotaDay = (time: number): string => pacificDay.format(time);
+
 export function isEnterpriseQuotaCurrent(
   data: GeminiEnterpriseQuotaData | undefined,
   now: number
@@ -26,13 +36,7 @@ export function isEnterpriseQuotaCurrent(
       Date.parse(data.resetAt) > now && (!data.periodStart || Date.parse(data.periodStart) <= now)
     );
   if (!data.observedAt) return false;
-  const day = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return day.format(new Date(data.observedAt)) === day.format(new Date(now));
+  return enterpriseQuotaDay(Date.parse(data.observedAt)) === enterpriseQuotaDay(now);
 }
 
 export function shouldLoadGeminiEnterpriseQuota(
@@ -55,6 +59,7 @@ export async function loadGeminiEnterpriseQuota(
   const key = enterpriseQuotaKey(file);
   const store = useQuotaStore.getState();
   if (store.geminiEnterpriseQuota[key]?.loading) return;
+  const connection = apiClient.getConnectionRevision();
   const generation = captureQuotaCacheGeneration(file.name);
   store.setGeminiEnterpriseQuota((previous) => ({
     ...previous,
@@ -81,6 +86,7 @@ export async function loadGeminiEnterpriseQuota(
   } catch {
     data = normalizeGeminiEnterpriseQuota(null);
   }
+  if (connection !== apiClient.getConnectionRevision()) return;
   commitIfQuotaCacheCurrent(generation, () => {
     const binding = file.geminiEnterprise;
     const poolScope =
