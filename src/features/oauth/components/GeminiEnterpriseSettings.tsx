@@ -26,6 +26,40 @@ export function GeminiEnterpriseSettings({
         <p role="status">{t('gemini_enterprise.loading')}</p>
       ) : (
         <>
+          {config.renewal ? (
+            <p className={styles.hint}>
+              {t('gemini_enterprise.oauth_application')}{' '}
+              {config.renewalName || t('gemini_enterprise.oauth_existing_application')}
+            </p>
+          ) : (
+            config.applications.length > 0 && (
+              <fieldset className={styles.fields} disabled={locked || !config.configured}>
+                <legend className={styles.legend}>
+                  {t('gemini_enterprise.oauth_application')}
+                </legend>
+                <Select
+                  ariaLabel={t('gemini_enterprise.oauth_application')}
+                  value={config.applicationClientId}
+                  options={config.applications.map((app) => ({
+                    value: app.clientId,
+                    label: app.name || t('gemini_enterprise.oauth_existing_application'),
+                  }))}
+                  disabled={locked || !config.configured}
+                  onChange={config.setApplicationClientId}
+                />
+              </fieldset>
+            )
+          )}
+          {config.applicationUnavailable && (
+            <p role="alert" className={styles.error}>
+              {t('gemini_enterprise.oauth_application_unavailable')}
+            </p>
+          )}
+          {config.renewalUnsupported && (
+            <p role="alert" className={styles.error}>
+              {t('gemini_enterprise.reauthorization_unavailable')}
+            </p>
+          )}
           {config.manualResources && (
             <fieldset disabled={locked || !config.configured} className={styles.fields}>
               <legend className={styles.legend}>{t('gemini_enterprise.settings_title')}</legend>
@@ -53,13 +87,17 @@ export function GeminiEnterpriseSettings({
               ))}
             </fieldset>
           )}
-          <p className={styles.hint}>{t('gemini_enterprise.auto_resources_hint')}</p>
-          <ToggleSwitch
-            checked={config.manualResources}
-            onChange={config.setManualResources}
-            disabled={locked || !config.configured}
-            label={t('gemini_enterprise.manual_resources')}
-          />
+          {!config.renewal && (
+            <>
+              <p className={styles.hint}>{t('gemini_enterprise.auto_resources_hint')}</p>
+              <ToggleSwitch
+                checked={config.manualResources}
+                onChange={config.setManualResources}
+                disabled={locked || !config.configured}
+                label={t('gemini_enterprise.manual_resources')}
+              />
+            </>
+          )}
           {config.manualResources && (
             <fieldset disabled={locked || !config.configured} className={styles.fields}>
               <legend className={styles.legend}>{t('gemini_enterprise.manual_resources')}</legend>
@@ -94,11 +132,14 @@ export function GeminiEnterpriseSettings({
               {t('gemini_enterprise.reload')}
             </Button>
           </div>
-          {config.configured && !Object.keys(config.errors).length && (
-            <p role="status" className={styles.hint}>
-              {t('gemini_enterprise.ready')}
-            </p>
-          )}
+          {config.configured &&
+            !config.applicationUnavailable &&
+            !config.renewalUnsupported &&
+            !Object.keys(config.errors).length && (
+              <p role="status" className={styles.hint}>
+                {t('gemini_enterprise.ready')}
+              </p>
+            )}
         </>
       )}
       {config.error && (

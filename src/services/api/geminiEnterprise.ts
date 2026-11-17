@@ -70,6 +70,61 @@ export function normalizeGeminiEnterpriseQuota(value: unknown): GeminiEnterprise
 }
 
 export const GEMINI_ENTERPRISE_CALLBACK_URL = 'http://localhost:8788/oauth-callback';
+
+export interface GeminiEnterpriseOAuthApplication {
+  clientId: string;
+  name: string;
+  ready: boolean;
+}
+
+export interface GeminiEnterpriseOAuthApplications {
+  applications: GeminiEnterpriseOAuthApplication[];
+  defaultClientId: string;
+  legacyClientId: string;
+  reauthorizationSupported: boolean;
+}
+
+export function normalizeGeminiEnterpriseOAuthApplications(
+  value: unknown
+): GeminiEnterpriseOAuthApplications | null {
+  requireManagementObject(value);
+  if (!Object.prototype.hasOwnProperty.call(value, 'applications')) return null;
+  if (
+    !Array.isArray(value.applications) ||
+    typeof value.new_account_default_client_id !== 'string' ||
+    (value.reauthorization_supported !== undefined &&
+      typeof value.reauthorization_supported !== 'boolean')
+  ) {
+    throw new InvalidManagementResponseError();
+  }
+  const ids = new Set<string>();
+  const applications = value.applications.map((entry: unknown) => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.client_id !== 'string' ||
+      !entry.client_id ||
+      ids.has(entry.client_id) ||
+      typeof entry.name !== 'string' ||
+      typeof entry.client_secret_ready !== 'boolean'
+    ) {
+      throw new InvalidManagementResponseError();
+    }
+    ids.add(entry.client_id);
+    return { clientId: entry.client_id, name: entry.name, ready: entry.client_secret_ready };
+  });
+  const defaultClientId = value.new_account_default_client_id;
+  const legacyClientId = typeof value.client_id === 'string' ? value.client_id : '';
+  if ([defaultClientId, legacyClientId].some((id) => id && !ids.has(id))) {
+    throw new InvalidManagementResponseError();
+  }
+  return {
+    applications,
+    defaultClientId,
+    legacyClientId,
+    reauthorizationSupported: value.reauthorization_supported === true,
+  };
+}
+
 export const GEMINI_ENTERPRISE_FIELDS = [
   'clientId',
   'clientSecretEnv',
@@ -144,6 +199,20 @@ function accountResponse(value: unknown, file: Pick<AuthFileItem, 'geminiEnterpr
 }
 
 export const geminiEnterpriseApi = {
+  getOAuthApplications: async (signal: AbortSignal) => {
+    try {
+      const result = await apiClient.get<unknown>(
+        '/credentials/gemini-enterprise/oauth/capabilities',
+        {
+          signal,
+        }
+      );
+      return normalizeGeminiEnterpriseOAuthApplications(result);
+    } catch (error) {
+      if (isRecord(error) && error.status === 404) return null;
+      throw error;
+    }
+  },
   async discover(file: AuthFileItem, signal?: AbortSignal) {
     const assertConnection = guardConfigConnection();
     const result = await apiClient.post(

@@ -33,11 +33,16 @@ export interface OAuthStartResponse {
   callback_url?: string;
   manual_callback_required?: boolean;
   resource_inputs_supported?: boolean;
+  reauthorization?: boolean;
 }
 
 export interface OAuthStartOptions {
   projectId?: string;
-  geminiEnterprise?: GeminiEnterpriseConfig & { discoverResources: boolean };
+  geminiEnterprise?: GeminiEnterpriseConfig & {
+    discoverResources: boolean;
+    applicationClientId?: string;
+  };
+  geminiEnterpriseRenewal?: { name: string; authIndex: string };
 }
 
 export class GeminiEnterpriseBackendUpgrade extends Error {}
@@ -89,10 +94,19 @@ export const oauthApi = {
       params.project_id = projectId;
     }
     const enterprise = providerKey === 'gemini-enterprise' ? options?.geminiEnterprise : undefined;
-    if (enterprise) {
+    const renewal =
+      providerKey === 'gemini-enterprise' ? options?.geminiEnterpriseRenewal : undefined;
+    if (renewal) {
+      params.reauthorize_name = renewal.name;
+      params.reauthorize_auth_index = renewal.authIndex;
+    } else if (enterprise) {
       params.auto_discover_resources = enterprise.discoverResources;
-      params.client_id = enterprise.clientId.trim();
-      params.client_secret_env = enterprise.clientSecretEnv.trim();
+      if (enterprise.applicationClientId) {
+        params.application_client_id = enterprise.applicationClientId;
+      } else {
+        params.client_id = enterprise.clientId.trim();
+        params.client_secret_env = enterprise.clientSecretEnv.trim();
+      }
       if (!enterprise.discoverResources) {
         params.engine_id = enterprise.engineId.trim();
         params.assistant_id = enterprise.assistantId.trim() || 'default_assistant';
@@ -107,7 +121,10 @@ export const oauthApi = {
       ...(signal ? { signal } : {}),
     });
     requireManagementObject(response);
-    if (enterprise && response.resource_inputs_supported !== true) {
+    if (
+      ((enterprise || renewal) && response.resource_inputs_supported !== true) ||
+      (renewal && response.reauthorization !== true)
+    ) {
       if (response.state && !signal?.aborted && revision === apiClient.getConnectionRevision()) {
         await apiClient
           .delete('/oauth/session', {
@@ -117,7 +134,7 @@ export const oauthApi = {
           .catch(() => undefined);
       }
       throw new GeminiEnterpriseBackendUpgrade(
-        'Gemini Enterprise resource inputs require a newer backend'
+        'Gemini Enterprise resource inputs and exact reauthorization require a newer backend'
       );
     }
     return response;

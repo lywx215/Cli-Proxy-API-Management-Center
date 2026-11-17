@@ -195,7 +195,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
       )}
       {providerKey === 'gemini-enterprise' && !compact && (
         <>
-          <GeminiEnterpriseBinding binding={file.geminiEnterprise} />
+          <GeminiEnterpriseBinding binding={file.geminiEnterprise} file={file} />
           {!isRuntimeOnly && file.geminiEnterprise?.resourceEditSupported && (
             <GeminiEnterpriseRegionEditor
               key={[

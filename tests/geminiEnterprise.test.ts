@@ -17,12 +17,15 @@ import {
   geminiEnterpriseApi,
   GeminiEnterpriseConfigConflict,
   normalizeGeminiEnterpriseConfig,
+  normalizeGeminiEnterpriseOAuthApplications,
   readGeminiEnterpriseConfig,
   serializeGeminiEnterpriseConfig,
 } from '@/services/api/geminiEnterprise';
 import { normalizeAuthFilesResponse } from '@/services/api/authFiles';
 import {
   GEMINI_ENTERPRISE_APPLICATION,
+  retainGeminiEnterpriseRenewal,
+  resolveGeminiEnterpriseOAuthStart,
   validateGeminiEnterpriseConfig,
   validateGeminiEnterpriseCallback,
   withGeminiEnterpriseApplication,
@@ -53,6 +56,192 @@ const snapshot = (data: unknown, etag = '"fixture-revision"') =>
   ({ data, headers: { etag } }) as Awaited<ReturnType<typeof apiClient.getRaw>>;
 
 describe('Gemini Enterprise OAuth and configuration', () => {
+  test('keeps unfinished renewal targets across dialog changes and releases completed targets', () => {
+    const renewal = { name: 'legacy.json', authIndex: 'legacy-index', clientId: 'old-client' };
+    const catalogue = {
+      applications: [{ clientId: 'new-client', name: 'New application', ready: true }],
+      defaultClientId: 'new-client',
+      legacyClientId: 'old-client',
+      reauthorizationSupported: true,
+    };
+    for (const status of ['waiting', 'error', 'success', undefined]) {
+      const target = retainGeminiEnterpriseRenewal(status) ? renewal : null;
+      const result = resolveGeminiEnterpriseOAuthStart({
+        value: binding,
+        catalogue,
+        renewal: target,
+        manualResources: false,
+        applicationClientId: catalogue.defaultClientId,
+      });
+      if (status === 'waiting' || status === 'error') {
+        expect(result.startOptions.geminiEnterpriseRenewal).toEqual({
+          name: renewal.name,
+          authIndex: renewal.authIndex,
+        });
+        expect(result.startOptions.geminiEnterprise).toBeUndefined();
+      } else {
+        expect(result.startOptions.geminiEnterpriseRenewal).toBeUndefined();
+        expect(result.startOptions.geminiEnterprise?.applicationClientId).toBe('new-client');
+      }
+    }
+  });
+
+  test('reads an independent new-account default and handles a legacy capabilities response', () => {
+    expect(normalizeGeminiEnterpriseOAuthApplications({ client_id: 'old-client' })).toBeNull();
+    const capability = {
+      client_id: 'old-client',
+      new_account_default_client_id: 'new-client',
+      reauthorization_supported: true,
+      applications: [
+        { client_id: 'old-client', name: '', client_secret_ready: true },
+        { client_id: 'new-client', name: 'New application', client_secret_ready: false },
+        { client_id: 'third-client', name: 'Third application', client_secret_ready: true },
+      ],
+    };
+    expect(normalizeGeminiEnterpriseOAuthApplications(capability)).toEqual({
+      defaultClientId: 'new-client',
+      legacyClientId: 'old-client',
+      reauthorizationSupported: true,
+      applications: [
+        { clientId: 'old-client', name: '', ready: true },
+        { clientId: 'new-client', name: 'New application', ready: false },
+        { clientId: 'third-client', name: 'Third application', ready: true },
+      ],
+    });
+    expect(() =>
+      normalizeGeminiEnterpriseOAuthApplications({
+        ...capability,
+        new_account_default_client_id: 'unknown',
+      })
+    ).toThrow(InvalidManagementResponseError);
+    expect(
+      normalizeGeminiEnterpriseOAuthApplications({
+        ...capability,
+        reauthorization_supported: undefined,
+      })?.reauthorizationSupported
+    ).toBe(false);
+    expect(() =>
+      normalizeGeminiEnterpriseOAuthApplications({
+        ...capability,
+        reauthorization_supported: 'true',
+      })
+    ).toThrow(InvalidManagementResponseError);
+  });
+
+  test('never downgrades an exact renewal to new-account OAuth on an old or unsupported backend', () => {
+    for (const clientId of ['', GEMINI_ENTERPRISE_APPLICATION.clientId, 'another-client']) {
+      for (const supported of [null, false, true]) {
+        const result = resolveGeminiEnterpriseOAuthStart({
+          value: binding,
+          catalogue:
+            supported === null
+              ? null
+              : {
+                  applications: [],
+                  defaultClientId: '',
+                  legacyClientId: '',
+                  reauthorizationSupported: supported,
+                },
+          renewal: { name: 'selected-account.json', authIndex: 'selected-index', clientId },
+          manualResources: false,
+          applicationClientId: 'new-default',
+        });
+        expect(result.renewalUnsupported).toBe(supported !== true);
+        expect(result.startOptions).toEqual({
+          geminiEnterpriseRenewal: { name: 'selected-account.json', authIndex: 'selected-index' },
+        });
+      }
+    }
+    const newAccount = resolveGeminiEnterpriseOAuthStart({
+      value: binding,
+      catalogue: null,
+      renewal: null,
+      manualResources: false,
+      applicationClientId: '',
+    });
+    expect(newAccount.renewalUnsupported).toBe(false);
+    expect(newAccount.startOptions).toEqual({
+      geminiEnterprise: { ...binding, discoverResources: true },
+    });
+  });
+
+  test('passes the selected application or exact renewal target to V8', async () => {
+    const get = spyOn(apiClient, 'get').mockResolvedValue({
+      state: 'fixture-state',
+      resource_inputs_supported: true,
+      reauthorization: true,
+    });
+    try {
+      await oauthApi.startAuth('gemini-enterprise', undefined, {
+        geminiEnterprise: {
+          ...binding,
+          applicationClientId: 'new-client',
+          discoverResources: true,
+        },
+      });
+      expect(get.mock.calls[0]).toEqual([
+        '/oauth/auth-url',
+        {
+          params: {
+            provider: 'gemini-enterprise',
+            is_webui: true,
+            auto_discover_resources: true,
+            application_client_id: 'new-client',
+          },
+        },
+      ]);
+      await oauthApi.startAuth('gemini-enterprise', undefined, {
+        geminiEnterpriseRenewal: { name: 'old-account.json', authIndex: 'old-index' },
+      });
+      expect(get.mock.calls[1]).toEqual([
+        '/oauth/auth-url',
+        {
+          params: {
+            provider: 'gemini-enterprise',
+            is_webui: true,
+            reauthorize_name: 'old-account.json',
+            reauthorize_auth_index: 'old-index',
+          },
+        },
+      ]);
+    } finally {
+      get.mockRestore();
+    }
+  });
+
+  test('rejects and cancels a session when an old backend ignores the exact renewal target', async () => {
+    const get = spyOn(apiClient, 'get').mockResolvedValue({
+      state: 'unbound-session',
+      resource_inputs_supported: true,
+    });
+    const cancel = spyOn(apiClient, 'delete').mockResolvedValue({ cancelled: true });
+    const revision = spyOn(apiClient, 'getConnectionRevision').mockReturnValue(7);
+    try {
+      const options = {
+        geminiEnterpriseRenewal: { name: 'old-account.json', authIndex: 'old-index' },
+      };
+      await expect(
+        oauthApi.startAuth('gemini-enterprise', undefined, options)
+      ).rejects.toBeInstanceOf(GeminiEnterpriseBackendUpgrade);
+      expect(cancel).toHaveBeenCalledWith('/oauth/session', {
+        params: { state: 'unbound-session' },
+      });
+      cancel.mockClear();
+      get.mockImplementation(async () => {
+        revision.mockReturnValue(8);
+        return { state: 'stale-connection-session', resource_inputs_supported: true };
+      });
+      await expect(
+        oauthApi.startAuth('gemini-enterprise', undefined, options)
+      ).rejects.toBeInstanceOf(GeminiEnterpriseBackendUpgrade);
+      expect(cancel).not.toHaveBeenCalled();
+    } finally {
+      get.mockRestore();
+      cancel.mockRestore();
+      revision.mockRestore();
+    }
+  });
+
   test('reports a frontend HTML response as an invalid address, not a backend upgrade', async () => {
     const get = spyOn(apiClient, 'get').mockResolvedValue('<!doctype html><html>frontend</html>');
     const cancel = spyOn(apiClient, 'delete').mockResolvedValue({ cancelled: true });
@@ -377,6 +566,16 @@ describe('Gemini Enterprise account presentation and localization', () => {
         configured: true,
         startDisabled: false,
         manualResources: false,
+        applications: [
+          { clientId: 'selected-client', name: 'New fixture application', ready: true },
+        ],
+        applicationClientId: 'selected-client',
+        setApplicationClientId: () => {},
+        resetForNewAccount: () => {},
+        applicationUnavailable: false,
+        renewal: null,
+        renewalName: '',
+        renewalUnsupported: false,
         setManualResources: () => {},
         startOptions: {
           geminiEnterprise: {
@@ -395,6 +594,8 @@ describe('Gemini Enterprise account presentation and localization', () => {
         )
       );
       expect(markup).toContain(GEMINI_ENTERPRISE_CALLBACK_URL);
+      expect(markup).toContain(translations.gemini_enterprise.oauth_application);
+      expect(markup).toContain('New fixture application');
       expect(markup).not.toContain('test-project');
       expect(markup).not.toContain('test-engine');
       expect(markup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientId);
@@ -417,6 +618,25 @@ describe('Gemini Enterprise account presentation and localization', () => {
       expect(manualMarkup).toContain('test-engine');
       expect(manualMarkup).toContain('default_collection');
       expect(manualMarkup).not.toContain(GEMINI_ENTERPRISE_APPLICATION.clientId);
+      const unsupportedMarkup = renderToStaticMarkup(
+        createElement(
+          I18nextProvider,
+          { i18n },
+          createElement(GeminiEnterpriseSettings, {
+            config: {
+              ...config,
+              renewal: { name: 'old-account.json', authIndex: 'old-index', clientId: 'old-client' },
+              renewalUnsupported: true,
+              startDisabled: true,
+            },
+            locked: false,
+          })
+        )
+      );
+      expect(unsupportedMarkup).toContain(
+        translations.gemini_enterprise.reauthorization_unavailable
+      );
+      expect(unsupportedMarkup).not.toContain(translations.gemini_enterprise.manual_resources);
       for (const key of Object.keys(en.auth_login).filter((key) =>
         key.startsWith('gemini_enterprise_')
       ))

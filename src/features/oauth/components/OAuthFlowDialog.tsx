@@ -42,11 +42,13 @@ export interface OAuthFlowDialogProps {
   /** 赞助商：品牌蓝主按钮 + 提示行里的注册链接。 */
   sponsor?: { url: string; label: string };
   onStart: () => void;
+  onLoginAnother?: () => void;
   onProjectChange?: (value: string) => void;
   onCancel: () => void;
   onCallbackChange: (value: string) => void;
   onCallbackSubmit: () => void;
   onViewAuthFiles: () => void;
+  onRequestClose?: () => void;
   onClose: () => void;
 }
 
@@ -59,6 +61,7 @@ export function OAuthFlowDialog(props: OAuthFlowDialogProps) {
     <Modal
       open={open}
       onClose={onClose}
+      onRequestClose={props.onRequestClose}
       width={props.providerId === 'gemini-enterprise' ? 680 : 500}
       className={props.sponsor ? `${styles.dialog} ${styles.sponsorDialog}` : styles.dialog}
       title={<DialogTitle {...heading} />}
@@ -382,7 +385,13 @@ function FlowStatusBar({ providerId, state, text, onStart, onCancel }: OAuthFlow
   );
 }
 
-function SuccessView({ text, onStart, onViewAuthFiles, startDisabled }: OAuthFlowDialogProps) {
+function SuccessView({
+  text,
+  onStart,
+  onLoginAnother,
+  onViewAuthFiles,
+  startDisabled,
+}: OAuthFlowDialogProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.result} role="status">
@@ -396,7 +405,12 @@ function SuccessView({ text, onStart, onViewAuthFiles, startDisabled }: OAuthFlo
         <button type="button" className={styles.secondary} onClick={onViewAuthFiles}>
           {t('auth_login.view_auth_files')}
         </button>
-        <button type="button" className={styles.primary} onClick={onStart} disabled={startDisabled}>
+        <button
+          type="button"
+          className={styles.primary}
+          onClick={onLoginAnother ?? onStart}
+          disabled={startDisabled}
+        >
           {t('auth_login.login_another_account')}
         </button>
       </div>

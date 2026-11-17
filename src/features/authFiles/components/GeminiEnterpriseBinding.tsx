@@ -3,10 +3,30 @@ import type { AuthFileItem } from '@/types';
 import { parseTimestamp } from '@/utils/timestamp';
 import styles from './GeminiEnterpriseBinding.module.scss';
 
+export function GeminiEnterpriseReauthorizeLink({
+  file,
+  clientId,
+}: {
+  file: Pick<AuthFileItem, 'name' | 'authIndex'>;
+  clientId?: string;
+}) {
+  const { t } = useTranslation();
+  const authIndex = String(file.authIndex ?? '').trim();
+  if (!file.name || !authIndex) return null;
+  const query = new URLSearchParams({
+    reauthorize_name: file.name,
+    reauthorize_auth_index: authIndex,
+    reauthorize_client_id: clientId ?? '',
+  });
+  return <a href={'#/oauth?' + query}>{t('gemini_enterprise.reauthorize')}</a>;
+}
+
 export function GeminiEnterpriseBinding({
   binding,
+  file,
 }: {
   binding: AuthFileItem['geminiEnterprise'];
+  file?: Pick<AuthFileItem, 'name' | 'authIndex'>;
 }) {
   const { t, i18n } = useTranslation();
   if (!binding) return null;
@@ -31,10 +51,10 @@ export function GeminiEnterpriseBinding({
               ? 'gemini_enterprise.renewal_ready'
               : 'gemini_enterprise.renewal_missing'
           )}
-          {!binding.hasRefreshToken && (
+          {file && (
             <>
               {' '}
-              <a href="#/oauth">{t('gemini_enterprise.reauthorize')}</a>
+              <GeminiEnterpriseReauthorizeLink file={file} clientId={binding.clientId} />
             </>
           )}
         </p>

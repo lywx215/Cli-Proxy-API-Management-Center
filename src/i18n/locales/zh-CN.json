@@ -3197,6 +3197,9 @@
     "state_not_routable": "不在当前可路由模型范围"
   },
   "gemini_enterprise": {
+    "oauth_application": "OAuth 应用",
+    "oauth_existing_application": "原有应用",
+    "oauth_application_unavailable": "所选应用缺少客户端密钥。请选择其他应用，或在服务器上配置密钥。",
     "collection_binding_hint": "项目、区域与集合固定，可在此调整应用或助理。新增资源请刷新项目集合。",
     "collections": {
       "group_paid": "付费应用（{{count}}）",
@@ -3316,7 +3319,8 @@
       "assistantId": "助手 ID"
     },
     "access_expiry": "访问令牌到期时间",
-    "backend_upgrade": "请升级配套后端，以支持独立登录资源和自动资源识别。",
+    "backend_upgrade": "请升级配套后端，以支持独立登录资源、自动资源识别和指定账号续授权。",
+    "reauthorization_unavailable": "当前服务无法安全地续授权所选账号，请联系管理员升级后端或调整凭证存储。",
     "auto_resources_hint": "自动发现会检查可见项目的 global、us、eu、ca、au、in 区域，只添加已存在的应用，并按地区检查模型和许可证。需要时可手动指定资源。",
     "engine_hint": "填写 Gemini Enterprise 应用的应用 ID，例如 gemini-enterprise-…",
     "assistant_hint": "默认使用 default_assistant，可填写其他助手 ID；留空时使用默认值。",

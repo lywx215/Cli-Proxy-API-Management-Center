@@ -3204,6 +3204,9 @@
     "state_not_routable": "Ngoài phạm vi mô hình có thể định tuyến"
   },
   "gemini_enterprise": {
+    "oauth_application": "Ứng dụng OAuth",
+    "oauth_existing_application": "Ứng dụng hiện tại",
+    "oauth_application_unavailable": "Ứng dụng đã chọn chưa có mật khẩu ứng dụng khách. Hãy chọn ứng dụng khác hoặc cấu hình mật khẩu trên máy chủ.",
     "collection_binding_hint": "Dự án, vùng và bộ sưu tập được cố định. Có thể đổi ứng dụng hoặc trợ lý ở đây; làm mới dự án và bộ sưu tập để tìm tài nguyên mới.",
     "collections": {
       "group_paid": "Ứng dụng trả phí ({{count}})",
@@ -3323,7 +3326,8 @@
       "assistantId": "ID trợ lý"
     },
     "access_expiry": "Thời điểm hết hạn token truy cập",
-    "backend_upgrade": "Nâng cấp máy chủ để hỗ trợ tài nguyên cho từng lần đăng nhập và tự động xác định tài nguyên.",
+    "backend_upgrade": "Nâng cấp máy chủ để hỗ trợ tài nguyên cho từng lần đăng nhập, tự động xác định tài nguyên và cấp quyền lại cho tài khoản đã chọn.",
+    "reauthorization_unavailable": "Máy chủ không thể cấp quyền lại an toàn cho tài khoản đã chọn. Hãy yêu cầu quản trị viên nâng cấp máy chủ hoặc cấu hình kho thông tin xác thực được hỗ trợ.",
     "auto_resources_hint": "Tự động tìm trong các dự án hiển thị ở global, us, eu, ca, au và in. Chỉ thêm ứng dụng hiện có; mô hình và giấy phép được kiểm tra theo từng khu vực. Chỉ nhập tài nguyên thủ công khi cần.",
     "engine_hint": "Nhập ID ứng dụng Gemini Enterprise, ví dụ gemini-enterprise-…",
     "assistant_hint": "Mặc định là default_assistant. Có thể nhập ID trợ lý khác; để trống để dùng mặc định.",

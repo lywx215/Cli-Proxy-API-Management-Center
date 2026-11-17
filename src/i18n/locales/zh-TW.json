@@ -3224,6 +3224,9 @@
     "state_not_routable": "不在目前可路由模型範圍"
   },
   "gemini_enterprise": {
+    "oauth_application": "OAuth 應用程式",
+    "oauth_existing_application": "原有應用程式",
+    "oauth_application_unavailable": "所選應用程式缺少用戶端密鑰。請選擇其他應用程式，或在伺服器上設定密鑰。",
     "collection_binding_hint": "專案、區域與集合固定，可在此調整應用程式或助理。新增資源請重新整理專案集合。",
     "collections": {
       "group_paid": "付費應用程式（{{count}}）",
@@ -3343,7 +3346,8 @@
       "assistantId": "助理 ID"
     },
     "access_expiry": "存取權杖到期時間",
-    "backend_upgrade": "請升級配套後端，以支援獨立登入資源和自動資源辨識。",
+    "backend_upgrade": "請升級配套後端，以支援獨立登入資源、自動資源辨識及指定帳號重新授權。",
+    "reauthorization_unavailable": "目前服務無法安全地重新授權所選帳號，請聯絡管理員升級後端或調整憑證儲存設定。",
     "auto_resources_hint": "自動探索會檢查可見專案的 global、us、eu、ca、au、in 區域，僅新增已存在的應用程式，並依地區檢查模型和授權。需要時可手動指定資源。",
     "engine_hint": "填寫 Gemini Enterprise 應用程式 ID，例如 gemini-enterprise-…",
     "assistant_hint": "預設使用 default_assistant，可填寫其他助理 ID；留空時使用預設值。",

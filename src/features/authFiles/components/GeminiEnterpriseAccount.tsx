@@ -31,7 +31,10 @@ import {
 import { getAuthFileRefreshKey } from '../manualRefresh';
 import type { AuthFileCardProps } from './AuthFileCard';
 import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
-import { GeminiEnterpriseBinding } from './GeminiEnterpriseBinding';
+import {
+  GeminiEnterpriseBinding,
+  GeminiEnterpriseReauthorizeLink,
+} from './GeminiEnterpriseBinding';
 import { GeminiEnterpriseRegionEditor } from './GeminiEnterpriseRegionEditor';
 import { AuthFileCooldownSection } from './AuthFileCooldownSection';
 import statusStyles from './AuthFileCard.module.scss';
@@ -427,7 +430,8 @@ export function GeminiEnterpriseAccount(props: Props) {
           <span>
             {t(
               'gemini_enterprise.' + (account.hasRefreshToken ? 'renewal_ready' : 'renewal_missing')
-            )}
+            )}{' '}
+            <GeminiEnterpriseReauthorizeLink file={file} clientId={account.clientId} />
           </span>
         )}
         <ToggleSwitch

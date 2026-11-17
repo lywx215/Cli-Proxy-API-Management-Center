@@ -1,5 +1,56 @@
 import type { GeminiEnterpriseConfig } from '@/types/config';
-import { GEMINI_ENTERPRISE_CALLBACK_URL } from '@/services/api/geminiEnterprise';
+import {
+  GEMINI_ENTERPRISE_CALLBACK_URL,
+  type GeminiEnterpriseOAuthApplications,
+} from '@/services/api/geminiEnterprise';
+import type { OAuthStartOptions } from '@/services/api/oauth';
+
+export interface GeminiEnterpriseRenewal {
+  name: string;
+  authIndex: string;
+  clientId: string;
+}
+
+// Closing or reopening an unfinished attempt must keep its original target.
+export function retainGeminiEnterpriseRenewal(status?: string) {
+  return status === 'waiting' || status === 'error';
+}
+
+// A renewal keeps its exact target even when the server cannot accept it.
+// It must never be converted into a new-account authorization.
+export function resolveGeminiEnterpriseOAuthStart({
+  value,
+  catalogue,
+  renewal,
+  manualResources,
+  applicationClientId,
+}: {
+  value: GeminiEnterpriseConfig;
+  catalogue: GeminiEnterpriseOAuthApplications | null;
+  renewal: GeminiEnterpriseRenewal | null;
+  manualResources: boolean;
+  applicationClientId: string;
+}): { startOptions: OAuthStartOptions; renewalUnsupported: boolean } {
+  if (renewal) {
+    return {
+      startOptions: {
+        geminiEnterpriseRenewal: { name: renewal.name, authIndex: renewal.authIndex },
+      },
+      renewalUnsupported: catalogue?.reauthorizationSupported !== true,
+    };
+  }
+  const serverClient = catalogue?.applications.find((app) => app.clientId === applicationClientId);
+  return {
+    startOptions: {
+      geminiEnterprise: {
+        ...value,
+        discoverResources: !manualResources,
+        ...(serverClient ? { applicationClientId: serverClient.clientId } : {}),
+      },
+    },
+    renewalUnsupported: false,
+  };
+}
 
 // The application ID is public; its secret is resolved only by the backend.
 export const GEMINI_ENTERPRISE_APPLICATION = Object.freeze({

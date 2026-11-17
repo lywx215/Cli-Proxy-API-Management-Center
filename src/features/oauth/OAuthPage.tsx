@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { retainGeminiEnterpriseRenewal } from './geminiEnterprise';
 import { useRevealGroup } from '@/hooks/motion';
 import { useAuthStore, useThemeStore } from '@/stores';
 import iconVertex from '@/assets/icons/vertex.svg';
@@ -41,6 +42,18 @@ type DialogTarget = { kind: 'oauth'; id: string } | { kind: 'vertex' };
 export function OAuthPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const renewalName = searchParams.get('reauthorize_name');
+  const renewalIndex = searchParams.get('reauthorize_auth_index');
+  const [renewal, setRenewal] = useState(() =>
+    renewalName && renewalIndex
+      ? {
+          name: renewalName,
+          authIndex: renewalIndex,
+          clientId: searchParams.get('reauthorize_client_id') || '',
+        }
+      : null
+  );
   const apiBase = useAuthStore((state) => state.apiBase);
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const revealRef = useRevealGroup<HTMLDivElement>();
@@ -52,18 +65,22 @@ export function OAuthPage() {
     [pluginProviders]
   );
 
-  const focusedRef = useRef<string | null>(null);
-  const [dialog, setDialog] = useState<DialogTarget | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const focusedRef = useRef<string | null>(renewal ? 'gemini-enterprise' : null);
+  const [dialog, setDialog] = useState<DialogTarget | null>(
+    renewal ? { kind: 'oauth', id: 'gemini-enterprise' } : null
+  );
+  const [dialogOpen, setDialogOpen] = useState(Boolean(renewal));
 
   const flows = useOAuthFlows({
     providerCards,
     isFocused: (provider) => focusedRef.current === provider,
   });
-  const enterpriseLocked = Boolean(flows.states['gemini-enterprise']?.state);
+  const enterpriseFlow = flows.states['gemini-enterprise'];
+  const enterpriseLocked = Boolean(enterpriseFlow?.state || enterpriseFlow?.status === 'waiting');
   const enterprise = useGeminiEnterpriseConfig(
     dialogOpen && dialog?.kind === 'oauth' && dialog.id === 'gemini-enterprise',
-    enterpriseLocked
+    enterpriseLocked,
+    renewal
   );
   const vertexImport = useVertexImport({
     isFocused: () => focusedRef.current === VERTEX_DIALOG_ID,
@@ -111,7 +128,16 @@ export function OAuthPage() {
           ? t('auth_login.tile_error')
           : undefined;
 
+  const resetEnterpriseAccount = () => {
+    setRenewal(null);
+    enterprise.resetForNewAccount();
+    if (renewal) navigate('/oauth', { replace: true });
+  };
+
   const openProvider = (card: OAuthProviderCard) => {
+    if (card.id === 'gemini-enterprise' && !retainGeminiEnterpriseRenewal(enterpriseFlow?.status)) {
+      resetEnterpriseAccount();
+    }
     focusedRef.current = card.id;
     setDialog({ kind: 'oauth', id: card.id });
     setDialogOpen(true);
@@ -131,6 +157,13 @@ export function OAuthPage() {
   };
 
   const closeDialog = () => {
+    if (
+      dialog?.kind === 'oauth' &&
+      dialog.id === 'gemini-enterprise' &&
+      !retainGeminiEnterpriseRenewal(enterpriseFlow?.status)
+    ) {
+      resetEnterpriseAccount();
+    }
     if (dialog?.kind === 'oauth') flows.dismissSuccess(dialog.id);
     if (dialog?.kind === 'vertex' && vertexImport.vertex.result) vertexImport.resetForAnother();
     focusedRef.current = null;
@@ -219,11 +252,20 @@ export function OAuthPage() {
                 void flows.startAuth('gemini-enterprise', enterprise.startOptions);
             } else void flows.startAuth(dialogCard.id);
           }}
+          onLoginAnother={
+            dialogCard.id === 'gemini-enterprise'
+              ? () => {
+                  resetEnterpriseAccount();
+                  flows.dismissSuccess(dialogCard.id);
+                }
+              : undefined
+          }
           onCancel={() => void flows.cancelAuth(dialogCard.id)}
           onProjectChange={flows.setProjectInput}
           onCallbackChange={(value) => flows.setCallbackInput(dialogCard.id, value)}
           onCallbackSubmit={() => void flows.submitCallback(dialogCard.id)}
           onViewAuthFiles={viewAuthFiles}
+          onRequestClose={() => setDialogOpen(false)}
           onClose={closeDialog}
         />
       )}
