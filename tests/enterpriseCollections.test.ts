@@ -16,6 +16,7 @@ import {
   enterpriseCollectionFiles,
   enterpriseCollectionIdentity,
   enterpriseCollectionName,
+  enterpriseCredentialLifetimeHours,
 } from '@/features/authFiles/enterpriseAccounts';
 import {
   enterpriseQuotaKey,
@@ -83,7 +84,7 @@ const rawAccount = {
     },
   ],
 };
-const parent = () =>
+const parent = (summary: Record<string, unknown> = rawAccount) =>
   normalizeAuthFilesResponse({
     files: [
       {
@@ -91,11 +92,33 @@ const parent = () =>
         type: 'gemini-enterprise',
         email: 'fixture@example.invalid',
         auth_index: 'parent-index',
-        gemini_enterprise: rawAccount,
+        gemini_enterprise: summary,
       },
     ],
   }).files[0];
 const children = () => enterpriseCollectionFiles(parent());
+const uploadedAt = '2026-11-18T00:00:00Z';
+const serverTime = '2026-11-20T00:00:00Z';
+const routingAccount = {
+  ...rawAccount,
+  first_uploaded_at: uploadedAt,
+  server_time: serverTime,
+  routing: { priority: -1, weight: 2 },
+  collections: [
+    {
+      ...rawCollection,
+      quota_balancing: {
+        enabled: true,
+        protection_status: 'paused',
+        protection_reason: 'high_usage',
+        used_percent: 96.5,
+        retry_at: '2026-11-21T08:02:00Z',
+      },
+      routing: { priority: -1, weight: 0, priority_inherited: true, weight_inherited: false },
+    },
+    rawAccount.collections[1],
+  ],
+};
 const childResponse = (used = 7) => ({
   status: 'ok',
   account_id: rawAccount.account_id,
@@ -124,6 +147,62 @@ const modelResult = (patch: Partial<ModelTestResult> = {}): ModelTestResult => (
 
 describe('Enterprise account and collection identities', () => {
   beforeEach(() => useQuotaStore.getState().clearQuotaCache());
+
+  test('anchors the credential age to the server clock and keeps zero as an explicit weight', () => {
+    const file = parent(routingAccount);
+    const lifetime = file.geminiEnterprise!.lifetime!;
+    const hour = 3_600_000;
+    expect(enterpriseCredentialLifetimeHours(lifetime, lifetime.receivedAtMs - hour)).toBe(48);
+    expect(enterpriseCredentialLifetimeHours(lifetime, lifetime.receivedAtMs + hour - 1)).toBe(48);
+    expect(enterpriseCredentialLifetimeHours(lifetime, lifetime.receivedAtMs + hour * 2)).toBe(50);
+    expect(parent().geminiEnterprise?.lifetime).toBeUndefined();
+    expect(file.geminiEnterprise?.routing).toMatchObject({ priority: -1, weight: 2 });
+    const [first] = enterpriseCollectionFiles(file);
+    expect(first.geminiEnterprise?.routing).toEqual({
+      priority: -1,
+      weight: 0,
+      priorityInherited: true,
+      weightInherited: false,
+    });
+    expect(first.geminiEnterprise?.quotaProtection).toMatchObject({
+      status: 'paused',
+      reason: 'high_usage',
+      usedPercent: 96.5,
+    });
+  });
+
+  test('pins account routing writes and rejects an update for another credential', async () => {
+    const file = parent(routingAccount);
+    const patch = spyOn(apiClient, 'patch').mockResolvedValue({
+      status: 'ok',
+      gemini_enterprise: { ...routingAccount, revision: 6, routing: { priority: 0, weight: 2 } },
+    });
+    try {
+      expect(
+        (await geminiEnterpriseApi.updateAccountRouting(file, { priority: 0 })).routing?.priority
+      ).toBe(0);
+      expect(patch).toHaveBeenCalledWith(
+        '/credentials/gemini-enterprise/accounts/routing',
+        {
+          name: file.name,
+          auth_index: 'parent-index',
+          account_id: 'fixture-account',
+          expected_revision: 5,
+          fields: { priority: 0 },
+        },
+        { signal: undefined, timeout: 0 }
+      );
+      patch.mockResolvedValue({
+        status: 'ok',
+        gemini_enterprise: { ...routingAccount, account_id: 'other' },
+      });
+      await expect(
+        geminiEnterpriseApi.updateAccountRouting(file, { weight: 0 })
+      ).rejects.toBeInstanceOf(InvalidManagementResponseError);
+    } finally {
+      patch.mockRestore();
+    }
+  });
 
   test('normalizes one parent with multiple children and never deduplicates them by filename', () => {
     const account = parent();
@@ -399,7 +478,7 @@ describe('Enterprise account and collection identities', () => {
         ...response,
         selected_pool: { ...response.selected_pool, used: 11 },
       });
-      await loadGeminiEnterpriseQuota(first, true);
+      await loadGeminiEnterpriseQuota(first);
       expect(get).toHaveBeenLastCalledWith('/quota/gemini-enterprise', {
         params: { auth_index: 'child-global', binding_id: 'binding-global', refresh: true },
       });
@@ -493,7 +572,7 @@ describe('Enterprise grouped UI in six languages', () => {
       await i18n.init({ lng: locale, resources: { [locale]: { translation: translations } } });
       const render = (element: ReturnType<typeof createElement>) =>
         renderToStaticMarkup(createElement(I18nextProvider, { i18n }, element));
-      const file = parent();
+      const file = parent(routingAccount);
       const noOp = () => {};
       const markup = render(
         createElement(GeminiEnterpriseAccount, {
@@ -518,6 +597,15 @@ describe('Enterprise grouped UI in six languages', () => {
       expect(markup).toContain('75.0%');
       expect(markup).toContain(translations.gemini_enterprise.collections.recent_rate);
       expect(markup).toContain(translations.gemini_enterprise.collections.requests);
+      expect(markup).toContain(
+        translations.gemini_enterprise.lifetime.hours.replace('{{hours}}', '48')
+      );
+      expect(markup).toContain('data-enterprise-routing="account"');
+      expect(markup).toContain('data-enterprise-routing="collection"');
+      expect(markup).toContain(translations.gemini_enterprise.routing.lower_priority);
+      expect(markup).toContain(translations.gemini_enterprise.quota_protection.paused);
+      expect(markup).toContain(translations.gemini_enterprise.quota_protection.reason_high_usage);
+      expect(markup).toContain('data-quota-protection="paused"');
       expect(markup).not.toContain('gemini_enterprise.');
       const child = children()[0];
       const modal = render(
@@ -553,6 +641,7 @@ describe('Enterprise grouped UI in six languages', () => {
         })
       );
       expect(stale).toContain(translations.gemini_enterprise.quota.not_provided);
+      expect(stale).toContain(translations.gemini_enterprise.quota.pending_manual);
       expect(stale).not.toContain('<strong>93</strong>');
       for (const status of ['partial', 'stale']) {
         const response = childResponse();

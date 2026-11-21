@@ -3286,6 +3286,44 @@
     "reauthorize": "다시 승인",
     "binding_details": "저장된 리소스 및 앱",
     "models_hint": "모델 목록은 백엔드에서 검색합니다.",
+    "lifetime": {
+      "hours": "등록 후 {{hours}}시간",
+      "unknown": "최초 등록 시각을 알 수 없음",
+      "uploaded_at": "최초 업로드 {{value}}"
+    },
+    "routing": {
+      "account": "계정 라우팅",
+      "collection": "애플리케이션 라우팅",
+      "raise_priority": "우선순위 높이기",
+      "lower_priority": "우선순위 낮추기",
+      "raise_weight": "가중치 높이기",
+      "lower_weight": "가중치 낮추기",
+      "adjust": "조정",
+      "reset_defaults": "기본값 복원",
+      "follow_account": "계정 설정 사용",
+      "inherited": "계정 설정 사용 중",
+      "partly_inherited": "일부 설정 상속",
+      "overridden": "개별 설정",
+      "inherit_input_hint": "비워 둔 항목에는 계정의 설정이 적용됩니다.",
+      "priority_bounds": "−1,000,000부터 1,000,000까지의 정수를 입력하세요.",
+      "weight_bounds": "0부터 1,000,000까지의 정수를 입력하세요.",
+      "weight_quota_balancing": "남은 할당량과 처리 중인 요청으로 풀을 선택한 후 풀 안에서 가중치를 적용합니다. 가중치가 0인 자격 증명은 할당량 균형 라우팅에서 제외됩니다.",
+      "weight_weighted_round_robin": "가중 순환은 같은 우선순위 안에서 가중치에 따라 요청을 배정합니다. 가중치가 0이면 가중 라우팅에서 제외됩니다.",
+      "weight_round_robin": "순환 방식은 같은 우선순위의 자격 증명을 번갈아 사용합니다. 가중치는 가중 순환이나 할당량 균형에 적용됩니다.",
+      "weight_fill_first": "우선 채우기는 같은 우선순위에서 앞선 자격 증명을 먼저 사용합니다. 가중치는 가중 순환이나 할당량 균형에 적용됩니다.",
+      "save_error": "계정 라우팅을 업데이트할 수 없습니다. 새로고침 후 다시 시도하세요."
+    },
+    "quota_protection": {
+      "rate_limited": "호출 속도 제한 중",
+      "paused": "할당량 보호로 일시 중지",
+      "recovering": "복구 확인 중",
+      "reason_consecutive_429": "업스트림 429 응답이 연속 발생함",
+      "reason_high_usage": "속도 제한 중 사용량이 보호 기준에 도달함",
+      "reason_quota_exhausted": "현재 풀의 남은 할당량이 0입니다",
+      "reason_daily_quota": "업스트림에서 일일 할당량 소진을 알림",
+      "used": "일일 할당량 {{percent}}% 사용",
+      "retry_at": "다음 확인 {{value}}"
+    },
     "quota_summary": {
       "failed": "할당량 풀 {{count}}개의 데이터를 가져오지 못함",
       "overall": "전체 자격 증명의 남은 총 할당량",
@@ -3300,6 +3338,7 @@
       "refresh_one": "이 자격 증명의 남은 총 할당량 갱신"
     },
     "quota": {
+      "pending_manual": "수동 새로고침 대기",
       "not_provided": "미제공",
       "partial": "일부 할당량 수치를 가져올 수 없습니다. 확인된 값은 표시됩니다.",
       "stale": "현재 태평양 표준시 날짜의 이전 수치입니다. 보고가 지연될 수 있습니다.",

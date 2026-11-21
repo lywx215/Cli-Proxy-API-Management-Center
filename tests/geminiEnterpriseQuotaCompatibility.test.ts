@@ -165,7 +165,7 @@ describe('standalone Enterprise quota compatibility', () => {
         reset_at: new Date(now - 1).toISOString(),
         pools: [{ ...pool, status: 'stale' }],
       });
-      expect(html).toContain(messages.no_data);
+      expect(html).toContain(messages.pending_manual);
       expect(html).not.toContain(messages.stale);
       expect(html).not.toContain((9994).toLocaleString(locale));
     });

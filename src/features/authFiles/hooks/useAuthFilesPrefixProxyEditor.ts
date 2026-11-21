@@ -334,7 +334,12 @@ export const buildAuthFileFieldsPatch = (
   const originalPriority = parsePriorityValue(original.priority);
   const priorityText = editor.priority.trim();
   const nextPriority = parsePriorityValue(priorityText);
-  if (!priorityText) {
+  if (editor.collectionTarget?.geminiEnterprise?.routing) {
+    if (!priorityText && originalPriority !== undefined) patch.priority = null;
+    else if (nextPriority !== undefined && nextPriority !== originalPriority) {
+      patch.priority = nextPriority;
+    }
+  } else if (!priorityText) {
     if (originalPriority !== undefined && originalPriority !== 0) {
       patch.priority = 0;
     }
@@ -457,7 +462,10 @@ const buildPrefixProxyUpdatedText = (
   }
 
   if (patch.priority !== undefined) {
-    if (patch.priority === 0) {
+    if (
+      patch.priority === null ||
+      (patch.priority === 0 && !editor.collectionTarget?.geminiEnterprise?.routing)
+    ) {
       delete next.priority;
     } else {
       next.priority = patch.priority;

@@ -11,8 +11,8 @@ import {
 } from '@/services/api/geminiEnterprise';
 import {
   enterpriseQuotaKey,
+  isEnterpriseQuotaCurrent,
   loadGeminiEnterpriseQuota,
-  shouldLoadGeminiEnterpriseQuota,
 } from '@/features/authFiles/geminiEnterpriseQuota';
 import { GeminiEnterpriseQuotaBody } from '@/features/authFiles/components/GeminiEnterpriseQuota';
 import { useQuotaStore } from '@/stores/useQuotaStore';
@@ -169,23 +169,12 @@ describe('Gemini Enterprise credential quota', () => {
     }
   });
 
-  test('refreshes at the observed reset even before the cache TTL and avoids refresh loops', () => {
+  test('stops using a cached balance at the observed reset', () => {
     const reset = Date.parse(fixture.reset_at);
-    const state = {
-      loading: false,
-      fetchedAtMs: reset - 10_000,
-      data: normalizeGeminiEnterpriseQuota(fixture),
-    };
-    expect(shouldLoadGeminiEnterpriseQuota(undefined, reset)).toBe(true);
-    expect(shouldLoadGeminiEnterpriseQuota(state, reset - 1)).toBe(false);
-    expect(shouldLoadGeminiEnterpriseQuota(state, reset)).toBe(true);
-    expect(shouldLoadGeminiEnterpriseQuota({ ...state, loading: true }, reset)).toBe(false);
-    expect(shouldLoadGeminiEnterpriseQuota({ ...state, fetchedAtMs: reset }, reset + 1)).toBe(
-      false
-    );
-    expect(shouldLoadGeminiEnterpriseQuota({ ...state, fetchedAtMs: reset }, reset + 120_001)).toBe(
-      true
-    );
+    const data = normalizeGeminiEnterpriseQuota(fixture);
+    expect(isEnterpriseQuotaCurrent(undefined, reset)).toBe(false);
+    expect(isEnterpriseQuotaCurrent(data, reset - 1)).toBe(true);
+    expect(isEnterpriseQuotaCurrent(data, reset)).toBe(false);
   });
 
   test('does not send a request without a credential index', async () => {
@@ -208,6 +197,11 @@ describe('Gemini Enterprise credential quota', () => {
       const translations = JSON.parse(readFileSync(`src/i18n/locales/${locale}.json`, 'utf8'));
       const i18n = createInstance();
       await i18n.init({ lng: locale, resources: { [locale]: { translation: translations } } });
+      const idle = renderToStaticMarkup(
+        createElement(I18nextProvider, { i18n }, createElement(GeminiEnterpriseQuotaBody, {}))
+      );
+      expect(idle).toContain(translations.gemini_enterprise.quota.pending_manual);
+      expect(idle).not.toContain(translations.gemini_enterprise.quota.loading);
       const render = (raw: unknown) =>
         renderToStaticMarkup(
           createElement(

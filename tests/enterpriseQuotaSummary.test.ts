@@ -1,6 +1,8 @@
 import { beforeEach, expect, spyOn, test } from 'bun:test';
+import { enterpriseCollectionFiles } from '@/features/authFiles/enterpriseAccounts';
 import {
   buildEnterprisePaidQuotaIndex,
+  refreshEnterpriseCollectionQuota,
   refreshEnterprisePaidQuota,
   summarizeEnterprisePaidQuota,
 } from '@/features/authFiles/enterpriseQuotaSummary';
@@ -232,8 +234,8 @@ test('combines refreshes of the same pool and retries a stale read with a siblin
     });
   try {
     await Promise.all([
-      refreshEnterprisePaidQuota(scope.all.pools, true),
-      refreshEnterprisePaidQuota(scope.byCredential.get(first)!.pools, true),
+      refreshEnterprisePaidQuota(scope.all.pools),
+      refreshEnterprisePaidQuota(scope.byCredential.get(first)!.pools),
     ]);
     expect(get.mock.calls.map(([, config]) => config?.params)).toEqual([
       { auth_index: 'first-index', binding_id: 'first-binding', refresh: true },
@@ -261,18 +263,19 @@ test('limits active reads and stops queued targets from using a different connec
   const get = spyOn(apiClient, 'get').mockImplementation(
     () => new Promise((resolve) => releases.push(() => resolve({ status: 'no_permission' })))
   );
-  const pending = refreshEnterprisePaidQuota(scope.pools, true);
+  const pending = refreshEnterprisePaidQuota(scope.pools);
+  const row = refreshEnterpriseCollectionQuota(enterpriseCollectionFiles(account('row', '456'))[0]);
   try {
     expect(get).toHaveBeenCalledTimes(4);
     revision++;
     useQuotaStore.getState().clearQuotaCache();
     releases.forEach((release) => release());
-    await pending;
+    await Promise.all([pending, row]);
     expect(get).toHaveBeenCalledTimes(4);
     expect(useQuotaStore.getState().geminiEnterpriseQuota).toEqual({});
   } finally {
     releases.forEach((release) => release());
-    await pending;
+    await Promise.all([pending, row]);
     get.mockRestore();
     connection.mockRestore();
   }

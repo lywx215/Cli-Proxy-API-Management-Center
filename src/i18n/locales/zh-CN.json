@@ -3284,6 +3284,44 @@
     "reauthorize": "重新授权",
     "binding_details": "已保存的资源与应用",
     "models_hint": "模型列表来自后端发现。",
+    "lifetime": {
+      "hours": "存活时间：{{hours}}小时",
+      "unknown": "存活时间：未知",
+      "uploaded_at": "首次上传 {{value}}"
+    },
+    "routing": {
+      "account": "账号调度设置",
+      "collection": "应用调度设置",
+      "raise_priority": "提高优先级",
+      "lower_priority": "降低优先级",
+      "raise_weight": "增加权重",
+      "lower_weight": "减少权重",
+      "adjust": "调整",
+      "reset_defaults": "恢复默认",
+      "follow_account": "恢复跟随账号",
+      "inherited": "跟随账号",
+      "partly_inherited": "部分跟随账号",
+      "overridden": "单独设置",
+      "inherit_input_hint": "留空的设置跟随账号。",
+      "priority_bounds": "请输入 −1,000,000 到 1,000,000 的整数。",
+      "weight_bounds": "请输入 0 到 1,000,000 的整数。",
+      "weight_quota_balancing": "先按剩余额度和在途请求选池，再在同池参考凭证权重。权重为 0 时退出额度均衡调度。",
+      "weight_weighted_round_robin": "在同一优先级内按权重分配请求。权重为 0 时退出加权调度。",
+      "weight_round_robin": "当前按同一优先级轮询。权重在加权轮询和额度均衡时生效。",
+      "weight_fill_first": "当前优先使用同一优先级中排序在前的凭证。权重在加权轮询和额度均衡时生效。",
+      "save_error": "无法更新账号调度设置，请刷新后重试。"
+    },
+    "quota_protection": {
+      "rate_limited": "限速调度",
+      "paused": "额度保护已暂停",
+      "recovering": "恢复验证中",
+      "reason_consecutive_429": "上游连续返回 429",
+      "reason_high_usage": "限速期间已用额度达到保护阈值",
+      "reason_quota_exhausted": "本周期剩余额度为 0",
+      "reason_daily_quota": "上游确认日额度耗尽",
+      "used": "已用日额度 {{percent}}%",
+      "retry_at": "下次验证 {{value}}"
+    },
     "quota_summary": {
       "failed": "{{count}} 个额度池读取失败",
       "overall": "全部凭证总剩余额度",
@@ -3298,6 +3336,7 @@
       "refresh_one": "更新此凭证总剩余额度"
     },
     "quota": {
+      "pending_manual": "待手动刷新",
       "not_provided": "未提供",
       "partial": "部分额度读数暂不可用，已知数据仍会显示。",
       "stale": "显示本太平洋日内先前的读数，上报可能延迟。",

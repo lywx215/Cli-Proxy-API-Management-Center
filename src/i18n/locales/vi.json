@@ -3291,6 +3291,44 @@
     "reauthorize": "Ủy quyền lại",
     "binding_details": "Tài nguyên và ứng dụng đã lưu",
     "models_hint": "Danh sách mô hình do máy chủ khám phá.",
+    "lifetime": {
+      "hours": "Tuổi thông tin xác thực: {{hours}} giờ",
+      "unknown": "Chưa rõ tuổi thông tin xác thực",
+      "uploaded_at": "Tải lên lần đầu {{value}}"
+    },
+    "routing": {
+      "account": "Định tuyến tài khoản",
+      "collection": "Định tuyến ứng dụng",
+      "raise_priority": "Tăng độ ưu tiên",
+      "lower_priority": "Giảm độ ưu tiên",
+      "raise_weight": "Tăng trọng số",
+      "lower_weight": "Giảm trọng số",
+      "adjust": "Điều chỉnh",
+      "reset_defaults": "Khôi phục mặc định",
+      "follow_account": "Dùng cài đặt tài khoản",
+      "inherited": "Theo tài khoản",
+      "partly_inherited": "Kế thừa một phần",
+      "overridden": "Cài đặt riêng",
+      "inherit_input_hint": "Để trống để kế thừa giá trị của tài khoản.",
+      "priority_bounds": "Nhập số nguyên từ −1.000.000 đến 1.000.000.",
+      "weight_bounds": "Nhập số nguyên từ 0 đến 1.000.000.",
+      "weight_quota_balancing": "Chọn nhóm theo hạn mức còn lại và các yêu cầu đang xử lý, sau đó dựa vào trọng số bên trong nhóm. Trọng số 0 loại thông tin xác thực khỏi cân bằng hạn mức.",
+      "weight_weighted_round_robin": "Luân phiên có trọng số phân bổ yêu cầu theo trọng số trong cùng mức ưu tiên. Trọng số 0 loại thông tin xác thực khỏi định tuyến có trọng số.",
+      "weight_round_robin": "Luân phiên lần lượt qua các thông tin xác thực cùng mức ưu tiên. Trọng số có hiệu lực khi luân phiên có trọng số hoặc cân bằng hạn mức.",
+      "weight_fill_first": "Ưu tiên đầu danh sách chọn thông tin xác thực đầu tiên trong cùng mức ưu tiên. Trọng số có hiệu lực khi luân phiên có trọng số hoặc cân bằng hạn mức.",
+      "save_error": "Không thể cập nhật định tuyến tài khoản. Hãy làm mới và thử lại."
+    },
+    "quota_protection": {
+      "rate_limited": "Đang giới hạn tần suất",
+      "paused": "Tạm dừng để bảo vệ hạn mức",
+      "recovering": "Đang xác minh phục hồi",
+      "reason_consecutive_429": "Dịch vụ liên tục trả về 429",
+      "reason_high_usage": "Đã đạt ngưỡng bảo vệ hạn mức khi đang giới hạn tần suất",
+      "reason_quota_exhausted": "Nhóm hiện tại đã hết hạn mức",
+      "reason_daily_quota": "Dịch vụ báo hết hạn mức hằng ngày",
+      "used": "Đã dùng {{percent}}% hạn mức hằng ngày",
+      "retry_at": "Kiểm tra lại {{value}}"
+    },
     "quota_summary": {
       "failed": "Không đọc được {{count}} nhóm hạn mức",
       "overall": "Tổng hạn mức còn lại của mọi thông tin xác thực",
@@ -3305,6 +3343,7 @@
       "refresh_one": "Cập nhật tổng hạn mức còn lại của thông tin xác thực này"
     },
     "quota": {
+      "pending_manual": "Chờ làm mới thủ công",
       "not_provided": "Chưa cung cấp",
       "partial": "Một số số liệu hạn mức chưa khả dụng. Vẫn hiển thị giá trị đã biết.",
       "stale": "Đang hiển thị số liệu trước đó trong ngày Thái Bình Dương này; báo cáo có thể chậm.",

@@ -1,0 +1,45 @@
+.routing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 7px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.metric {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+}
+
+.step:global(.btn.btn-sm),
+.adjust:global(.btn.btn-sm) {
+  min-height: 24px;
+  padding: 2px 5px;
+  font-size: 10px;
+}
+
+.source {
+  overflow-wrap: anywhere;
+}
+
+.weightInput {
+  padding-right: 74px;
+}
+
+.weightStepper {
+  display: flex;
+  gap: 2px;
+}

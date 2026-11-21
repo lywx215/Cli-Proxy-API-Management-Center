@@ -52,7 +52,7 @@ export type AuthFileFieldsPatch = {
   prefix?: string;
   proxy_url?: string;
   headers?: Record<string, string>;
-  priority?: number;
+  priority?: number | null;
   weight?: number | null;
   disable_cooling?: boolean;
   'disable-cooling'?: boolean;

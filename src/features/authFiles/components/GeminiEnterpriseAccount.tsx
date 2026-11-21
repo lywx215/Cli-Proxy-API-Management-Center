@@ -10,18 +10,25 @@ import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconChevronDown, IconDownload, IconRefreshCw, IconTrash2 } from '@/components/ui/icons';
 import { ProviderStatusBar } from '@/components/providers/ProviderStatusBar';
+import { useNow } from '@/hooks/useNow';
+import { parseRoutingStrategy } from '@/hooks/useVisualConfig';
 import { apiClient } from '@/services/api/client';
 import {
   geminiEnterpriseApi,
   type EnterpriseCollectionPatch,
+  type EnterpriseRoutingPatch,
 } from '@/services/api/geminiEnterprise';
+import { useConfigStore } from '@/stores/useConfigStore';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import type { AuthFileItem } from '@/types';
+import type { EnterpriseCredentialLifetime } from '@/types/authFile';
+import { isRecord } from '@/utils/helpers';
 import { statusBarDataFromRecentRequests } from '@/utils/recentRequests';
 import {
   enterpriseCollectionFiles,
   enterpriseCollectionIdentity,
   enterpriseCollectionName,
+  enterpriseCredentialLifetimeHours,
 } from '../enterpriseAccounts';
 import {
   enterpriseSubscriptionUnknownReason,
@@ -34,6 +41,7 @@ import type { EnterprisePaidQuotaPool, EnterprisePaidQuotaScope } from '../enter
 import type { AuthFileCardProps } from './AuthFileCard';
 import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
 import { GeminiEnterpriseQuotaSummary } from './GeminiEnterpriseQuotaSummary';
+import { GeminiEnterpriseRouting, type EnterpriseWeightMode } from './GeminiEnterpriseRouting';
 import {
   GeminiEnterpriseBinding,
   GeminiEnterpriseReauthorizeLink,
@@ -62,15 +70,56 @@ type Props = Pick<
 > & {
   quotaScope?: EnterprisePaidQuotaScope;
   quotaPools?: ReadonlyMap<string, EnterprisePaidQuotaPool>;
+  onReloadCredentials?: () => Promise<void>;
 };
+
+const weightModes = {
+  'round-robin': 'round_robin',
+  'weighted-round-robin': 'weighted_round_robin',
+  'fill-first': 'fill_first',
+} as const;
+
+function CredentialLifetime({
+  lifetime,
+  expanded,
+}: {
+  lifetime?: EnterpriseCredentialLifetime;
+  expanded: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const now = useNow(lifetime !== undefined);
+  const uploadedAt = lifetime?.firstUploadedAt;
+  return (
+    <>
+      <span data-credential-lifetime>
+        {lifetime
+          ? t('gemini_enterprise.lifetime.hours', {
+              hours: enterpriseCredentialLifetimeHours(lifetime, now).toLocaleString(
+                i18n.resolvedLanguage
+              ),
+            })
+          : t('gemini_enterprise.lifetime.unknown')}
+      </span>
+      {expanded && uploadedAt && (
+        <time dateTime={uploadedAt}>
+          {t('gemini_enterprise.lifetime.uploaded_at', {
+            value: new Date(uploadedAt).toLocaleString(i18n.resolvedLanguage),
+          })}
+        </time>
+      )}
+    </>
+  );
+}
 
 function CollectionRows({
   file,
   parentDisabled,
+  weightMode,
   props,
 }: {
   file: AuthFileItem;
   parentDisabled: boolean;
+  weightMode: EnterpriseWeightMode;
   props: Props;
 }) {
   const { t, i18n } = useTranslation();
@@ -100,6 +149,8 @@ function CollectionRows({
     busy ||
     binding?.revision === undefined ||
     !String(file.authIndex ?? '').trim();
+  const quotaProtection =
+    !file.disabled && !parentDisabled && !binding?.missing ? binding?.quotaProtection : undefined;
   const status = file.disabled
     ? 'disabled'
     : parentDisabled
@@ -109,24 +160,42 @@ function CollectionRows({
         : file.status === 'active' || file.status === 'ok'
           ? 'available'
           : 'ready';
-  const saveCollection = async (patch: EnterpriseCollectionPatch) => {
-    if (request.current || props.disableControls || !binding?.bindingId) return;
+  const statusLabel = quotaProtection
+    ? t('gemini_enterprise.quota_protection.' + quotaProtection.status)
+    : routingPaused
+      ? t('gemini_enterprise.policy.routing_paused')
+      : t('gemini_enterprise.collections.' + status);
+  const saveCollection = async (patch: EnterpriseCollectionPatch, routingOnly = false) => {
+    if (request.current || props.disableControls || !binding?.bindingId) return false;
     const controller = new AbortController();
     request.current = controller;
     const revision = apiClient.getConnectionRevision();
     const current = () =>
       !controller.signal.aborted && revision === apiClient.getConnectionRevision();
     setBusy(true);
+    const reload = () =>
+      routingOnly && props.onReloadCredentials
+        ? props.onReloadCredentials()
+        : props.onEnterpriseResourcesSaved?.(file);
     try {
       await geminiEnterpriseApi.updateCollection(file, patch, controller.signal);
-      if (current()) await props.onEnterpriseResourcesSaved?.(file);
-    } catch {
+      if (current()) await reload();
+      return current();
+    } catch (error) {
       if (current()) {
         useNotificationStore
           .getState()
-          .showNotification(t('gemini_enterprise.collections.update_error'), 'error');
-        await props.onEnterpriseResourcesSaved?.(file);
+          .showNotification(
+            t(
+              isRecord(error) && error.status === 409
+                ? 'gemini_enterprise.region_conflict'
+                : 'gemini_enterprise.collections.update_error'
+            ),
+            'error'
+          );
+        await reload();
       }
+      return false;
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -162,12 +231,24 @@ function CollectionRows({
               })}
             </small>
           )}
+          {binding?.routing && (
+            <GeminiEnterpriseRouting
+              values={binding.routing}
+              revision={binding.revision}
+              scope="collection"
+              weightMode={weightMode}
+              disabled={props.disableControls || !binding.bindingId || !file.authIndex}
+              saving={busy}
+              onSave={(fields) => saveCollection({ fields }, true)}
+            />
+          )}
         </td>
         <td>
           <GeminiEnterpriseQuota
             file={file}
             disableControls={props.disableControls}
             paidPool={props.quotaPools?.get(enterpriseQuotaKey(file))}
+            onRefreshComplete={props.onReloadCredentials}
             compact
           />
         </td>
@@ -189,17 +270,44 @@ function CollectionRows({
                 })}
               />
               <span
+                data-quota-protection={quotaProtection?.status}
+                className={quotaProtection ? styles.protectedStatus : undefined}
                 title={
-                  routingPaused
+                  routingPaused && !quotaProtection
                     ? t('gemini_enterprise.policy.paused')
-                    : t('gemini_enterprise.collections.' + status)
+                    : statusLabel
                 }
               >
-                {routingPaused
-                  ? t('gemini_enterprise.policy.routing_paused')
-                  : t('gemini_enterprise.collections.' + status)}
+                {statusLabel}
               </span>
             </div>
+            {quotaProtection && (
+              <div className={styles.protectionDetails}>
+                {quotaProtection.reason && (
+                  <span>
+                    {t('gemini_enterprise.quota_protection.reason_' + quotaProtection.reason)}
+                  </span>
+                )}
+                {quotaProtection.usedPercent !== undefined && (
+                  <span>
+                    {t('gemini_enterprise.quota_protection.used', {
+                      percent: quotaProtection.usedPercent.toLocaleString(i18n.resolvedLanguage, {
+                        maximumFractionDigits: 1,
+                      }),
+                    })}
+                  </span>
+                )}
+                {quotaProtection.retryAt && (
+                  <time dateTime={quotaProtection.retryAt}>
+                    {t('gemini_enterprise.quota_protection.retry_at', {
+                      value: new Date(quotaProtection.retryAt).toLocaleString(
+                        i18n.resolvedLanguage
+                      ),
+                    })}
+                  </time>
+                )}
+              </div>
+            )}
             {binding?.allModelsSupported === true && binding.bindingId && (
               <div className={styles.modelSwitchRow}>
                 <ToggleSwitch
@@ -311,6 +419,7 @@ export function GeminiEnterpriseAccount(props: Props) {
     () => new Set(['trial', 'unknown'])
   );
   const [discovering, setDiscovering] = useState(false);
+  const [savingRouting, setSavingRouting] = useState(false);
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   const rowsId = useId();
@@ -318,8 +427,13 @@ export function GeminiEnterpriseAccount(props: Props) {
   const groups = useMemo(() => groupEnterpriseCollections(children), [children]);
   const projectCount = new Set(children.map((child) => child.geminiEnterprise?.projectId)).size;
   const account = file.geminiEnterprise;
+  const strategy = useConfigStore((state) => state.config?.routingStrategy);
+  const defaultWeightMode = weightModes[parseRoutingStrategy(strategy)];
+  const accountWeightMode = children.some((child) => child.geminiEnterprise?.quotaBalancingEnabled)
+    ? 'quota_balancing'
+    : defaultWeightMode;
   const discover = async () => {
-    if (disableControls || discovering) return;
+    if (disableControls || request.current) return;
     const controller = new AbortController();
     request.current = controller;
     const revision = apiClient.getConnectionRevision();
@@ -348,7 +462,45 @@ export function GeminiEnterpriseAccount(props: Props) {
           .showNotification(t('gemini_enterprise.collections.discover_error'), 'error');
       if (current()) await props.onEnterpriseResourcesSaved?.(file);
     } finally {
-      if (current()) setDiscovering(false);
+      if (request.current === controller) {
+        request.current = null;
+        if (!controller.signal.aborted) setDiscovering(false);
+      }
+    }
+  };
+  const saveAccountRouting = async (fields: EnterpriseRoutingPatch) => {
+    if (disableControls || request.current || !account?.routing) return false;
+    const controller = new AbortController();
+    request.current = controller;
+    const revision = apiClient.getConnectionRevision();
+    const current = () =>
+      !controller.signal.aborted && revision === apiClient.getConnectionRevision();
+    const reload = props.onReloadCredentials ?? (() => props.onEnterpriseResourcesSaved?.(file));
+    setSavingRouting(true);
+    try {
+      await geminiEnterpriseApi.updateAccountRouting(file, fields, controller.signal);
+      if (current()) await reload();
+      return current();
+    } catch (error) {
+      if (current()) {
+        useNotificationStore
+          .getState()
+          .showNotification(
+            t(
+              isRecord(error) && error.status === 409
+                ? 'gemini_enterprise.region_conflict'
+                : 'gemini_enterprise.routing.save_error'
+            ),
+            'error'
+          );
+        await reload();
+      }
+      return false;
+    } finally {
+      if (request.current === controller) {
+        request.current = null;
+        if (!controller.signal.aborted) setSavingRouting(false);
+      }
     }
   };
   return (
@@ -384,7 +536,12 @@ export function GeminiEnterpriseAccount(props: Props) {
             size="sm"
             variant="secondary"
             loading={discovering}
-            disabled={disableControls || discovering || !account?.accountManagementSupported}
+            disabled={
+              disableControls ||
+              discovering ||
+              savingRouting ||
+              !account?.accountManagementSupported
+            }
             onClick={() => void discover()}
             title={t('gemini_enterprise.collections.discover')}
             aria-label={t('gemini_enterprise.collections.discover')}
@@ -445,6 +602,7 @@ export function GeminiEnterpriseAccount(props: Props) {
             <GeminiEnterpriseReauthorizeLink file={file} clientId={account.clientId} />
           </span>
         )}
+        <CredentialLifetime lifetime={account?.lifetime} expanded={expanded} />
         <ToggleSwitch
           checked={!file.disabled}
           disabled={disableControls || props.statusUpdating[getAuthFileRefreshKey(file)]}
@@ -452,8 +610,25 @@ export function GeminiEnterpriseAccount(props: Props) {
           onChange={(enabled) => props.onToggleStatus(file, enabled)}
         />
       </div>
+      {account?.routing && (
+        <div className={styles.accountRouting}>
+          <GeminiEnterpriseRouting
+            values={account.routing}
+            revision={account.revision}
+            scope="account"
+            weightMode={accountWeightMode}
+            disabled={disableControls || discovering || !file.authIndex || !account.accountId}
+            saving={savingRouting}
+            onSave={saveAccountRouting}
+          />
+        </div>
+      )}
       {props.quotaScope && (
-        <GeminiEnterpriseQuotaSummary scope={props.quotaScope} disabled={disableControls} />
+        <GeminiEnterpriseQuotaSummary
+          scope={props.quotaScope}
+          disabled={disableControls}
+          onRefreshComplete={props.onReloadCredentials}
+        />
       )}
       {expanded && (
         <div id={rowsId}>
@@ -518,9 +693,17 @@ export function GeminiEnterpriseAccount(props: Props) {
                       <tbody id={groupId} className={styles.groupRows} hidden={!groupExpanded}>
                         {group.files.map((child) => (
                           <CollectionRows
-                            key={enterpriseCollectionIdentity(child)}
+                            key={
+                              child.geminiEnterprise?.bindingId ??
+                              enterpriseCollectionIdentity(child)
+                            }
                             file={child}
                             parentDisabled={file.disabled === true}
+                            weightMode={
+                              child.geminiEnterprise?.quotaBalancingEnabled
+                                ? 'quota_balancing'
+                                : defaultWeightMode
+                            }
                             props={props}
                           />
                         ))}

@@ -193,6 +193,7 @@ export function AuthFilesPage() {
     },
     [invalidateDerivedCaches, loadFiles]
   );
+  const reloadCredentials = useCallback(() => loadFiles({ background: true }), [loadFiles]);
 
   const {
     excluded,
@@ -788,6 +789,7 @@ export function AuthFilesPage() {
             <GeminiEnterpriseQuotaSummary
               scope={enterpriseQuota.all}
               disabled={disableControls || !isCurrentLayer}
+              onRefreshComplete={reloadCredentials}
               overall
             />
           )}
@@ -858,6 +860,7 @@ export function AuthFilesPage() {
                   file={file}
                   quotaScope={enterpriseQuota.byCredential.get(file)}
                   quotaPools={enterpriseQuota.byCollection}
+                  onReloadCredentials={reloadCredentials}
                   selected={selectedFiles.has(file.name)}
                   disableControls={disableControls}
                   deleting={deleting}

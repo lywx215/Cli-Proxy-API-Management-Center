@@ -114,9 +114,32 @@ export type EnterpriseModelPolicyState = {
   };
 };
 
+export interface EnterpriseCredentialLifetime {
+  firstUploadedAt: string;
+  serverTime: string;
+  receivedAtMs: number;
+}
+
+export interface EnterpriseCredentialRouting {
+  priority: number;
+  weight: number;
+  priorityInherited?: boolean;
+  weightInherited?: boolean;
+}
+
+export interface EnterpriseQuotaProtection {
+  status: 'rate_limited' | 'paused' | 'recovering';
+  reason?: 'consecutive_429' | 'high_usage' | 'quota_exhausted' | 'daily_quota';
+  retryAt?: string;
+  usedPercent?: number;
+}
+
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
   modelPolicyState?: EnterpriseModelPolicyState;
   quotaProjectNumber?: string;
+  quotaBalancingEnabled?: boolean;
+  quotaProtection?: EnterpriseQuotaProtection;
+  routing?: EnterpriseCredentialRouting;
   bindingId: string;
   revision?: number;
   authIndex?: string;
@@ -135,6 +158,8 @@ export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
 }
 
 export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
+  lifetime?: EnterpriseCredentialLifetime;
+  routing?: EnterpriseCredentialRouting;
   argonForceSupported?: boolean;
   allModelsSupported?: boolean;
   authorizationRevision?: number;
@@ -172,6 +197,8 @@ export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   accountRevision?: number;
   projectName?: string;
   quotaProjectNumber?: string;
+  quotaBalancingEnabled?: boolean;
+  quotaProtection?: EnterpriseQuotaProtection;
   effectiveDisabled?: boolean;
   missing?: boolean;
   settings?: Record<string, unknown>;

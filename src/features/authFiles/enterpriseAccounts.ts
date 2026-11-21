@@ -1,4 +1,5 @@
 import type { AuthFileItem } from '@/types';
+import type { EnterpriseCredentialLifetime } from '@/types/authFile';
 import { enterpriseResources, serializeEnterpriseResources } from './enterpriseResources';
 
 export function enterpriseCollectionIdentity(file: AuthFileItem): string {
@@ -52,4 +53,15 @@ export function enterpriseCollectionName(file: AuthFileItem): string {
   ]
     .filter(Boolean)
     .join(' / ');
+}
+
+export function enterpriseCredentialLifetimeHours(
+  lifetime: EnterpriseCredentialLifetime,
+  clientNow: number
+): number {
+  const elapsed =
+    Date.parse(lifetime.serverTime) -
+    Date.parse(lifetime.firstUploadedAt) +
+    Math.max(0, clientNow - lifetime.receivedAtMs);
+  return Math.floor(elapsed / 3_600_000);
 }

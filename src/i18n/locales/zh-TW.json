@@ -3311,6 +3311,44 @@
     "reauthorize": "重新授權",
     "binding_details": "已儲存的資源與應用程式",
     "models_hint": "模型清單來自後端探索。",
+    "lifetime": {
+      "hours": "存活時間：{{hours}}小時",
+      "unknown": "存活時間：未知",
+      "uploaded_at": "首次上傳 {{value}}"
+    },
+    "routing": {
+      "account": "帳號調度設定",
+      "collection": "應用程式調度設定",
+      "raise_priority": "提高優先順序",
+      "lower_priority": "降低優先順序",
+      "raise_weight": "增加權重",
+      "lower_weight": "減少權重",
+      "adjust": "調整",
+      "reset_defaults": "恢復預設值",
+      "follow_account": "恢復跟隨帳號",
+      "inherited": "跟隨帳號",
+      "partly_inherited": "部分跟隨帳號",
+      "overridden": "個別設定",
+      "inherit_input_hint": "留空的設定會跟隨帳號。",
+      "priority_bounds": "請輸入 −1,000,000 到 1,000,000 的整數。",
+      "weight_bounds": "請輸入 0 到 1,000,000 的整數。",
+      "weight_quota_balancing": "先依剩餘額度與處理中的請求選擇額度池，再參考池內憑證的權重。權重為 0 時退出額度平衡調度。",
+      "weight_weighted_round_robin": "在同一優先順序內按權重分配請求。權重為 0 時退出加權調度。",
+      "weight_round_robin": "目前在同一優先順序內輪詢。權重在加權輪詢及額度平衡時生效。",
+      "weight_fill_first": "目前優先使用同一優先順序中排在前面的憑證。權重在加權輪詢及額度平衡時生效。",
+      "save_error": "無法更新帳號調度設定，請重新整理後再試。"
+    },
+    "quota_protection": {
+      "rate_limited": "限速調度",
+      "paused": "額度保護已暫停",
+      "recovering": "恢復驗證中",
+      "reason_consecutive_429": "上游連續回傳 429",
+      "reason_high_usage": "限速期間已用額度達到保護門檻",
+      "reason_quota_exhausted": "本週期剩餘額度為 0",
+      "reason_daily_quota": "上游確認每日額度已用盡",
+      "used": "已用每日額度 {{percent}}%",
+      "retry_at": "下次驗證 {{value}}"
+    },
     "quota_summary": {
       "failed": "{{count}} 個額度池讀取失敗",
       "overall": "全部憑證總剩餘額度",
@@ -3325,6 +3363,7 @@
       "refresh_one": "更新此憑證總剩餘額度"
     },
     "quota": {
+      "pending_manual": "待手動重新整理",
       "not_provided": "未提供",
       "partial": "部分額度讀值暫時無法取得，仍會顯示已知資料。",
       "stale": "顯示本太平洋日內先前的讀值，回報可能延遲。",

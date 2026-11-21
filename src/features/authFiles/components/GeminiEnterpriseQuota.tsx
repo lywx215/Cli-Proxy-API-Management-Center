@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
@@ -6,17 +6,14 @@ import type { AuthFileItem } from '@/types';
 import type { GeminiEnterpriseQuotaState } from '@/types/geminiEnterpriseQuota';
 import { useQuotaStore } from '@/stores/useQuotaStore';
 import { useNow } from '@/hooks/useNow';
+import { apiClient } from '@/services/api/client';
 import {
   enterprisePaidQuotaPoolState,
+  refreshEnterpriseCollectionQuota,
   refreshEnterprisePaidQuota,
   type EnterprisePaidQuotaPool,
 } from '../enterpriseQuotaSummary';
-import {
-  enterpriseQuotaKey,
-  loadGeminiEnterpriseQuota,
-  shouldLoadGeminiEnterpriseQuota,
-  isEnterpriseQuotaCurrent,
-} from '../geminiEnterpriseQuota';
+import { enterpriseQuotaKey, isEnterpriseQuotaCurrent } from '../geminiEnterpriseQuota';
 import styles from './GeminiEnterpriseQuota.module.scss';
 
 export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQuotaState }) {
@@ -27,7 +24,7 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
   const currentDay = isEnterpriseQuotaCurrent(data, Math.max(now, state?.fetchedAtMs ?? 0));
   const messageStatus =
     pool && !currentDay
-      ? 'no_data'
+      ? 'pending_manual'
       : pool?.status === 'stale' || data?.status === 'stale'
         ? 'stale'
         : data?.status === 'partial'
@@ -42,10 +39,14 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
     value === null || value === undefined
       ? t('gemini_enterprise.quota.not_provided')
       : value.toLocaleString(i18n.resolvedLanguage);
-  if (!state || (state.loading && !data)) {
+  if (!data) {
     return (
       <p className={styles.message} role="status">
-        {t('gemini_enterprise.quota.loading')}
+        {t(
+          state?.loading
+            ? 'gemini_enterprise.quota.loading'
+            : 'gemini_enterprise.quota.pending_manual'
+        )}
       </p>
     );
   }
@@ -94,13 +95,16 @@ export function GeminiEnterpriseQuota({
   disableControls,
   paidPool,
   compact = false,
+  onRefreshComplete,
 }: {
   file: AuthFileItem;
   disableControls: boolean;
   paidPool?: EnterprisePaidQuotaPool;
   compact?: boolean;
+  onRefreshComplete?: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
+  const [refreshing, setRefreshing] = useState(false);
   const key = enterpriseQuotaKey(file);
   const now = useNow(Boolean(paidPool));
   const state = useQuotaStore((store) =>
@@ -124,25 +128,24 @@ export function GeminiEnterpriseQuota({
         { value: new Date(observation).toLocaleString(i18n.resolvedLanguage) }
       )
     : undefined;
-  useEffect(() => {
-    if (!paidPool && !disableControls && shouldLoadGeminiEnterpriseQuota(state, Date.now())) {
-      void loadGeminiEnterpriseQuota(file);
+  const refresh = async () => {
+    const revision = apiClient.getConnectionRevision();
+    setRefreshing(true);
+    try {
+      if (paidPool) await refreshEnterprisePaidQuota([paidPool]);
+      else await refreshEnterpriseCollectionQuota(file);
+      if (revision === apiClient.getConnectionRevision()) await onRefreshComplete?.();
+    } finally {
+      setRefreshing(false);
     }
-  }, [disableControls, file, paidPool, state]);
-
-  useEffect(() => {
-    if (paidPool || disableControls || state?.loading || !state?.data?.resetAt) return;
-    const delay = Date.parse(state.data.resetAt) - Date.now();
-    if (delay <= 0 || delay > 2_147_000_000) return;
-    const timer = window.setTimeout(() => void loadGeminiEnterpriseQuota(file, true), delay + 1000);
-    return () => window.clearTimeout(timer);
-  }, [disableControls, file, paidPool, state]);
+  };
+  const busy = refreshing || loading;
 
   return (
     <section
       className={[styles.quota, compact ? styles.compact : ''].filter(Boolean).join(' ')}
       aria-label={t('gemini_enterprise.quota.title')}
-      aria-busy={loading}
+      aria-busy={busy}
       title={compact ? observationTitle : undefined}
     >
       <div className={styles.header}>
@@ -150,12 +153,8 @@ export function GeminiEnterpriseQuota({
         <Button
           variant="secondary"
           size="sm"
-          disabled={disableControls || loading}
-          onClick={() =>
-            paidPool
-              ? void refreshEnterprisePaidQuota([paidPool], true)
-              : void loadGeminiEnterpriseQuota(file, true)
-          }
+          disabled={disableControls || busy}
+          onClick={() => void refresh()}
           title={[t('gemini_enterprise.quota.refresh'), compact && observationTitle]
             .filter(Boolean)
             .join('\n')}
@@ -164,9 +163,7 @@ export function GeminiEnterpriseQuota({
           <IconRefreshCw size={13} />
         </Button>
       </div>
-      <GeminiEnterpriseQuotaBody
-        state={state ?? (disableControls ? { loading: false, fetchedAtMs: 0 } : undefined)}
-      />
+      <GeminiEnterpriseQuotaBody state={state} />
     </section>
   );
 }

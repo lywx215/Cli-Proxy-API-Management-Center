@@ -177,6 +177,8 @@ export function sameGeminiEnterpriseConfig(a: GeminiEnterpriseConfig, b: GeminiE
 
 export class GeminiEnterpriseConfigConflict extends Error {}
 
+export type EnterpriseRoutingPatch = Pick<AuthFileFieldsPatch, 'priority' | 'weight'>;
+
 export type EnterpriseCollectionPatch = {
   disabled?: boolean;
   resources?: EnterpriseResources;
@@ -278,6 +280,39 @@ export const geminiEnterpriseApi = {
     requireManagementObject(result);
     if (result.status !== 'ok') throw new InvalidManagementResponseError();
     return accountResponse(result, file);
+  },
+
+  async updateAccountRouting(
+    file: Pick<AuthFileItem, 'name' | 'authIndex' | 'geminiEnterprise'>,
+    fields: EnterpriseRoutingPatch,
+    signal?: AbortSignal
+  ) {
+    const assertConnection = guardConfigConnection();
+    const account = file.geminiEnterprise;
+    const authIndex = String(file.authIndex ?? '').trim();
+    if (!account?.routing || !account.accountId || !account.revision || !authIndex) {
+      throw new InvalidManagementResponseError();
+    }
+    const result = await apiClient.patch(
+      '/credentials/gemini-enterprise/accounts/routing',
+      {
+        name: file.name,
+        auth_index: authIndex,
+        account_id: account.accountId,
+        expected_revision: account.revision,
+        fields,
+      },
+      { signal, timeout: 0 }
+    );
+    assertConnection();
+    signal?.throwIfAborted();
+    requireManagementObject(result);
+    if (result.status !== 'ok') throw new InvalidManagementResponseError();
+    const updated = accountResponse(result, file);
+    if (!updated.routing || (updated.revision ?? 0) < account.revision) {
+      throw new InvalidManagementResponseError();
+    }
+    return updated;
   },
 
   async updateResources(

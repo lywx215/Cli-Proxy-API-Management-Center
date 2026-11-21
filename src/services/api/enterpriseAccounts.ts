@@ -2,14 +2,17 @@ import type {
   GeminiEnterpriseAccount,
   GeminiEnterpriseCollection,
   EnterpriseModelPolicyState,
+  EnterpriseCredentialRouting,
+  EnterpriseQuotaProtection,
 } from '@/types/authFile';
+import { readCredentialWeight } from '@/utils/credentialWeight';
 import { isRecord } from '@/utils/helpers';
 import {
   normalizeRecentRequestAuthIndex,
   normalizeRecentRequestBuckets,
   normalizeUsageTotal,
 } from '@/utils/recentRequests';
-import { normalizeAuthFileCooldowns } from './authFileCooldowns';
+import { normalizeAuthFileCooldowns, normalizeCooldownTimestamp } from './authFileCooldowns';
 
 const text = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
@@ -28,6 +31,44 @@ const resources = (value: Record<string, unknown>) => ({
   assistantId: text(value.assistant_id),
   endpoint: text(value.endpoint),
 });
+
+function normalizeRouting(value: unknown): EnterpriseCredentialRouting | undefined {
+  if (!isRecord(value)) return undefined;
+  const priority = value.priority;
+  const weight = readCredentialWeight(value.weight);
+  if (typeof priority !== 'number' || !Number.isSafeInteger(priority) || weight === undefined)
+    return undefined;
+  return {
+    priority,
+    weight: Math.max(0, weight),
+    priorityInherited: bool(value.priority_inherited),
+    weightInherited: bool(value.weight_inherited),
+  };
+}
+
+function normalizeQuotaProtection(value: unknown): EnterpriseQuotaProtection | undefined {
+  if (!isRecord(value)) return undefined;
+  const status = value.protection_status;
+  if (status !== 'rate_limited' && status !== 'paused' && status !== 'recovering') return undefined;
+  const reason = value.protection_reason;
+  return {
+    status,
+    reason:
+      reason === 'consecutive_429' ||
+      reason === 'high_usage' ||
+      reason === 'quota_exhausted' ||
+      reason === 'daily_quota'
+        ? reason
+        : undefined,
+    retryAt: normalizeCooldownTimestamp(value.retry_at),
+    usedPercent:
+      typeof value.used_percent === 'number' &&
+      Number.isFinite(value.used_percent) &&
+      value.used_percent >= 0
+        ? value.used_percent
+        : undefined,
+  };
+}
 
 // Only the backend's editable settings enter child editors; never inherit OAuth material.
 const SETTING_KEYS = [
@@ -151,6 +192,11 @@ export function normalizeEnterpriseAccount(
           bindingId: text(entry.binding_id)!,
           modelPolicyState: normalizeEnterpriseModelPolicy(entry.model_policy_state),
           quotaProjectNumber: projectNumber(entry.quota_project_number),
+          quotaBalancingEnabled: isRecord(entry.quota_balancing)
+            ? bool(entry.quota_balancing.enabled)
+            : undefined,
+          quotaProtection: normalizeQuotaProtection(entry.quota_balancing),
+          routing: normalizeRouting(entry.routing),
           revision: enterpriseRevision(entry.revision),
           authIndex: normalizeRecentRequestAuthIndex(entry.auth_index) ?? undefined,
           projectName: text(entry.project_name),
@@ -168,8 +214,14 @@ export function normalizeEnterpriseAccount(
         }))
     : undefined;
   const discovery = isRecord(value.discovery) ? value.discovery : undefined;
+  const firstUploadedAt = normalizeCooldownTimestamp(value.first_uploaded_at);
+  const serverTime = normalizeCooldownTimestamp(value.server_time) ?? observedAt;
   return {
     ...resources(value),
+    ...(firstUploadedAt && serverTime && Date.parse(firstUploadedAt) <= Date.parse(serverTime)
+      ? { lifetime: { firstUploadedAt, serverTime, receivedAtMs } }
+      : {}),
+    routing: normalizeRouting(value.routing),
     argonForceSupported: bool(value.argon_force_supported),
     allModelsSupported: bool(value.all_models_supported),
     authorizationRevision: enterpriseRevision(value.carbon_authorization_revision),

@@ -3286,6 +3286,44 @@
     "reauthorize": "Authorize again",
     "binding_details": "Saved resource and application",
     "models_hint": "Models come from backend discovery.",
+    "lifetime": {
+      "hours": "Credential age: {{hours}} h",
+      "unknown": "Credential age: unknown",
+      "uploaded_at": "First uploaded {{value}}"
+    },
+    "routing": {
+      "account": "Account routing",
+      "collection": "Application routing",
+      "raise_priority": "Raise priority",
+      "lower_priority": "Lower priority",
+      "raise_weight": "Increase weight",
+      "lower_weight": "Decrease weight",
+      "adjust": "Adjust",
+      "reset_defaults": "Restore defaults",
+      "follow_account": "Use account settings",
+      "inherited": "Follows account",
+      "partly_inherited": "Partly inherited",
+      "overridden": "Overrides account",
+      "inherit_input_hint": "Blank settings inherit the account values.",
+      "priority_bounds": "Enter an integer from −1,000,000 to 1,000,000.",
+      "weight_bounds": "Enter an integer from 0 to 1,000,000.",
+      "weight_quota_balancing": "Pool selection uses remaining quota and in-flight requests, then weights credentials within the pool. Weight 0 removes a credential from quota-balanced routing.",
+      "weight_weighted_round_robin": "Weighted round robin distributes requests by weight within the same priority. Weight 0 removes a credential from weighted routing.",
+      "weight_round_robin": "Round robin cycles through credentials at the same priority. Weight applies in weighted round robin and quota-balanced routing.",
+      "weight_fill_first": "Fill first prefers the first credential at the same priority. Weight applies in weighted round robin and quota-balanced routing.",
+      "save_error": "Could not update account routing. Refresh and try again."
+    },
+    "quota_protection": {
+      "rate_limited": "Rate-limited routing",
+      "paused": "Paused by quota protection",
+      "recovering": "Verifying recovery",
+      "reason_consecutive_429": "Consecutive upstream 429 responses",
+      "reason_high_usage": "Daily usage reached the protection threshold during rate limiting",
+      "reason_quota_exhausted": "The current quota pool has no remaining quota",
+      "reason_daily_quota": "Upstream reported daily quota exhaustion",
+      "used": "{{percent}}% of daily quota used",
+      "retry_at": "Next check {{value}}"
+    },
     "quota_summary": {
       "failed": "Could not read {{count}} quota pool(s)",
       "overall": "Total remaining quota for all credentials",
@@ -3300,6 +3338,7 @@
       "refresh_one": "Refresh total remaining quota for this credential"
     },
     "quota": {
+      "pending_manual": "Waiting for manual refresh",
       "not_provided": "Not provided",
       "partial": "Some quota readings are unavailable. Known values are shown.",
       "stale": "Showing earlier readings from this Pacific day; reporting may be delayed.",

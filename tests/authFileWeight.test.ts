@@ -39,6 +39,24 @@ const makeEditor = (json: Record<string, unknown>, weight: string): PrefixProxyE
 const resolveError = (key: string) => key;
 
 describe('auth-file credential weight patch', () => {
+  test('expresses following the Enterprise account as null and a zero priority as an override', () => {
+    const collectionTarget = {
+      name: 'credential.json',
+      geminiEnterprise: { bindingId: 'binding', routing: { priority: -1, weight: 2 } },
+    };
+    expect(
+      buildAuthFileFieldsPatch(
+        { ...makeEditor({}, ''), collectionTarget, priority: '0' },
+        resolveError
+      )
+    ).toEqual({ priority: 0 });
+    expect(
+      buildAuthFileFieldsPatch(
+        { ...makeEditor({ priority: 0, weight: 1 }, ''), collectionTarget },
+        resolveError
+      )
+    ).toEqual({ priority: null, weight: null });
+  });
   test('writes numeric weight and uses null to restore the default', () => {
     expect(buildAuthFileFieldsPatch(makeEditor({}, '0'), resolveError)).toEqual({ weight: 0 });
     expect(buildAuthFileFieldsPatch(makeEditor({ weight: 5 }, ''), resolveError)).toEqual({
@@ -96,9 +114,9 @@ describe('auth-file disable cooling patch', () => {
   });
 
   test('does not patch an untouched or unchanged override', () => {
-    expect(buildAuthFileFieldsPatch(makeEditor({ disable_cooling: true }, ''), resolveError)).toEqual(
-      {}
-    );
+    expect(
+      buildAuthFileFieldsPatch(makeEditor({ disable_cooling: true }, ''), resolveError)
+    ).toEqual({});
     expect(
       buildAuthFileFieldsPatch(
         {

@@ -11,7 +11,6 @@ import {
   enterpriseQuotaKey,
   isEnterpriseQuotaCurrent,
   loadGeminiEnterpriseQuota,
-  shouldLoadGeminiEnterpriseQuota,
 } from './geminiEnterpriseQuota';
 
 type QuotaCache = Record<string, GeminiEnterpriseQuotaState>;
@@ -217,52 +216,65 @@ function scheduleQuotaRead(read: () => Promise<void>): Promise<void> {
   });
 }
 
-export async function refreshEnterprisePaidQuota(
-  pools: Iterable<EnterprisePaidQuotaPool>,
-  force: boolean
+function queueQuotaRefresh(
+  identity: string,
+  files: AuthFileItem[],
+  read: (files: AuthFileItem[], current: (file: AuthFileItem) => boolean) => Promise<void>
 ): Promise<void> {
   const connection = apiClient.getConnectionRevision();
   const generation = captureQuotaCacheGeneration();
+  const key = JSON.stringify([
+    connection,
+    generation.cacheGeneration,
+    identity,
+    files.map((file) => [enterpriseQuotaKey(file), generation.fileGenerations[file.name] ?? 0]),
+  ]);
+  const inFlight = pending.get(key);
+  if (inFlight) return inFlight;
+  const current = (file: AuthFileItem) => {
+    const state = useQuotaStore.getState();
+    return (
+      connection === apiClient.getConnectionRevision() &&
+      generation.cacheGeneration === state.cacheGeneration &&
+      (generation.fileGenerations[file.name] ?? 0) === (state.fileGenerations[file.name] ?? 0)
+    );
+  };
+  const task = scheduleQuotaRead(() => read(files, current)).finally(() => pending.delete(key));
+  pending.set(key, task);
+  return task;
+}
+
+export function refreshEnterpriseCollectionQuota(file: AuthFileItem): Promise<void> {
+  return queueQuotaRefresh(enterpriseQuotaKey(file), [file], async ([target], current) => {
+    if (current(target)) await loadGeminiEnterpriseQuota(target);
+  });
+}
+
+export async function refreshEnterprisePaidQuota(pools: Iterable<EnterprisePaidQuotaPool>) {
   await Promise.all(
-    Array.from(pools, (pool) => {
-      const key = JSON.stringify([connection, generation.cacheGeneration, pool.key]);
-      const inFlight = pending.get(key);
-      if (inFlight) return inFlight;
-      const task = scheduleQuotaRead(async () => {
-        const current = useQuotaStore.getState();
-        const cache = current.geminiEnterpriseQuota;
-        const now = Date.now();
-        const cached = enterprisePaidQuotaPoolState(pool, cache, now);
-        if (!force && !shouldLoadGeminiEnterpriseQuota(cached, now)) return;
+    Array.from(pools, (pool) =>
+      queueQuotaRefresh(pool.key, pool.files, async (members, current) => {
+        const cache = useQuotaStore.getState().geminiEnterpriseQuota;
+        const cached = enterprisePaidQuotaPoolState(pool, cache, Date.now());
         // Prefer a previously successful credential, and try alternatives only after failure.
-        const files = [...pool.files].sort(
+        const files = [...members].sort(
           (a, b) =>
             Number(cache[enterpriseQuotaKey(b)] === cached) -
             Number(cache[enterpriseQuotaKey(a)] === cached)
         );
         for (const file of files) {
-          const state = useQuotaStore.getState();
-          if (
-            connection !== apiClient.getConnectionRevision() ||
-            generation.cacheGeneration !== state.cacheGeneration
-          )
-            return;
-          if (
-            (generation.fileGenerations[file.name] ?? 0) !== (state.fileGenerations[file.name] ?? 0)
-          )
-            continue;
-          await loadGeminiEnterpriseQuota(file, force);
+          if (!current(file)) continue;
+          await loadGeminiEnterpriseQuota(file);
+          if (!current(file)) continue;
           const loaded = collectionQuotaState(
             file,
             pool.edition,
             useQuotaStore.getState().geminiEnterpriseQuota
           );
           const reading = quotaReading(pool, loaded, Date.now());
-          if (reading && (!force || !reading.stale)) return;
+          if (reading && !reading.stale) return;
         }
-      }).finally(() => pending.delete(key));
-      pending.set(key, task);
-      return task;
-    })
+      })
+    )
   );
 }

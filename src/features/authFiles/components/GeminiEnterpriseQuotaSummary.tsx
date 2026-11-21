@@ -1,45 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { useNow } from '@/hooks/useNow';
+import { apiClient } from '@/services/api/client';
 import { useQuotaStore } from '@/stores/useQuotaStore';
 import {
   refreshEnterprisePaidQuota,
   summarizeEnterprisePaidQuota,
   type EnterprisePaidQuotaScope,
 } from '../enterpriseQuotaSummary';
-import { enterpriseQuotaDay } from '../geminiEnterpriseQuota';
 import styles from './GeminiEnterpriseQuotaSummary.module.scss';
 
 export function GeminiEnterpriseQuotaSummary({
   scope,
   disabled,
   overall = false,
+  onRefreshComplete,
 }: {
   scope: EnterprisePaidQuotaScope;
   disabled: boolean;
   overall?: boolean;
+  onRefreshComplete?: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
   const cache = useQuotaStore((store) => store.geminiEnterpriseQuota);
-  const cacheGeneration = useQuotaStore((store) => store.cacheGeneration);
   const now = useNow(scope.pools.size > 0);
-  const day = enterpriseQuotaDay(now);
   const summary = summarizeEnterprisePaidQuota(scope, cache, now);
   const [refreshing, setRefreshing] = useState(false);
   const hasPools = scope.pools.size > 0;
 
-  useEffect(() => {
-    if (overall && !disabled && hasPools) {
-      void refreshEnterprisePaidQuota(scope.pools, false);
-    }
-  }, [scope, overall, disabled, hasPools, day, cacheGeneration]);
-
   const refresh = async () => {
+    const revision = apiClient.getConnectionRevision();
     setRefreshing(true);
     try {
-      await refreshEnterprisePaidQuota(scope.pools, true);
+      await refreshEnterprisePaidQuota(scope.pools);
+      if (revision === apiClient.getConnectionRevision()) await onRefreshComplete?.();
     } finally {
       setRefreshing(false);
     }
@@ -65,7 +61,13 @@ export function GeminiEnterpriseQuotaSummary({
           <span>{label}</span>
           <strong>
             {summary.remaining?.toLocaleString(i18n.resolvedLanguage) ??
-              t('gemini_enterprise.quota.not_provided')}
+              t(
+                busy
+                  ? 'gemini_enterprise.quota.loading'
+                  : hasPools
+                    ? 'gemini_enterprise.quota.pending_manual'
+                    : 'gemini_enterprise.quota.not_provided'
+              )}
           </strong>
         </div>
         <div className={styles.coverage}>

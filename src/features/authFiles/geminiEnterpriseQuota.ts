@@ -1,5 +1,4 @@
 import type { AuthFileItem } from '@/types';
-import type { GeminiEnterpriseQuotaState } from '@/types/geminiEnterpriseQuota';
 import type { GeminiEnterpriseQuotaData } from '@/types/geminiEnterpriseQuota';
 import { apiClient } from '@/services/api/client';
 import {
@@ -39,23 +38,7 @@ export function isEnterpriseQuotaCurrent(
   return enterpriseQuotaDay(Date.parse(data.observedAt)) === enterpriseQuotaDay(now);
 }
 
-export function shouldLoadGeminiEnterpriseQuota(
-  state: GeminiEnterpriseQuotaState | undefined,
-  now: number
-): boolean {
-  if (state?.loading) return false;
-  const resetAt = state?.data?.resetAt ? Date.parse(state.data.resetAt) : null;
-  return (
-    !state ||
-    now - state.fetchedAtMs > 120_000 ||
-    (resetAt !== null && resetAt <= now && state.fetchedAtMs < resetAt)
-  );
-}
-
-export async function loadGeminiEnterpriseQuota(
-  file: AuthFileItem,
-  refresh = false
-): Promise<void> {
+export async function loadGeminiEnterpriseQuota(file: AuthFileItem): Promise<void> {
   const key = enterpriseQuotaKey(file);
   const store = useQuotaStore.getState();
   if (store.geminiEnterpriseQuota[key]?.loading) return;
@@ -76,11 +59,9 @@ export async function loadGeminiEnterpriseQuota(
                 bindingId: file.geminiEnterprise.bindingId,
                 accountId: file.geminiEnterprise.accountId,
                 revision: file.geminiEnterprise.revision,
-                refresh,
+                refresh: true,
               }
-            : refresh
-              ? { refresh: true }
-              : undefined
+            : { refresh: true }
         )
       : normalizeGeminiEnterpriseQuota(null);
   } catch {
