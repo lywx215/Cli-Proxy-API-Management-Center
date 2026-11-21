@@ -3288,8 +3288,10 @@
     "models_hint": "Models come from backend discovery.",
     "lifetime": {
       "hours": "Credential age: {{hours}} h",
+      "initialized_hours": "Credential age: {{hours}} h (since initialization)",
       "unknown": "Credential age: unknown",
-      "uploaded_at": "First uploaded {{value}}"
+      "uploaded_at": "First uploaded {{value}}",
+      "initialized_at": "Initialized {{value}}"
     },
     "routing": {
       "account": "Account routing",

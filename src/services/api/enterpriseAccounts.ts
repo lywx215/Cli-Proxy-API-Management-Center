@@ -215,11 +215,19 @@ export function normalizeEnterpriseAccount(
     : undefined;
   const discovery = isRecord(value.discovery) ? value.discovery : undefined;
   const firstUploadedAt = normalizeCooldownTimestamp(value.first_uploaded_at);
+  const startedAt = firstUploadedAt ?? normalizeCooldownTimestamp(value.lifetime_initialized_at);
   const serverTime = normalizeCooldownTimestamp(value.server_time) ?? observedAt;
   return {
     ...resources(value),
-    ...(firstUploadedAt && serverTime && Date.parse(firstUploadedAt) <= Date.parse(serverTime)
-      ? { lifetime: { firstUploadedAt, serverTime, receivedAtMs } }
+    ...(startedAt && serverTime && Date.parse(startedAt) <= Date.parse(serverTime)
+      ? {
+          lifetime: {
+            startedAt,
+            source: firstUploadedAt ? 'upload' : 'initialization',
+            serverTime,
+            receivedAtMs,
+          },
+        }
       : {}),
     routing: normalizeRouting(value.routing),
     argonForceSupported: bool(value.argon_force_supported),

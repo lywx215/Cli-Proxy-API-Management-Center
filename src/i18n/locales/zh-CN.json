@@ -3286,8 +3286,10 @@
     "models_hint": "模型列表来自后端发现。",
     "lifetime": {
       "hours": "存活时间：{{hours}}小时",
+      "initialized_hours": "存活时间：{{hours}} 小时（自初始化）",
       "unknown": "存活时间：未知",
-      "uploaded_at": "首次上传 {{value}}"
+      "uploaded_at": "首次上传 {{value}}",
+      "initialized_at": "初始化时间 {{value}}"
     },
     "routing": {
       "account": "账号调度设置",

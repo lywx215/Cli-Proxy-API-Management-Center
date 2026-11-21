@@ -151,6 +151,7 @@ describe('Enterprise account and collection identities', () => {
   test('anchors the credential age to the server clock and keeps zero as an explicit weight', () => {
     const file = parent(routingAccount);
     const lifetime = file.geminiEnterprise!.lifetime!;
+    expect(lifetime.source).toBe('upload');
     const hour = 3_600_000;
     expect(enterpriseCredentialLifetimeHours(lifetime, lifetime.receivedAtMs - hour)).toBe(48);
     expect(enterpriseCredentialLifetimeHours(lifetime, lifetime.receivedAtMs + hour - 1)).toBe(48);
@@ -169,6 +170,20 @@ describe('Enterprise account and collection identities', () => {
       reason: 'high_usage',
       usedPercent: 96.5,
     });
+  });
+
+  test('uses the initialization time for legacy credentials and prefers a verified upload time', () => {
+    const legacy = { ...rawAccount, lifetime_initialized_at: uploadedAt, server_time: serverTime };
+    const lifetime = parent(legacy).geminiEnterprise!.lifetime!;
+    expect(lifetime.source).toBe('initialization');
+    expect(enterpriseCredentialLifetimeHours(lifetime, lifetime.receivedAtMs)).toBe(48);
+    expect(
+      parent({ ...legacy, first_uploaded_at: serverTime }).geminiEnterprise?.lifetime?.source
+    ).toBe('upload');
+    expect(
+      parent({ ...legacy, lifetime_initialized_at: '2026-11-21T00:00:00Z' }).geminiEnterprise
+        ?.lifetime
+    ).toBeUndefined();
   });
 
   test('pins account routing writes and rejects an update for another credential', async () => {
@@ -572,25 +587,26 @@ describe('Enterprise grouped UI in six languages', () => {
       await i18n.init({ lng: locale, resources: { [locale]: { translation: translations } } });
       const render = (element: ReturnType<typeof createElement>) =>
         renderToStaticMarkup(createElement(I18nextProvider, { i18n }, element));
-      const file = parent(routingAccount);
       const noOp = () => {};
-      const markup = render(
-        createElement(GeminiEnterpriseAccount, {
-          file,
-          selected: false,
-          disableControls: true,
-          deleting: null,
-          statusUpdating: {},
-          manualRefreshing: {},
-          onShowModels: noOp,
-          onDownload: noOp,
-          onManualRefresh: noOp,
-          onOpenPrefixProxyEditor: noOp,
-          onDelete: noOp,
-          onToggleStatus: noOp,
-          onToggleSelect: noOp,
-        })
-      );
+      const renderAccount = (file: ReturnType<typeof parent>) =>
+        render(
+          createElement(GeminiEnterpriseAccount, {
+            file,
+            selected: false,
+            disableControls: true,
+            deleting: null,
+            statusUpdating: {},
+            manualRefreshing: {},
+            onShowModels: noOp,
+            onDownload: noOp,
+            onManualRefresh: noOp,
+            onOpenPrefixProxyEditor: noOp,
+            onDelete: noOp,
+            onToggleStatus: noOp,
+            onToggleSelect: noOp,
+          })
+        );
+      const markup = renderAccount(parent(routingAccount));
       expect(markup).toContain('custom_collection');
       expect(markup).not.toContain('default_collection');
       expect(markup).not.toContain('never-render');
@@ -599,6 +615,19 @@ describe('Enterprise grouped UI in six languages', () => {
       expect(markup).toContain(translations.gemini_enterprise.collections.requests);
       expect(markup).toContain(
         translations.gemini_enterprise.lifetime.hours.replace('{{hours}}', '48')
+      );
+      const initialized = renderAccount(
+        parent({
+          ...routingAccount,
+          first_uploaded_at: undefined,
+          lifetime_initialized_at: uploadedAt,
+        })
+      );
+      expect(initialized).toContain(
+        translations.gemini_enterprise.lifetime.initialized_hours.replace('{{hours}}', '48')
+      );
+      expect(initialized).toContain(
+        translations.gemini_enterprise.lifetime.initialized_at.split('{{value}}')[0].trim()
       );
       expect(markup).toContain('data-enterprise-routing="account"');
       expect(markup).toContain('data-enterprise-routing="collection"');

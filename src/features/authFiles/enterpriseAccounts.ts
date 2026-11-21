@@ -61,7 +61,7 @@ export function enterpriseCredentialLifetimeHours(
 ): number {
   const elapsed =
     Date.parse(lifetime.serverTime) -
-    Date.parse(lifetime.firstUploadedAt) +
+    Date.parse(lifetime.startedAt) +
     Math.max(0, clientNow - lifetime.receivedAtMs);
   return Math.floor(elapsed / 3_600_000);
 }

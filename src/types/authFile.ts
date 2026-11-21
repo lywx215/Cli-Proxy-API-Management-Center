@@ -115,7 +115,8 @@ export type EnterpriseModelPolicyState = {
 };
 
 export interface EnterpriseCredentialLifetime {
-  firstUploadedAt: string;
+  startedAt: string;
+  source: 'upload' | 'initialization';
   serverTime: string;
   receivedAtMs: number;
 }

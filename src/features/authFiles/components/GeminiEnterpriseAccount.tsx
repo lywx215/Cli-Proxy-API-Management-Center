@@ -88,23 +88,33 @@ function CredentialLifetime({
 }) {
   const { t, i18n } = useTranslation();
   const now = useNow(lifetime !== undefined);
-  const uploadedAt = lifetime?.firstUploadedAt;
+  const initialized = lifetime?.source === 'initialization';
   return (
     <>
       <span data-credential-lifetime>
         {lifetime
-          ? t('gemini_enterprise.lifetime.hours', {
-              hours: enterpriseCredentialLifetimeHours(lifetime, now).toLocaleString(
-                i18n.resolvedLanguage
-              ),
-            })
+          ? t(
+              initialized
+                ? 'gemini_enterprise.lifetime.initialized_hours'
+                : 'gemini_enterprise.lifetime.hours',
+              {
+                hours: enterpriseCredentialLifetimeHours(lifetime, now).toLocaleString(
+                  i18n.resolvedLanguage
+                ),
+              }
+            )
           : t('gemini_enterprise.lifetime.unknown')}
       </span>
-      {expanded && uploadedAt && (
-        <time dateTime={uploadedAt}>
-          {t('gemini_enterprise.lifetime.uploaded_at', {
-            value: new Date(uploadedAt).toLocaleString(i18n.resolvedLanguage),
-          })}
+      {expanded && lifetime && (
+        <time dateTime={lifetime.startedAt}>
+          {t(
+            initialized
+              ? 'gemini_enterprise.lifetime.initialized_at'
+              : 'gemini_enterprise.lifetime.uploaded_at',
+            {
+              value: new Date(lifetime.startedAt).toLocaleString(i18n.resolvedLanguage),
+            }
+          )}
         </time>
       )}
     </>

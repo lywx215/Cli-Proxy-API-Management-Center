@@ -3293,8 +3293,10 @@
     "models_hint": "Danh sách mô hình do máy chủ khám phá.",
     "lifetime": {
       "hours": "Tuổi thông tin xác thực: {{hours}} giờ",
+      "initialized_hours": "Tuổi thông tin xác thực: {{hours}} giờ (từ khi khởi tạo)",
       "unknown": "Chưa rõ tuổi thông tin xác thực",
-      "uploaded_at": "Tải lên lần đầu {{value}}"
+      "uploaded_at": "Tải lên lần đầu {{value}}",
+      "initialized_at": "Khởi tạo {{value}}"
     },
     "routing": {
       "account": "Định tuyến tài khoản",

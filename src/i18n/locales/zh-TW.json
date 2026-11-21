@@ -3313,8 +3313,10 @@
     "models_hint": "模型清單來自後端探索。",
     "lifetime": {
       "hours": "存活時間：{{hours}}小時",
+      "initialized_hours": "存活時間：{{hours}} 小時（自初始化）",
       "unknown": "存活時間：未知",
-      "uploaded_at": "首次上傳 {{value}}"
+      "uploaded_at": "首次上傳 {{value}}",
+      "initialized_at": "初始化時間 {{value}}"
     },
     "routing": {
       "account": "帳號調度設定",
