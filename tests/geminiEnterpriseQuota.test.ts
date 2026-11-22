@@ -220,6 +220,8 @@ describe('Gemini Enterprise credential quota', () => {
       expect(success).toContain((9994).toLocaleString(locale));
       expect(success).toContain(translations.gemini_enterprise.collections.reported_usage);
       expect(success).toContain(translations.gemini_enterprise.collections.daily_limit);
+      expect(success).toContain(fixture.observed_at);
+      expect(success).toContain(fixture.selected_pool.usage_updated_at);
       expect(success).not.toContain('progressbar');
       const denied = render({ status: 'no_permission', error: 'never-display-raw-error' });
       expect(denied).toContain('roles/viewer');

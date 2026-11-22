@@ -2,11 +2,16 @@ import { beforeEach, expect, spyOn, test } from 'bun:test';
 import { enterpriseCollectionFiles } from '@/features/authFiles/enterpriseAccounts';
 import {
   buildEnterprisePaidQuotaIndex,
+  enterprisePaidQuotaPoolState,
   refreshEnterpriseCollectionQuota,
   refreshEnterprisePaidQuota,
   summarizeEnterprisePaidQuota,
 } from '@/features/authFiles/enterpriseQuotaSummary';
-import { enterpriseQuotaDay, enterpriseQuotaKey } from '@/features/authFiles/geminiEnterpriseQuota';
+import {
+  enterpriseQuotaDay,
+  enterpriseQuotaKey,
+  formatEnterpriseUsedPercent,
+} from '@/features/authFiles/geminiEnterpriseQuota';
 import { apiClient } from '@/services/api/client';
 import { normalizeEnterpriseAccount } from '@/services/api/enterpriseAccounts';
 import { normalizeGeminiEnterpriseQuota } from '@/services/api/geminiEnterprise';
@@ -101,6 +106,67 @@ const state = (raw: unknown, fetchedAtMs = now): GeminiEnterpriseQuotaState => (
 });
 
 beforeEach(() => useQuotaStore.getState().clearQuotaCache());
+
+test('row and both totals select the accepted paid observation and expire it at the same boundaries', () => {
+  const raw = {
+    enabled: false,
+    limit: 10200,
+    used: 10199,
+    remaining: 1,
+    period_start: period,
+    reset_at: reset,
+    observed_at: new Date(now).toISOString(),
+    usage_updated_at: new Date(now - hour).toISOString(),
+  };
+  const a = account('runtime', '123', { child: { quota_balancing: raw } });
+  const b = account('alias', 'project-alias', { canonical: '123' });
+  const index = buildEnterprisePaidQuotaIndex([a, b]);
+  const [pool] = index.all.pools;
+  const [first, sibling] = pool.files;
+  const cache = {
+    [enterpriseQuotaKey(sibling)]: state(rawReading(sibling, 10200, 7500), now + 1000),
+  };
+  expect(enterprisePaidQuotaPoolState(pool, cache, now)).toBe(
+    first.geminiEnterprise?.quotaObservation
+  );
+  for (const scope of [index.all, index.byCredential.get(a)!, index.byCredential.get(b)!]) {
+    expect(summarizeEnterprisePaidQuota(scope, cache, now + 299_999)).toMatchObject({
+      remaining: 1n,
+      known: 1,
+      stale: 0,
+    });
+    expect(summarizeEnterprisePaidQuota(scope, cache, now + 300_000)).toMatchObject({
+      remaining: 1n,
+      stale: 1,
+    });
+    expect(summarizeEnterprisePaidQuota(scope, cache, Date.parse(reset)).remaining).toBeNull();
+  }
+  expect(formatEnterpriseUsedPercent((10199 / 10200) * 100, 'en')).toBe('99.99');
+  expect(
+    summarizeEnterprisePaidQuota(
+      index.all,
+      {
+        [enterpriseQuotaKey(sibling)]: state({ status: 'no_permission' }, now + 1000),
+      },
+      now + 1000
+    )
+  ).toMatchObject({ remaining: 1n, stale: 0 });
+  const disabled = buildEnterprisePaidQuotaIndex([account('disabled', '123', { disabled: true })]);
+  expect(disabled.hasPaidCollections).toBe(true);
+  expect(disabled.all.pools.size).toBe(0);
+  expect(formatEnterpriseUsedPercent(99.9999, 'en')).toBe('<100');
+  expect(formatEnterpriseUsedPercent(100, 'en')).toBe('100');
+  const legacy = account('legacy', '123', { child: { quota_balancing: { remaining: 1 } } });
+  const wrongTime = account('wrong-time', '123', {
+    child: { quota_balancing: { ...raw, usage_updated_at: reset } },
+  });
+  const trial = account('trial', '123', { freeTrial: true, child: { quota_balancing: raw } });
+  for (const ignored of [legacy, wrongTime, trial]) {
+    expect(
+      enterpriseCollectionFiles(ignored)[0].geminiEnterprise?.quotaObservation
+    ).toBeUndefined();
+  }
+});
 
 test('counts shared project aliases once across credentials and keeps separate regions and editions', () => {
   const first = account('first', '123');

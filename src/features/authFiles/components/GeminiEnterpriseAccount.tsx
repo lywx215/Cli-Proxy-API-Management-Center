@@ -36,7 +36,7 @@ import {
   type EnterpriseCollectionGroupKind,
 } from '../enterpriseCollectionGroups';
 import { getAuthFileRefreshKey } from '../manualRefresh';
-import { enterpriseQuotaKey } from '../geminiEnterpriseQuota';
+import { enterpriseQuotaKey, formatEnterpriseUsedPercent } from '../geminiEnterpriseQuota';
 import type { EnterprisePaidQuotaPool, EnterprisePaidQuotaScope } from '../enterpriseQuotaSummary';
 import type { AuthFileCardProps } from './AuthFileCard';
 import { GeminiEnterpriseQuota } from './GeminiEnterpriseQuota';
@@ -301,9 +301,10 @@ function CollectionRows({
                 {quotaProtection.usedPercent !== undefined && (
                   <span>
                     {t('gemini_enterprise.quota_protection.used', {
-                      percent: quotaProtection.usedPercent.toLocaleString(i18n.resolvedLanguage, {
-                        maximumFractionDigits: 1,
-                      }),
+                      percent: formatEnterpriseUsedPercent(
+                        quotaProtection.usedPercent,
+                        i18n.resolvedLanguage
+                      ),
                     })}
                   </span>
                 )}

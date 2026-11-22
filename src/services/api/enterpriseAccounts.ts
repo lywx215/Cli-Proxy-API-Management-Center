@@ -6,6 +6,10 @@ import type {
   EnterpriseQuotaProtection,
 } from '@/types/authFile';
 import { readCredentialWeight } from '@/utils/credentialWeight';
+import type {
+  GeminiEnterpriseQuotaState,
+  GeminiEnterpriseQuotaPool,
+} from '@/types/geminiEnterpriseQuota';
 import { isRecord } from '@/utils/helpers';
 import {
   normalizeRecentRequestAuthIndex,
@@ -43,6 +47,72 @@ function normalizeRouting(value: unknown): EnterpriseCredentialRouting | undefin
     weight: Math.max(0, weight),
     priorityInherited: bool(value.priority_inherited),
     weightInherited: bool(value.weight_inherited),
+  };
+}
+
+function normalizeQuotaObservation(
+  entry: Record<string, unknown>,
+  accountId?: string
+): GeminiEnterpriseQuotaState | undefined {
+  const raw = entry.quota_balancing;
+  const sub = isRecord(entry.model_policy_state)
+    ? entry.model_policy_state.subscription
+    : undefined;
+  if (
+    !isRecord(raw) ||
+    !isRecord(sub) ||
+    !(projectNumber(entry.quota_project_number) ?? projectNumber(entry.project_id)) ||
+    sub.free_trial !== false ||
+    (sub.status !== 'ok' && sub.status !== 'stale')
+  )
+    return undefined;
+  const tier = text(sub.edition);
+  const used = enterpriseRevision(raw.used);
+  const limit = enterpriseRevision(raw.limit);
+  const periodStart = normalizeCooldownTimestamp(raw.period_start);
+  const resetAt = normalizeCooldownTimestamp(raw.reset_at);
+  const observedAt = normalizeCooldownTimestamp(raw.observed_at);
+  const usageUpdatedAt = normalizeCooldownTimestamp(raw.usage_updated_at);
+  const revision = enterpriseRevision(entry.revision);
+  const bindingId = text(entry.binding_id);
+  if (
+    !tier ||
+    !bindingId ||
+    !accountId ||
+    revision === undefined ||
+    used === undefined ||
+    limit === undefined ||
+    !periodStart ||
+    !resetAt ||
+    !observedAt ||
+    !usageUpdatedAt ||
+    Date.parse(usageUpdatedAt) < Date.parse(periodStart) ||
+    Date.parse(usageUpdatedAt) > Date.parse(observedAt) ||
+    Date.parse(observedAt) >= Date.parse(resetAt)
+  )
+    return undefined;
+  const pool: GeminiEnterpriseQuotaPool = {
+    tier,
+    used,
+    limit,
+    remaining: Math.max(0, limit - used),
+    status: 'ok',
+    usageUpdatedAt,
+  };
+  return {
+    loading: false,
+    fetchedAtMs: Date.parse(observedAt),
+    data: {
+      status: 'ok',
+      observedAt,
+      periodStart,
+      resetAt,
+      pools: [pool],
+      selectedPool: pool,
+      accountId,
+      bindingId,
+      revision,
+    },
   };
 }
 
@@ -196,6 +266,7 @@ export function normalizeEnterpriseAccount(
             ? bool(entry.quota_balancing.enabled)
             : undefined,
           quotaProtection: normalizeQuotaProtection(entry.quota_balancing),
+          quotaObservation: normalizeQuotaObservation(entry, text(value.account_id)),
           routing: normalizeRouting(entry.routing),
           revision: enterpriseRevision(entry.revision),
           authIndex: normalizeRecentRequestAuthIndex(entry.auth_index) ?? undefined,

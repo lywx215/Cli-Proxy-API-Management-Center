@@ -3,6 +3,7 @@
  */
 
 import type { RecentRequestBucket } from '@/utils/recentRequests';
+import type { GeminiEnterpriseQuotaState } from './geminiEnterpriseQuota';
 
 export type AuthFileType =
   | 'qwen'
@@ -137,6 +138,7 @@ export interface EnterpriseQuotaProtection {
 
 export interface GeminiEnterpriseCollection extends GeminiEnterpriseResources {
   modelPolicyState?: EnterpriseModelPolicyState;
+  quotaObservation?: GeminiEnterpriseQuotaState;
   quotaProjectNumber?: string;
   quotaBalancingEnabled?: boolean;
   quotaProtection?: EnterpriseQuotaProtection;
@@ -193,6 +195,7 @@ export interface GeminiEnterpriseAccount extends GeminiEnterpriseResources {
   };
   collections?: GeminiEnterpriseCollection[];
   /** Present only on a derived collection view; the saved file remains the parent. */
+  quotaObservation?: GeminiEnterpriseQuotaState;
   bindingId?: string;
   accountAuthIndex?: string;
   accountRevision?: number;

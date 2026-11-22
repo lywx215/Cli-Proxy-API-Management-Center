@@ -3354,10 +3354,10 @@
       "used": "Reported usage: {{value}}",
       "limit": "Daily limit: {{value}}",
       "remaining": "Calculated remaining: {{value}}",
-      "reported_at": "Usage reported at: {{value}}",
+      "reported_at": "Google usage reported at {{value}}",
       "shared": "Shared by this project, region and edition. Google reporting may be delayed.",
       "reset": "Resets: {{value}} (midnight Pacific Time)",
-      "checked_at": "Checked: {{value}}"
+      "checked_at": "Backend checked at {{value}}"
     },
     "configure_link": "Configure Gemini Enterprise and authorize an account",
     "validation": {

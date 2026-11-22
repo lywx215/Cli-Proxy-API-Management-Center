@@ -3352,10 +3352,10 @@
       "used": "已上报用量：{{value}}",
       "limit": "每日上限：{{value}}",
       "remaining": "计算剩余：{{value}}",
-      "reported_at": "用量上报时间：{{value}}",
+      "reported_at": "Google 用量上报时间 {{value}}",
       "shared": "同项目、区域及版本共享额度，Google 上报可能有延迟。",
       "reset": "重置时间：{{value}}（太平洋时间午夜）",
-      "checked_at": "查询时间：{{value}}"
+      "checked_at": "后端读取时间 {{value}}"
     },
     "configure_link": "配置 Gemini Enterprise 并授权账号",
     "validation": {

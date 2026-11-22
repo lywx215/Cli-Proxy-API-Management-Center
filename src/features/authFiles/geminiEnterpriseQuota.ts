@@ -25,6 +25,17 @@ const pacificDay = new Intl.DateTimeFormat('en-CA', {
 
 export const enterpriseQuotaDay = (time: number): string => pacificDay.format(time);
 
+export function isEnterpriseQuotaStale(data: GeminiEnterpriseQuotaData | undefined, now: number) {
+  return Boolean(data?.observedAt && now - Date.parse(data.observedAt) >= 5 * 60_000);
+}
+
+export function formatEnterpriseUsedPercent(percent: number, locale?: string) {
+  const rounded = Number(percent.toFixed(2));
+  return percent < 100 && rounded >= 100
+    ? '<100'
+    : rounded.toLocaleString(locale, { maximumFractionDigits: 2 });
+}
+
 export function isEnterpriseQuotaCurrent(
   data: GeminiEnterpriseQuotaData | undefined,
   now: number

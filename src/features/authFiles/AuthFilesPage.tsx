@@ -421,16 +421,6 @@ export function AuthFilesPage() {
   const hasWebCredentials = files.some(
     (file) => normalizeProviderKey(file.type ?? file.provider ?? '') === ENTERPRISE_WEB_PROVIDER
   );
-  useInterval(
-    () => {
-      void loadFiles({ background: true }).catch(() => {});
-    },
-    isCurrentLayer && connectionStatus === 'connected'
-      ? hasWebCredentials
-        ? 30_000
-        : 240_000
-      : null
-  );
 
   /* Filter, sort and pagination memos. */
 
@@ -446,6 +436,17 @@ export function AuthFilesPage() {
   const enterpriseQuota = useMemo(
     () => buildEnterprisePaidQuotaIndex(enterpriseFiles),
     [enterpriseFiles]
+  );
+  useInterval(
+    () => {
+      if (document.visibilityState === 'visible')
+        void loadFiles({ background: true }).catch(() => {});
+    },
+    isCurrentLayer && connectionStatus === 'connected'
+      ? hasWebCredentials || enterpriseQuota.hasPaidCollections
+        ? 30_000
+        : 240_000
+      : null
   );
 
   const existingTypes = useMemo(() => {

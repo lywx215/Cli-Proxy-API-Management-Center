@@ -3346,10 +3346,10 @@
       "used": "Переданный расход: {{value}}",
       "limit": "Суточный лимит: {{value}}",
       "remaining": "Расчётный остаток: {{value}}",
-      "reported_at": "Данные о расходе: {{value}}",
+      "reported_at": "Google сообщил о расходе {{value}}",
       "shared": "Общая квота проекта, региона и редакции. Данные Google могут задерживаться.",
       "reset": "Сброс: {{value}} (полночь по тихоокеанскому времени)",
-      "checked_at": "Проверено: {{value}}"
+      "checked_at": "Сервер проверил квоту {{value}}"
     },
     "configure_link": "Настроить Gemini Enterprise и авторизовать аккаунт",
     "validation": {

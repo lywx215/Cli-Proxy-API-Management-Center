@@ -13,19 +13,32 @@ import {
   refreshEnterprisePaidQuota,
   type EnterprisePaidQuotaPool,
 } from '../enterpriseQuotaSummary';
-import { enterpriseQuotaKey, isEnterpriseQuotaCurrent } from '../geminiEnterpriseQuota';
+import {
+  enterpriseQuotaKey,
+  formatEnterpriseUsedPercent,
+  isEnterpriseQuotaCurrent,
+  isEnterpriseQuotaStale,
+} from '../geminiEnterpriseQuota';
 import styles from './GeminiEnterpriseQuota.module.scss';
 
-export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQuotaState }) {
+export function GeminiEnterpriseQuotaBody({
+  state,
+  showUsagePercent = false,
+}: {
+  state?: GeminiEnterpriseQuotaState;
+  showUsagePercent?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const data = state?.data;
   const pool = data?.selectedPool;
   const now = useNow(Boolean(data));
-  const currentDay = isEnterpriseQuotaCurrent(data, Math.max(now, state?.fetchedAtMs ?? 0));
+  const displayedAt = Math.max(now, state?.fetchedAtMs ?? 0);
+  const currentDay = isEnterpriseQuotaCurrent(data, displayedAt);
+  const stale = pool?.status === 'ok' && isEnterpriseQuotaStale(data, displayedAt);
   const messageStatus =
     pool && !currentDay
       ? 'pending_manual'
-      : pool?.status === 'stale' || data?.status === 'stale'
+      : stale || pool?.status === 'stale' || data?.status === 'stale'
         ? 'stale'
         : data?.status === 'partial'
           ? 'partial'
@@ -34,7 +47,10 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
             : data?.status === 'ok'
               ? 'no_data'
               : (data?.status ?? 'unavailable');
-  const observation = pool?.usageUpdatedAt || data?.observedAt;
+  const percent =
+    showUsagePercent && currentDay && pool?.limit && pool.used != null
+      ? formatEnterpriseUsedPercent((100 * pool.used) / pool.limit, i18n.resolvedLanguage)
+      : undefined;
   const amount = (value: number | null | undefined) =>
     value === null || value === undefined
       ? t('gemini_enterprise.quota.not_provided')
@@ -63,27 +79,33 @@ export function GeminiEnterpriseQuotaBody({ state }: { state?: GeminiEnterpriseQ
       </div>
       <dl className={styles.amounts}>
         <dt>{t('gemini_enterprise.collections.reported_usage')}</dt>
-        <dd>{amount(currentDay ? pool?.used : null)}</dd>
+        <dd>
+          {amount(currentDay ? pool?.used : null)}
+          {percent !== undefined && ` (${percent}%)`}
+        </dd>
         <dt>{t('gemini_enterprise.collections.daily_limit')}</dt>
         <dd>{amount(currentDay ? pool?.limit : null)}</dd>
       </dl>
       {(!pool ||
         pool.status !== 'ok' ||
+        stale ||
         !currentDay ||
         data?.status === 'partial' ||
         data?.status === 'stale') && (
         <p className={styles.message}>{t('gemini_enterprise.quota.' + messageStatus)}</p>
       )}
-      {observation && (
-        <time className={styles.observation} dateTime={observation}>
-          {t(
-            pool?.usageUpdatedAt
-              ? 'gemini_enterprise.quota.reported_at'
-              : 'gemini_enterprise.quota.checked_at',
-            {
-              value: new Date(observation).toLocaleString(i18n.resolvedLanguage),
-            }
-          )}
+      {pool?.usageUpdatedAt && (
+        <time className={styles.observation} dateTime={pool.usageUpdatedAt}>
+          {t('gemini_enterprise.quota.reported_at', {
+            value: new Date(pool.usageUpdatedAt).toLocaleString(i18n.resolvedLanguage),
+          })}
+        </time>
+      )}
+      {data.observedAt && (
+        <time className={styles.observation} dateTime={data.observedAt}>
+          {t('gemini_enterprise.quota.checked_at', {
+            value: new Date(data.observedAt).toLocaleString(i18n.resolvedLanguage),
+          })}
         </time>
       )}
     </>
@@ -106,11 +128,14 @@ export function GeminiEnterpriseQuota({
   const { t, i18n } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const key = enterpriseQuotaKey(file);
-  const now = useNow(Boolean(paidPool));
+  const runtime = file.geminiEnterprise?.quotaObservation;
+  const now = useNow(Boolean(paidPool || runtime));
   const state = useQuotaStore((store) =>
     paidPool
       ? enterprisePaidQuotaPoolState(paidPool, store.geminiEnterpriseQuota, now)
-      : store.geminiEnterpriseQuota[key]
+      : runtime && isEnterpriseQuotaCurrent(runtime.data, now)
+        ? runtime
+        : store.geminiEnterpriseQuota[key]
   );
   const loading = useQuotaStore((store) =>
     paidPool
@@ -163,7 +188,7 @@ export function GeminiEnterpriseQuota({
           <IconRefreshCw size={13} />
         </Button>
       </div>
-      <GeminiEnterpriseQuotaBody state={state} />
+      <GeminiEnterpriseQuotaBody state={state} showUsagePercent={Boolean(paidPool || runtime)} />
     </section>
   );
 }

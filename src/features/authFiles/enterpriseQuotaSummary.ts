@@ -10,6 +10,7 @@ import {
   enterpriseQuotaDay,
   enterpriseQuotaKey,
   isEnterpriseQuotaCurrent,
+  isEnterpriseQuotaStale,
   loadGeminiEnterpriseQuota,
 } from './geminiEnterpriseQuota';
 
@@ -31,14 +32,18 @@ export function buildEnterprisePaidQuotaIndex(accounts: readonly AuthFileItem[])
   const byCredential = new Map<AuthFileItem, EnterprisePaidQuotaScope>();
   const byCollection = new Map<string, EnterprisePaidQuotaPool>();
   const all: EnterprisePaidQuotaScope = { pools: new Set(), unidentified: 0 };
+  let hasPaidCollections = false;
   for (const account of accounts) {
     const scope: EnterprisePaidQuotaScope = { pools: new Set(), unidentified: 0 };
     byCredential.set(account, scope);
-    if (account.disabled || account.unavailable) continue;
     for (const file of enterpriseCollectionFiles(account)) {
       const binding = file.geminiEnterprise;
+      const subscription = binding?.modelPolicyState?.subscription;
+      if (!binding || enterpriseSubscriptionGroup(subscription) !== 'paid') continue;
+      hasPaidCollections = true;
       if (
-        !binding ||
+        account.disabled ||
+        account.unavailable ||
         file.disabled ||
         file.unavailable ||
         binding.effectiveDisabled ||
@@ -46,9 +51,6 @@ export function buildEnterprisePaidQuotaIndex(accounts: readonly AuthFileItem[])
         enterprisePolicyRoutingPaused(binding.modelPolicyState)
       )
         continue;
-      const subscription = binding.modelPolicyState?.subscription;
-      if (enterpriseSubscriptionGroup(subscription) !== 'paid') continue;
-
       const edition = subscription?.edition;
       const project = binding.quotaProjectNumber ?? binding.projectId;
       if (
@@ -76,7 +78,7 @@ export function buildEnterprisePaidQuotaIndex(accounts: readonly AuthFileItem[])
       byCollection.set(enterpriseQuotaKey(file), pool);
     }
   }
-  return { all, byCredential, byCollection };
+  return { all, byCredential, byCollection, hasPaidCollections };
 }
 
 function collectionQuotaState(file: AuthFileItem, edition: string, cache: QuotaCache) {
@@ -120,7 +122,11 @@ function quotaReading(
     enterpriseQuotaDay(Date.parse(data.periodStart)) !== enterpriseQuotaDay(now)
   )
     return null;
-  return { limit: selected.limit, used: selected.used, stale: selected.status === 'stale' };
+  return {
+    limit: selected.limit,
+    used: selected.used,
+    stale: selected.status === 'stale' || isEnterpriseQuotaStale(data, now),
+  };
 }
 
 function compareQuotaReadings(a: GeminiEnterpriseQuotaState, b: GeminiEnterpriseQuotaState) {
@@ -139,6 +145,22 @@ export function enterprisePaidQuotaPoolState(
 ): GeminiEnterpriseQuotaState | undefined {
   let latest: GeminiEnterpriseQuotaState | undefined;
   let reading: GeminiEnterpriseQuotaState | undefined;
+  // Runtime observations are the readings accepted by routing. Old backends supply only manual reads.
+  for (const file of pool.files) {
+    const binding = file.geminiEnterprise;
+    const state = binding?.quotaObservation;
+    if (
+      !binding ||
+      !state?.data ||
+      state.data.accountId !== binding.accountId ||
+      state.data.bindingId !== binding.bindingId ||
+      state.data.revision !== binding.revision ||
+      !quotaReading(pool, state, now)
+    )
+      continue;
+    if (!reading || compareQuotaReadings(state, reading) > 0) reading = state;
+  }
+  if (reading) return reading;
   for (const state of quotaStates(pool, cache)) {
     if (!latest || state.fetchedAtMs > latest.fetchedAtMs) latest = state;
     if (!quotaReading(pool, state, now)) continue;
@@ -178,10 +200,13 @@ export function summarizeEnterprisePaidQuota(
     remaining += BigInt(Math.max(0, reading.limit - reading.used));
     if (
       reading.stale ||
-      states.some(
-        (other) =>
-          !other.loading && other.fetchedAtMs > state.fetchedAtMs && !quotaReading(pool, other, now)
-      )
+      (!pool.files.some((file) => file.geminiEnterprise?.quotaObservation === state) &&
+        states.some(
+          (other) =>
+            !other.loading &&
+            other.fetchedAtMs > state.fetchedAtMs &&
+            !quotaReading(pool, other, now)
+        ))
     )
       stale++;
   }

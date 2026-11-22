@@ -3359,10 +3359,10 @@
       "used": "Sử dụng đã báo cáo: {{value}}",
       "limit": "Giới hạn mỗi ngày: {{value}}",
       "remaining": "Còn lại ước tính: {{value}}",
-      "reported_at": "Thời điểm báo cáo: {{value}}",
+      "reported_at": "Google báo cáo mức sử dụng lúc {{value}}",
       "shared": "Dùng chung theo dự án, khu vực và phiên bản. Báo cáo Google có thể bị trễ.",
       "reset": "Đặt lại: {{value}} (nửa đêm giờ Thái Bình Dương)",
-      "checked_at": "Đã kiểm tra: {{value}}"
+      "checked_at": "Máy chủ kiểm tra lúc {{value}}"
     },
     "configure_link": "Cấu hình Gemini Enterprise và ủy quyền tài khoản",
     "validation": {

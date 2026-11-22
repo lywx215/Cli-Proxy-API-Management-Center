@@ -3379,10 +3379,10 @@
       "used": "已回報用量：{{value}}",
       "limit": "每日上限：{{value}}",
       "remaining": "計算剩餘：{{value}}",
-      "reported_at": "用量回報時間：{{value}}",
+      "reported_at": "Google 用量回報時間 {{value}}",
       "shared": "同專案、區域及版本共用配額，Google 回報可能有延遲。",
       "reset": "重設時間：{{value}}（太平洋時間午夜）",
-      "checked_at": "查詢時間：{{value}}"
+      "checked_at": "後端讀取時間 {{value}}"
     },
     "configure_link": "設定 Gemini Enterprise 並授權帳號",
     "validation": {
