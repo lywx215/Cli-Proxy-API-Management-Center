@@ -49,15 +49,19 @@ describe('Gemini Enterprise region editor', () => {
       'ca',
       'au',
       'in',
-    ]);
-    expect(enterpriseRegionOptions('sg').map((option) => option.value)).toEqual([
+      'kr',
       'sg',
+    ]);
+    expect(enterpriseRegionOptions('existing-region').map((option) => option.value)).toEqual([
+      'existing-region',
       'global',
       'us',
       'eu',
       'ca',
       'au',
       'in',
+      'kr',
+      'sg',
     ]);
     expect(enterpriseResources(undefined)).toMatchObject({
       location: 'global',
@@ -73,6 +77,8 @@ describe('Gemini Enterprise region editor', () => {
     expect(enterpriseRegionEndpoint('ca')).toBe('https://ca-discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('au')).toBe('https://au-discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('in')).toBe('https://in-discoveryengine.googleapis.com');
+    expect(enterpriseRegionEndpoint('kr')).toBe('https://kr-discoveryengine.googleapis.com');
+    expect(enterpriseRegionEndpoint('sg')).toBe('https://sg-discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('global')).toBe('https://discoveryengine.googleapis.com');
     expect(enterpriseRegionEndpoint('evil.test')).toBe('https://discoveryengine.googleapis.com');
   });
@@ -206,7 +212,7 @@ describe('Gemini Enterprise region editor', () => {
       expect(markup).toContain(enterpriseRegionEndpoint('global'));
       expect(markup).not.toContain('never-display-token');
       expect(markup).not.toContain('gemini_enterprise.');
-      for (const region of ['ca', 'au', 'in']) {
+      for (const region of ['ca', 'au', 'in', 'kr', 'sg']) {
         const regionalMarkup = renderToStaticMarkup(
           createElement(
             I18nextProvider,
